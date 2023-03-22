@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../songs/songs.dart';
 import 'package:flutter/foundation.dart';
@@ -218,27 +219,6 @@ class _SongScreenState extends State<SongScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            widget.song.musicTrackPath.isNotEmpty
-                ? StreamBuilder<PlayerState>(
-                    stream: _audioPlayer.playerStateStream,
-                    builder: (context, snapshot) {
-                      final playerState = snapshot.data;
-                      return _playerButton(playerState!);
-                    },
-                  )
-                : Container(),
-            Text('${_currentIndex + 1}'),
-            Text(
-              widget.song.lyrics[_currentIndex],
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: kIsWeb ? 48 : 24,
-                color: _getColorByChorus(),
-              ),
-            ),
-            const SizedBox(
-              height: 15.0,
-            ),
             Center(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -262,7 +242,28 @@ class _SongScreenState extends State<SongScreen> {
                   ),
                 ],
               ),
-            )
+            ),
+            widget.song.musicTrackPath.isNotEmpty
+                ? StreamBuilder<PlayerState>(
+                    stream: _audioPlayer.playerStateStream,
+                    builder: (context, snapshot) {
+                      final playerState = snapshot.data;
+                      return _playerButton(playerState!);
+                    },
+                  )
+                : Container(),
+            Text('${_currentIndex + 1}'),
+            Text(
+              widget.song.lyrics[_currentIndex],
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: kIsWeb ? 48 : 24,
+                color: _getColorByChorus(),
+              ),
+            ),
+            const SizedBox(
+              height: 15.0,
+            ),
           ],
         ),
       ),
@@ -276,7 +277,26 @@ class _SongScreenState extends State<SongScreen> {
         title: Text('${widget.song.title} | Página ${widget.song.page}'),
         backgroundColor: _getColorBy(widget.song.songsCategory),
       ),
-      body: _buildSongWidget(),
+      body: RawKeyboardListener(
+        autofocus: true,
+        focusNode: FocusNode(),
+        onKey: (RawKeyEvent event) {
+          if (event.isKeyPressed(LogicalKeyboardKey.arrowRight)) {
+            if (_currentIndex < widget.song.lyrics.length - 1) {
+              setState(() {
+                _currentIndex++;
+              });
+            }
+          } else if (event.isKeyPressed(LogicalKeyboardKey.arrowLeft)) {
+            if (_currentIndex > 0) {
+              setState(() {
+                _currentIndex--;
+              });
+            }
+          }
+        },
+        child: _buildSongWidget(),
+      ),
     );
   }
 }
