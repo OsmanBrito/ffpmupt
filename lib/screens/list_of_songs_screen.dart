@@ -13,12 +13,33 @@ class ListOfSongsScreen extends StatefulWidget {
 }
 
 class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
+  final _controller = TextEditingController();
   late List<SongsModel> _filteredSongs = songs;
+
+  void _filterSong(String searchString) {
+    setState(() {
+      if (searchString.isEmpty) {
+        _filteredSongs = songs;
+        return;
+      }
+      _filteredSongs = songs
+          .where(
+              (s) => s.title.toLowerCase().contains(searchString.toLowerCase()))
+          .toList();
+    });
+  }
 
   void _showSongsBy(SongsCategory category) {
     setState(() {
-      _filteredSongs =
-          songs.where((element) => element.songsCategory == category).toList();
+      _filteredSongs = songs
+          .where(
+            (element) =>
+                element.songsCategory == category &&
+                element.title.toLowerCase().contains(
+                      _controller.text.toLowerCase(),
+                    ),
+          )
+          .toList();
     });
   }
 
@@ -38,7 +59,7 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
         );
       case SongsCategory.international:
         return ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xffFFC107),
+          backgroundColor: const Color(0xff6B5B95),
         );
     }
   }
@@ -48,7 +69,7 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: Container(
+        title: SizedBox(
           height: 50.0,
           child: ListView(
             scrollDirection: Axis.horizontal,
@@ -59,7 +80,7 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
               ),
               ElevatedButton(
                 onPressed: () => setState(() {
-                  _filteredSongs = songs;
+                  _filteredSongs;
                 }),
                 child: const Text('TODOS'),
               ),
@@ -87,7 +108,7 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
               ElevatedButton(
                 onPressed: () => _showSongsBy(SongsCategory.international),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xffFFC107),
+                  backgroundColor: const Color(0xff6B5B95),
                 ),
                 child: const Text('WORSHIP SONGS (International)'),
               ),
@@ -95,29 +116,42 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
           ),
         ),
       ),
-      body: Container(
-        margin: const EdgeInsets.all(12.0),
-        padding: const EdgeInsets.all(12.0),
-        child: ListView.builder(
-          shrinkWrap: true,
-          scrollDirection: Axis.vertical,
-          itemCount: _filteredSongs.length,
-          itemBuilder: (context, index) {
-            return Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: ElevatedButton(
-                  style: _fillBy(_filteredSongs[index].songsCategory),
-                  child: Text(
-                    '${_filteredSongs[index].title} | Pag ${_filteredSongs[index].page}',
-                  ),
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          SongScreen(song: _filteredSongs[index]),
-                    ),
-                  ),
-                ));
-          },
+      body: SingleChildScrollView(
+        child: Container(
+          margin: const EdgeInsets.all(12.0),
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            children: [
+              TextField(
+                controller: _controller,
+                onChanged: (value) => _filterSong(value),
+                textAlign: TextAlign.center,
+                decoration:
+                    const InputDecoration(hintText: 'Pesquise aqui uma canção'),
+              ),
+              ListView.builder(
+                shrinkWrap: true,
+                scrollDirection: Axis.vertical,
+                itemCount: _filteredSongs.length,
+                itemBuilder: (context, index) {
+                  return Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: ElevatedButton(
+                        style: _fillBy(_filteredSongs[index].songsCategory),
+                        child: Text(
+                          '${_filteredSongs[index].title} | Pag ${_filteredSongs[index].page}',
+                        ),
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                SongScreen(song: _filteredSongs[index]),
+                          ),
+                        ),
+                      ));
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -193,11 +227,11 @@ class _SongScreenState extends State<SongScreen> {
       case SongsCategory.holy:
         return const Color(0xff1A237E);
       case SongsCategory.convivial:
-        return const Color(0xff4CAF50);
+        return const Color(0xfffc5b5b);
       case SongsCategory.english:
         return const Color(0xff90CAF9);
       case SongsCategory.international:
-        return const Color(0xffFFC107);
+        return const Color(0xff6B5B95);
     }
   }
 
