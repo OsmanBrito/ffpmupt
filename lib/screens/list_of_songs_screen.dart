@@ -29,16 +29,17 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
     });
   }
 
-  void _showSongsBy(SongsCategory category) {
+  void _showSongsBy(SongsCategory? category) {
     setState(() {
       _filteredSongs = songs
-          .where(
-            (element) =>
-                element.songsCategory == category &&
-                element.title.toLowerCase().contains(
-                      _controller.text.toLowerCase(),
-                    ),
-          )
+          .where((element) => category != null
+              ? element.songsCategory == category &&
+                  element.title.toLowerCase().contains(
+                        _controller.text.toLowerCase(),
+                      )
+              : element.title
+                  .toLowerCase()
+                  .contains(_controller.text.toLowerCase()))
           .toList();
     });
   }
@@ -80,7 +81,7 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
               ),
               ElevatedButton(
                 onPressed: () => setState(() {
-                  _filteredSongs;
+                  _showSongsBy(null);
                 }),
                 child: const Text('TODOS'),
               ),
@@ -117,6 +118,7 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
         ),
       ),
       body: SingleChildScrollView(
+        physics: const ScrollPhysics(),
         child: Container(
           margin: const EdgeInsets.all(12.0),
           padding: const EdgeInsets.all(12.0),
@@ -131,6 +133,7 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
               ),
               ListView.builder(
                 shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
                 scrollDirection: Axis.vertical,
                 itemCount: _filteredSongs.length,
                 itemBuilder: (context, index) {
@@ -227,7 +230,7 @@ class _SongScreenState extends State<SongScreen> {
       case SongsCategory.holy:
         return const Color(0xff1A237E);
       case SongsCategory.convivial:
-        return const Color(0xfffc5b5b);
+        return const Color(0xff4CAF50);
       case SongsCategory.english:
         return const Color(0xff90CAF9);
       case SongsCategory.international:
@@ -258,22 +261,24 @@ class _SongScreenState extends State<SongScreen> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  ElevatedButton(
-                    onPressed: () => setState(() {
-                      if (_currentIndex > 0) {
-                        _currentIndex--;
-                      }
-                    }),
-                    child: const Text('<-'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () => setState(() {
-                      if (_currentIndex < widget.song.lyrics.length - 1) {
-                        _currentIndex++;
-                      }
-                    }),
-                    child: const Text('->'),
-                  ),
+                  _currentIndex > 0
+                      ? ElevatedButton(
+                          onPressed: () => setState(() {
+                            _currentIndex--;
+                          }),
+                          child: const Text('<-'),
+                        )
+                      : Container(),
+                  _currentIndex < widget.song.lyrics.length - 1
+                      ? ElevatedButton(
+                          onPressed: () => setState(
+                            () {
+                              _currentIndex++;
+                            },
+                          ),
+                          child: const Text('->'),
+                        )
+                      : Container(),
                 ],
               ),
             ),
