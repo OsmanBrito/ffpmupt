@@ -29,18 +29,24 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
     });
   }
 
-  void _showSongsBy(SongsCategory? category) {
+  void _showSongsBy(SongsCategory? category, {bool? hasMusic}) {
     setState(() {
-      _filteredSongs = songs
-          .where((element) => category != null
-              ? element.songsCategory == category &&
-                  element.title.toLowerCase().contains(
-                        _controller.text.toLowerCase(),
-                      )
-              : element.title
-                  .toLowerCase()
-                  .contains(_controller.text.toLowerCase()))
-          .toList();
+      if (hasMusic != null && hasMusic) {
+        _filteredSongs = songs
+            .where((element) => element.musicTrackPath.isNotEmpty)
+            .toList();
+      } else {
+        _filteredSongs = songs
+            .where((element) => category != null
+                ? element.songsCategory == category &&
+                    element.title.toLowerCase().contains(
+                          _controller.text.toLowerCase(),
+                        )
+                : element.title
+                    .toLowerCase()
+                    .contains(_controller.text.toLowerCase()))
+            .toList();
+      }
     });
   }
 
@@ -78,6 +84,15 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
             children: [
               const SizedBox(
                 width: 42.0,
+              ),
+              ElevatedButton(
+                onPressed: () => setState(() {
+                  _showSongsBy(
+                    null,
+                    hasMusic: true,
+                  );
+                }),
+                child: const Text('COM MUSICA'),
               ),
               ElevatedButton(
                 onPressed: () => setState(() {
@@ -141,8 +156,25 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
                       padding: const EdgeInsets.all(8.0),
                       child: ElevatedButton(
                         style: _fillBy(_filteredSongs[index].songsCategory),
-                        child: Text(
-                          '${_filteredSongs[index].title} | Pag ${_filteredSongs[index].page}',
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _filteredSongs[index].musicTrackPath.isNotEmpty
+                                ? const Icon(Icons.music_note_rounded)
+                                : Container(),
+                            _filteredSongs[index].musicTrackPath.isNotEmpty
+                                ? const Icon(Icons.music_note_rounded)
+                                : Container(),
+                            Text(
+                              '${_filteredSongs[index].title} | Pag ${_filteredSongs[index].page}',
+                            ),
+                            _filteredSongs[index].musicTrackPath.isNotEmpty
+                                ? const Icon(Icons.music_note_rounded)
+                                : Container(),
+                            _filteredSongs[index].musicTrackPath.isNotEmpty
+                                ? const Icon(Icons.music_note_rounded)
+                                : Container(),
+                          ],
                         ),
                         onPressed: () => Navigator.of(context).push(
                           MaterialPageRoute(
