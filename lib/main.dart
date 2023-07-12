@@ -52,17 +52,8 @@ class Home extends StatelessWidget {
                 builder: (context) => const ListOfSongsScreen(),
               ),
             ),
-            icon: const Icon(Icons.newspaper_rounded),
-            label: const Text('Ultimos avisos'),
-          ),
-          ElevatedButton.icon(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const ListOfSongsScreen(),
-              ),
-            ),
             icon: const Icon(Icons.library_music),
-            label: const Text('Canções'),
+            label: const Text('Canções / Songs'),
           ),
           ElevatedButton.icon(
             onPressed: () => Navigator.of(context).push(
@@ -71,7 +62,7 @@ class Home extends StatelessWidget {
               ),
             ),
             icon: const Icon(Icons.church_rounded),
-            label: const Text('Promessa da família'),
+            label: const Text('Promessa da família / Family Pledge'),
           )
         ],
       )),

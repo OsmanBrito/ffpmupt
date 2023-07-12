@@ -38,16 +38,36 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
     });
   }
 
+  Color _getColorByCurrentLanguage() {
+    switch (_currentLanguage) {
+      case FamilyPromiseLanguage.portuguese:
+        return Colors.green;
+      case FamilyPromiseLanguage.korean:
+        return Colors.lightBlueAccent;
+      case FamilyPromiseLanguage.english:
+        return Colors.redAccent;
+    }
+  }
+
+  String _getTitleByCurrentLanguage() {
+    switch (_currentLanguage) {
+      case FamilyPromiseLanguage.portuguese:
+        return 'Promessa da familia';
+      case FamilyPromiseLanguage.korean:
+        return '가정맹세 (ka-jeong-maeng-se)';
+      case FamilyPromiseLanguage.english:
+        return 'Family Pledge';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: _currentLanguage == FamilyPromiseLanguage.portuguese
-            ? Colors.green
-            : Colors.lightBlueAccent,
-        title: Text(_currentLanguage == FamilyPromiseLanguage.portuguese
-            ? 'Promessa da familia'
-            : '가정맹세 (ka-jeong-maeng-se)'),
+        backgroundColor: _getColorByCurrentLanguage(),
+        title: Text(
+          _getTitleByCurrentLanguage(),
+        ),
       ),
       body: SingleChildScrollView(
         child: Container(
@@ -76,6 +96,16 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
                     style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.lightBlueAccent),
                   ),
+                  const SizedBox(width: 20),
+                  const SizedBox(width: 20),
+                  ElevatedButton.icon(
+                    onPressed: () =>
+                        _changeLanguage(FamilyPromiseLanguage.english),
+                    icon: const Icon(Icons.account_balance),
+                    label: const Text('English'),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent),
+                  ),
                 ],
               ),
               Card(
@@ -86,7 +116,9 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
                       child: Text(
                         _currentLanguage == FamilyPromiseLanguage.portuguese
                             ? 'Português'
-                            : 'Coreano',
+                            : _currentLanguage == FamilyPromiseLanguage.english
+                                ? 'English'
+                                : 'Coreano',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: kIsWeb ? 42 : 26,
@@ -144,7 +176,7 @@ final Map<FamilyPromiseLanguage, List<String>> familyPromise = {
     '8.  A nossa Família, senhora da Cheon Il Guk, promete, tendo entrado na Era da Cheon Il Guk, atingir o ideal de Deus e dos seres humanos unidos em amor através da fé absoluta, amor absoluto e obediência absoluta e aperfeiçoar a esfera de libertação e plena liberdade no Reino de Deus na Terra e no Céu, centrando-se no verdadeiro amor.',
   ],
   FamilyPromiseLanguage.korean: [
-    '1 (il) Cheon-il-guk   ju-in   u-ri    ka-jeong-eun,    cham-sa-rang-eul    chung-shim-há-go,\nbon-hyang-dang-eul   cha-ja,\nbon-yeon-é   chang-jo-i-sang-in,   ji-sang-cheon-guk-gwa   cheon-sang-cheon-guk-eul,\nchang-geon-hal   go-seul   maeng-se-ha-na-i-da.',
+    '1 (il) Cheon-il-guk ju-in u-ri ka-jeong-eun, cham-sa-rang-eul chung-shim-há-go,\nbon-hyang-dang-eul cha-ja,\nbon-yeon-é chang-jo-i-sang-in, ji-sang-cheon-guk-gwa cheon-sang-cheon-guk-eul,\nchang-geon-hal go-seul maeng-se-ha-na-i-da.',
     '2 (hi) Cheon-il-guk   ju-in   u-ri   ka-jeong-eun,   cham-sa-rang-eul   chung-shim-há-go,\nha-neul-bu-mo-nim-gwa   cham-bu-mo-nim-eul   mo-chi-ô,\ncheon-ju-é   dae-pyo-jeok   ka-jeong-i  dwe-myeo,  choong-chim-jeok ka-jeong-i   dwe-yo,  ka-jeong-e-seo-neun   hyo-ja,\ngug-ka-e-seo-neun   chung-shin,   se-gye-e-seo-neun   seong-in,   cheon-ju-e-seo-neun\nseong-ja-é   ga-jeong-é   do-ri-rul,   wan-seong-hal   go-seul   maeng-se-há-na-i-da.',
     '3 (sam) Cheon-il-guk  ju-in   u-ri  ka-jeong-eun,   cham-sa-rang-eul   chung-shim-ha-go,\nsa-dé-chim-jeong-gweon-gwa, \nsam-dae-wang-gweon-gwa   hwang-jok-kweon-eul,   wan-seong-hal   go-seul \nmaeng-se-há-na-i-da.',
     '4 (sa) Cheon-il-guk  ju-in   u-ri  ka-jeong-eun,   cham-sa-rang-eul   chung-shim-ha-go,\nha-neul-bu-mo-nim-é chang-jo-i-sang-in,\ncheon-ju-dae-ga-jok-eul  hyeong-seong-ha-yeo,  ja-yu-wa  pyeong-hwa-wa  tong-il-gwa,\nhaeng-bok-é  se-gye-reul,   wan-seong-hal  go-seul   maeng-se-há-na-i-da.',
@@ -152,6 +184,16 @@ final Map<FamilyPromiseLanguage, List<String>> familyPromise = {
     '6 (yuk) Cheon-il-guk  ju-in   u-ri  ka-jeong-eun,   cham-sa-rang-eul   chung-shim-ha-go,\nha-neul-bu-mo-nim-gwa   cham-bu-mo-nim-é,  dae-shin    ka-jeong-eu-ro-seo,\ncheon-un-eul  um-jik-i-neun  ka-geong- i  dé-ô,  ha-neul-e  chuk-bok-eul,   ju-byeon-é\n yeon-gyeol-chi-ki-neun  ka-jeong-eul,  wan-seong-hal  go-seul  maeng-se-ha-na-i-da.',
     '7 (chil) Cheon-il-guk  ju-in   u-ri  ka-jeong-eun,   cham-sa-rang-eul   chung-shim-ha-go,\nbon-yeon-é   hyeol-tong-gwa   yeon-gyeol-doen,\nwi-ha-neun   saeng-hwa-reul   tong-ha-yeo,   shim-jeong-mun-hwa   se-gye-reul,\nwan-seong-hal  go-seul   maeng-se-ha-na-i-da.',
     '8 (pal) Cheon-il-guk  ju-in   u-ri  ka-jeong-eun,   cham-sa-rang-eul   chung-shim-ha-go,\ncheon-il-guk-shi-de-reul   ma-ji-ha-yeo,\ncheol-dae-shin-ang,   cheol-dae-sa-rang,   cheol-dae-bok-chong-eu-ro,\nshin-in-é   il-che-i-sang-eul   i-ru-ô,\nji-sang-cheon-guk-gwa   cheon-sang-cheon-guk-é,   hae-bang-gweon-gwa \nseok-bang-gweon-eul,   wan-seong-hal  go-seul   maeng-se-ha-na-i-da.',
+  ],
+  FamilyPromiseLanguage.english: [
+    '1. Our family, the owner of Cheon II Guk, pledges to seek our original homeland and build the Kingdom of God on earth and in heaven, the original ideal of creation, by centring on true love.',
+    '2. Our family, the owner of Cheon II Guk, pledges to represent and become central to heaven and earth by attending the Heavenly Parent and True Parents; we pledge to perfect the dutiful family way of filial sons and daughters in our family, patriots in our nation, saints in the world, and divine sons and daughters in heaven and on earth, by centring on true love.',
+    '3. Our family, the owner of Cheon II Guk, pledges to perfect the Four Great Realms of Heart, the Three Great Kingships and the Realm of the Royal Family, by centring on true love.',
+    '4. Our family, the owner of Cheon II Guk, pledges to build the universal family encompassing heaven and earth, which is the Heavenly Parent\'s ideal of creation, and perfect the world of freedom, peace, unity and happiness, by centring on true love.',
+    '5. Our family, the owner of Cheon I Guk, pledges to strive every day to advance the unification of the spirit world and the physical world as subject and object partners, by centring on true love.',
+    '6. Our family, the owner of Cheon Il Guk, pledges to become a family that moves heavenly fortune by embodying the Heavenly Parent and True Parents, and to perfect a family that conveys Heaven\'s blessing to our community, by centring on true love.',
+    '7. Our family, the owner of Cheon II Guk, pledges, through living for the sake of others, to perfect the world based on the culture of heart, which is rooted in the original lineage, by centring on true love.',
+    '8. Our family, the owner of Cheon II Guk, pledges, having entered the Era of Cheon I Guk, to achieve the ideal of God and human beings united in love through absolute faith, absolute love and absolute obedience, and to perfect the realm of liberation and complete freedom in the Kingdom of God on earth and in heaven, by centring on true love.',
   ]
 };
 

@@ -1,23 +1,26 @@
 class SongsModel {
+
+  SongsModel(
+      this.title,
+      this.page,
+      this.lyrics,
+      this.songsCategory, {
+        this.musicTrackPath = '',
+        this.isSecondChorus = false,
+        this.isFirstChorus = false,
+        this.times = const [],
+      });
+
   final bool isSecondChorus;
   final bool isFirstChorus;
   final String musicTrackPath;
   final String page;
   final String title;
   final List<String> lyrics;
+  final List<double> times;
   final SongsCategory songsCategory;
 
   // final List<String> chorus;
-
-  SongsModel(
-    this.title,
-    this.page,
-    this.lyrics,
-    this.songsCategory, {
-    this.musicTrackPath = '',
-    this.isSecondChorus = false,
-    this.isFirstChorus = false,
-  });
 }
 
 final List<SongsModel> songs = [
