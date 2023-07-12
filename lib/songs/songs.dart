@@ -1,15 +1,14 @@
 class SongsModel {
-
   SongsModel(
-      this.title,
-      this.page,
-      this.lyrics,
-      this.songsCategory, {
-        this.musicTrackPath = '',
-        this.isSecondChorus = false,
-        this.isFirstChorus = false,
-        this.times = const [],
-      });
+    this.title,
+    this.page,
+    this.lyrics,
+    this.songsCategory, {
+    this.musicTrackPath = '',
+    this.isSecondChorus = false,
+    this.isFirstChorus = false,
+    this.times = const [],
+  });
 
   final bool isSecondChorus;
   final bool isFirstChorus;
@@ -20,7 +19,7 @@ class SongsModel {
   final List<double> times;
   final SongsCategory songsCategory;
 
-  // final List<String> chorus;
+// final List<String> chorus;
 }
 
 final List<SongsModel> songs = [
@@ -34,6 +33,18 @@ final List<SongsModel> songs = [
       'Os Verdadeiros Pais nos dão o Verdadeiro Amor\nIdeal tão ansiado é o Reino de Deus\nA bandeira da Cheon Il Guk erguida firmemente\nBrilhando eternamente na Cheon II Guk, na terra de Deus.\n',
     ],
     SongsCategory.holy,
+    musicTrackPath: 'assets/novo-cantico-de-inspiracao.mp3',
+  ),
+  SongsModel(
+    'A MORADA DO PAI',
+    '1',
+    [
+      'A morada de Nosso Pai, fonte de nova vida será;\nTrocaremos as trevas do mal pelo brilho de Sua luz.\nEm meu coração soará a verdade;\nReceber Seu amor pela eternidade.\nDaremos felicidade a Ti, oh filho do eterno Deus.\nVamos ao novo Éden morar, juntos vamos marchar.\n',
+      'A morada de Nosso Pai, trono de nova vida será;\nOnde vive a ressurreição longamente esperada.\nEm meu coração soará a verdade;\nReceber Sua graça pela eternidade.\nDaremos felicidade a Ti, oh filho do eterno Deus.\nVamos ao novo Éden morar, juntos vamos cantar.\n',
+      'A morada de Nosso Pai, um paraíso eterno será;\nOnde a Bênção que Ele guardou, livremente dará.\nEm meu coração soará a verdade;\nReceber Seu louvor pela eternidade.\nDaremos felicidade a Ti, oh filho do eterno Deus.\nVamos ao novo Éden morar, juntos vamos dançar.\n',
+    ],
+    SongsCategory.holy,
+    musicTrackPath: 'assets/A-Morada-do-Pai.mp3',
   ),
   SongsModel(
     'A GRAÇA DO SANTO JARDIM',
@@ -49,6 +60,7 @@ final List<SongsModel> songs = [
       'Entoa minha alma\nUm hino de glória\nAo meu Pai Celestial\nE com gratidão ofertar-Lhe-ei\nO mais sublime amor.',
     ],
     SongsCategory.holy,
+    musicTrackPath: 'assets/Graca-do-Jardim-Sagrado.mp3',
     isSecondChorus: true,
   ),
   SongsModel(
@@ -60,6 +72,7 @@ final List<SongsModel> songs = [
       'Eu juro que irei Determinado estou\nPai, eu venho agora para Ti\nPois não tenho outra vontade\nSenão seguir a Tua.\nNo Teu altar me ponho\nE sem hesitação\nA minha vida há-de ser\nUma pura oblação.',
     ],
     SongsCategory.holy,
+    musicTrackPath: 'assets/minha-oferta.mp3',
   ),
   SongsModel(
     'BENÇÃO DE GLÓRIA',
@@ -71,6 +84,7 @@ final List<SongsModel> songs = [
       'Ele me ergue agora e me abraça\n Nesta bênção que me deu\n Que alegria é recebê-Lo\n Num amor tão puro e tão divino\n Por maior que seja o meu ardor\n Nunca Lhe retribuirei\n Sempre hei-de me sentir\n Como tão indigno sou',
     ],
     SongsCategory.holy,
+    musicTrackPath: 'assets/A-Bencao-da-Gloria.mp3',
   ),
   SongsModel(
     'NASCENTE DA VIDA',
@@ -84,6 +98,7 @@ final List<SongsModel> songs = [
       'Vamos à nascente\n Onde brota a água viva\n Na glória eternamente viveremos.\n Vamos para a terra\n Das águas cristalinas\n Felizes para sempre viveremos.',
     ],
     SongsCategory.holy,
+    musicTrackPath: 'assets/manancial-da-vida.mp3',
     isSecondChorus: true,
   ),
   SongsModel(
@@ -95,6 +110,7 @@ final List<SongsModel> songs = [
       'Todos que amais o Senhor\n Vinde e provai da Sua Palavra;\n Seguindo sempre o Pai,\n Seguindo sempre o Pai.\n Nossas tribulações aqui\n Serão a nossa riqueza lá;\n No nosso eterno lar,\n No nosso eterno lar.',
     ],
     SongsCategory.holy,
+    musicTrackPath: 'assets/Cantico-do-Jardim.mp3',
   ),
   SongsModel(
       'DEUS É AMOR',
@@ -121,6 +137,7 @@ final List<SongsModel> songs = [
       'Nós somos filhos verdadeiros\n Do Pai Celestial\n Formaremos cá na terra\n O mundo ideal!\n Novo mundo de alegria\n De luz, amor e muita paz\n Sempre em frente\n Juventude de harmonia e amor!',
     ],
     SongsCategory.holy,
+    musicTrackPath: 'assets/Cancao-da-Juventude.mp3',
   ),
   SongsModel(
     'CANÇÃO DA PRIMAVERA DO ÉDEN',
@@ -131,22 +148,23 @@ final List<SongsModel> songs = [
       'Vinde irmãos para o Jardim do Éden \n Reino da felicidade\n Em comunhão nosso amor partilhando\n No nosso Éden da paz\n Vinde p\'ra este Jardim, meus irmãos \n Com canções de alegria',
     ],
     SongsCategory.holy,
+    musicTrackPath: 'assets/Cantico-do-Jardim-do-Eden.mp3',
   ),
   SongsModel(
-    'CANÇÃO DA VITÓRIA',
-    '15',
-    [
-      'Canta Hosanas Aleluia\n Glória, glória eternamente\n O Senhor já regressou\n Canta Hosanas Aleluia.',
-      'Todo o céu exulta e canta\n E os anjos rejubilam\n E a inteira criação\n Compartilha da alegria.',
-      'Já a Nova Jerusalém\n Vem descendo sobre a terra\n Por fim o dia chegou\n Em que o Senhor voltou.',
-      'Vivo fogo da fé\n Brilhando por toda a parte\n Luz de nova esperança\n Que inflama os corações.',
-      'Ó Egipto terra de dor\n Que esperas o Senhor\n Breve chegará o dia\n Em que todos exultarão.',
-      'Para a frente caminhai\n Sem receio avançai\n Pois seguis para a vitória\n Soldados celestiais.',
-      'Glória, glória ao Senhor\n Da verdade e do amor\n Ao Senhor cantai hinos\n De eterna gratidão.',
-      'Canta Hosanas Aleluia\n Glória, glória eternamente\n O Senhor já regressou\n Canta Hosanas Aleluia.',
-    ],
-    SongsCategory.holy,
-  ),
+      'CANÇÃO DA VITÓRIA',
+      '15',
+      [
+        'Canta Hosanas Aleluia\n Glória, glória eternamente\n O Senhor já regressou\n Canta Hosanas Aleluia.',
+        'Todo o céu exulta e canta\n E os anjos rejubilam\n E a inteira criação\n Compartilha da alegria.',
+        'Já a Nova Jerusalém\n Vem descendo sobre a terra\n Por fim o dia chegou\n Em que o Senhor voltou.',
+        'Vivo fogo da fé\n Brilhando por toda a parte\n Luz de nova esperança\n Que inflama os corações.',
+        'Ó Egipto terra de dor\n Que esperas o Senhor\n Breve chegará o dia\n Em que todos exultarão.',
+        'Para a frente caminhai\n Sem receio avançai\n Pois seguis para a vitória\n Soldados celestiais.',
+        'Glória, glória ao Senhor\n Da verdade e do amor\n Ao Senhor cantai hinos\n De eterna gratidão.',
+        'Canta Hosanas Aleluia\n Glória, glória eternamente\n O Senhor já regressou\n Canta Hosanas Aleluia.',
+      ],
+      SongsCategory.holy,
+      musicTrackPath: 'assets/Cancao-da-Vitoria.mp3'),
   SongsModel(
       'CANÇÃO DOS VITORIOSOS',
       '16',
@@ -161,6 +179,7 @@ final List<SongsModel> songs = [
         'Ao Jardim iremos para cantar\n A canção de liberdade e amor.\n Ao Jardim iremos para cantar\n A canção de liberdade e amor.',
       ],
       SongsCategory.holy,
+      musicTrackPath: 'assets/Cantico-dos-Vitoriosos.mp3',
       isSecondChorus: true),
   SongsModel(
     'NOVA CANÇÃO DA INSPIRAÇÃO',
@@ -172,6 +191,7 @@ final List<SongsModel> songs = [
       'Já neste dia de nova vida, defendei a justiça,\n E a nova vida eterna, erguei o padrão do bem,\n Glória ao Pai de todo o bem, nosso grande ideal,\n Construí um Novo Mundo, de paz e amor, Vamos construir.',
     ],
     SongsCategory.holy,
+    musicTrackPath: 'assets/novo-cantico-de-inspiracao.mp3',
   ),
   SongsModel(
     'O SENHOR CHEGOU',
@@ -182,20 +202,23 @@ final List<SongsModel> songs = [
       'O Senhor chegou, o Senhor chegou,\n Veio à terra dos montes e vales,\n E de tesouros sem par,\n É nosso Deus e Senhor,\n Traz o amor do Pai.\n Eleva todos ao Céu,\n Junto à glória de Deus,\n Vinde irmãos receber o Senhor,\n Cantemos com a alegria.\n Aleluia, Aleluia, Aleluia, Adju.',
     ],
     SongsCategory.holy,
+    musicTrackPath: 'assets/o-senhor-chegou.mp3',
   ),
   SongsModel(
-      'O SENHOR ME CHAMOU',
-      '19',
-      [
-        'A voz do meu Senhor chamou,\n Aonde quer que eu vá irei,\n Na dor e na alegria vou,\n Junto a ele andarei',
-        'Quem poderá me separar\n Nem mesmo a morte impede. (Bis)',
-        'Aos vales desolados vou\n Levarei a nova vida\n Até nas ruas de Sodoma\n A palavra espalharei',
-        'Minha vida à Tua ligarei\n Meu coração é oferta. (Bis)',
-        'A Ti pertence todo o poder\n Toda honra, fama e glória\n A mim desprezo e rejeição\n Carregar a cruz eu devo',
-        'Renome não procuro eu\n Desejo só seguir-Te. (Bis)',
-      ],
-      SongsCategory.holy,
-      isSecondChorus: true),
+    'O SENHOR ME CHAMOU',
+    '19',
+    [
+      'A voz do meu Senhor chamou,\n Aonde quer que eu vá irei,\n Na dor e na alegria vou,\n Junto a ele andarei',
+      'Quem poderá me separar\n Nem mesmo a morte impede. (Bis)',
+      'Aos vales desolados vou\n Levarei a nova vida\n Até nas ruas de Sodoma\n A palavra espalharei',
+      'Minha vida à Tua ligarei\n Meu coração é oferta. (Bis)',
+      'A Ti pertence todo o poder\n Toda honra, fama e glória\n A mim desprezo e rejeição\n Carregar a cruz eu devo',
+      'Renome não procuro eu\n Desejo só seguir-Te. (Bis)',
+    ],
+    SongsCategory.holy,
+    musicTrackPath: 'assets/o-senhor-me-chamou.mp3',
+    isSecondChorus: true,
+  ),
   SongsModel(
     'TONGIL',
     '20',
@@ -538,6 +561,7 @@ final List<SongsModel> songs = [
       'Hey, avançar soldados unidos, \n O inimigo derrotar.\n Lado a lado a lutar e em frente marchar, marchar',
     ],
     SongsCategory.convivial,
+    musicTrackPath: 'assets/soldados-unidos.mp3',
     isSecondChorus: true,
   ),
   SongsModel(
@@ -550,6 +574,7 @@ final List<SongsModel> songs = [
       'Reunir, reunir,\n todo o povo se unir.\n Pra fazer uma nação unida,\n para se viver em paz.',
     ],
     SongsCategory.convivial,
+    musicTrackPath: 'assets/unidade.mp3',
     isSecondChorus: true,
   ),
   SongsModel(
@@ -564,6 +589,7 @@ final List<SongsModel> songs = [
         'Marcharei com meu Senhor,\n E juro perseverar.\n Mais longe que Golgotá,\n Vitória chega já.',
       ],
       SongsCategory.convivial,
+      musicTrackPath: 'assets/minha-cruz.mp3',
       isSecondChorus: true),
   SongsModel(
     'A SONG OF THE BANQUET',
@@ -575,6 +601,7 @@ final List<SongsModel> songs = [
       'Overflowing with your love as dawn proclaims \neternal life,\n Earth and heaven come surround the glorious \nParents of mankind,\n Gather around, sing the song, fragrant the love \nof the Lord;\n Tell all the world, Spring has come eternally!\n Hallelujah, Glorious Day of Joy!',
     ],
     SongsCategory.english,
+    musicTrackPath: 'assets/Cancao-do-Banquete.mp3',
   ),
   SongsModel(
     'BLESSING OF GLORY',
@@ -586,6 +613,7 @@ final List<SongsModel> songs = [
       'Overflowing with your love as dawn proclaims eternal life,\n Earth and heaven come surround the glorious Parents of mankind,\n Gather around, sing the song, fragrant the love of the Lord;\n Tell all the world, Spring has come eternally!\n Hallelujah, Glorious Day of Joy!',
     ],
     SongsCategory.english,
+    musicTrackPath: 'assets/A-Bencao-da-Gloria.mp3',
   ),
   SongsModel(
       'BY THE SPRING OF LIFE',
@@ -599,22 +627,25 @@ final List<SongsModel> songs = [
         'Coming to the spring where living water flows;\n In glory we\'ll be living evermore.\n Going to the land where freely flows the spring,\n In glory we\'ll be living evermore.',
       ],
       SongsCategory.english,
+      musicTrackPath: 'assets/manancial-da-vida.mp3',
       isSecondChorus: true),
   SongsModel(
-      'GRACE OF THE HOLY GARDEN',
-      '54',
-      [
-        'Grace filling me with golden light, measureless blessing divine; \n God gives eternal life to me, perfect rejoicing is mine.',
-        'Glorious the song ringing in my heart \n for my Father above; \n Gratefully I give, offering to Him, triumph and glorious love.',
-        'Joy surging like an ocean wave, flowing so deep in my soul;\n Hope rises as I go in praise, knowing that man will be whole',
-        'Glorious the song ringing in my heart \n for my Father above; \n Gratefully I give, offering to Him, triumph and glorious love.',
-        'High, limitless eternal life, touching the top of the sky;\n Praise filling every part of me, blessing that never will die.',
-        'Glorious the song ringing in my heart \n for my Father above; \n Gratefully I give, offering to Him, triumph and glorious love.',
-        'You\'ve chosen me to do Your will, thankful, I vow to be true;\n I\'m pledging in my heart of hearts; Father, my life is for You.',
-        'Glorious the song ringing in my heart \n for my Father above; \n Gratefully I give, offering to Him, triumph and glorious love.',
-      ],
-      SongsCategory.english,
-      isSecondChorus: true),
+    'GRACE OF THE HOLY GARDEN',
+    '54',
+    [
+      'Grace filling me with golden light, measureless blessing divine; \n God gives eternal life to me, perfect rejoicing is mine.',
+      'Glorious the song ringing in my heart \n for my Father above; \n Gratefully I give, offering to Him, triumph and glorious love.',
+      'Joy surging like an ocean wave, flowing so deep in my soul;\n Hope rises as I go in praise, knowing that man will be whole',
+      'Glorious the song ringing in my heart \n for my Father above; \n Gratefully I give, offering to Him, triumph and glorious love.',
+      'High, limitless eternal life, touching the top of the sky;\n Praise filling every part of me, blessing that never will die.',
+      'Glorious the song ringing in my heart \n for my Father above; \n Gratefully I give, offering to Him, triumph and glorious love.',
+      'You\'ve chosen me to do Your will, thankful, I vow to be true;\n I\'m pledging in my heart of hearts; Father, my life is for You.',
+      'Glorious the song ringing in my heart \n for my Father above; \n Gratefully I give, offering to Him, triumph and glorious love.',
+    ],
+    SongsCategory.english,
+    musicTrackPath: 'assets/Graca-do-Jardim-Sagrado.mp3',
+    isSecondChorus: true,
+  ),
   SongsModel(
     'HE HAS CALLED ME',
     '55',
@@ -624,6 +655,7 @@ final List<SongsModel> songs = [
       'To You belongs our full acclaim, all glory power and honor,\n The world\'s contempt I do not fear, I will gladly bear the cross.\n Without esteem, without renown, I only wish to follow,\n Without esteem, without renown, I only wish to follow.',
     ],
     SongsCategory.english,
+    musicTrackPath: 'assets/o-senhor-me-chamou.mp3',
   ),
   SongsModel(
     'HIGHER GROUND',
@@ -681,6 +713,7 @@ final List<SongsModel> songs = [
       'Within a day of bright new life, stand upholding the right; \n In the pure new life eternal raise the standard of good. \n Praise the Father of all good, our glorious true ideal; \n Build a whole new world of peace, we will build it now, \n We will build it now.',
     ],
     SongsCategory.english,
+    musicTrackPath: 'assets/novo-cantico-de-inspiracao.mp3',
   ),
   SongsModel(
     'O COME, MY LORD',
@@ -691,6 +724,7 @@ final List<SongsModel> songs = [
       'O come my Lord; I beg You to come.\n O come and bring new life to all the earth;\n O come save the world from dying in pain;\n Restore our sinful world.\n O come! My Lord, You are the strength that will not change;\n Come end our evil ways and tragic times.\n O how I pray that You will come soon;\n Crying my heart, Come to us, O Lord.',
     ],
     SongsCategory.english,
+    musicTrackPath: 'assets/o-senhor-chegou.mp3',
   ),
   SongsModel(
     'OUR FOREFATHERS',
@@ -734,6 +768,7 @@ final List<SongsModel> songs = [
       'Come brethren you that love the Lord,\n And taste the sweetness of His word;\n In Father\'s ways go on, in Father\'s ways go on,\n Our trouble and our trials here,\n Will only make us richer there,\n When we arrive at home, when we arrive at home.',
     ],
     SongsCategory.english,
+    musicTrackPath: 'assets/Cantico-do-Jardim.mp3',
   ),
   SongsModel(
     'SONG OF THE VICTORS',
@@ -749,6 +784,7 @@ final List<SongsModel> songs = [
       'There we\'ll sing new songs in the Garden fair,\n Songs of freedom bright with happiness.\n There we\'ll sing new songs in the Garden fair,\n Songs of freedom bright with happiness.',
     ],
     SongsCategory.english,
+    musicTrackPath: 'assets/Cantico-dos-Vitoriosos.mp3',
     isSecondChorus: true,
   ),
   SongsModel(
@@ -767,15 +803,15 @@ final List<SongsModel> songs = [
     SongsCategory.english,
   ),
   SongsModel(
-    'SPRING SONG OF EDEN',
-    '67',
-    [
-      'Come O ye friends to the Garden of Eden, where \nthe spring blossoms are best;\n Joyfully singing together our song, Friends in \nour Eden regained,\n Here in the Garden together we\'ll meet, Singing \nnew songs of joy.\n',
-      'Come, O ye friends, to the Garden of Eden, \nSinging new songs of delight;\n Joyfully dancing together with song, Friends in \nour Eden rejoice,\n Here in the Garden together we\'ll dance, Singing \nnew songs of joy.\n',
-      'Come, O ye friends, to the Garden of Eden, Where \njoy and happiness reign;\n Joyfully sharing together our love, Here in the \ngarden of peace;\n Come, ye, O come to the Garden my friends, \nSinging new songs of joy.\n',
-    ],
-    SongsCategory.english,
-  ),
+      'SPRING SONG OF EDEN',
+      '67',
+      [
+        'Come O ye friends to the Garden of Eden, where \nthe spring blossoms are best;\n Joyfully singing together our song, Friends in \nour Eden regained,\n Here in the Garden together we\'ll meet, Singing \nnew songs of joy.\n',
+        'Come, O ye friends, to the Garden of Eden, \nSinging new songs of delight;\n Joyfully dancing together with song, Friends in \nour Eden rejoice,\n Here in the Garden together we\'ll dance, Singing \nnew songs of joy.\n',
+        'Come, O ye friends, to the Garden of Eden, Where \njoy and happiness reign;\n Joyfully sharing together our love, Here in the \ngarden of peace;\n Come, ye, O come to the Garden my friends, \nSinging new songs of joy.\n',
+      ],
+      SongsCategory.english,
+      musicTrackPath: 'assets/Cantico-do-Jardim-do-Eden.mp3'),
   SongsModel(
     'TAN SHIM GA',
     '68',
@@ -784,6 +820,7 @@ final List<SongsModel> songs = [
       'Although my body perishes\n And yet one thousand times dies\n My bones become ashes\n Even my soul vanishes\n Still all my love and all my heart\n Unchanging remain with you\n My everlasting loyalty\n Unchanging remains with you.\n',
     ],
     SongsCategory.english,
+    musicTrackPath: 'assets/tam-shin-ga.mp3',
   ),
   SongsModel(
     'THE FATHER\'S DWELLING PLACE',
@@ -794,6 +831,7 @@ final List<SongsModel> songs = [
       'The Father\'s dwelling place is the eternal paradise,\n Where the blessing He had to reserve will be freely given.\n May the Word of God in my heart resound,\n So eternally to receive His praise.\n We shall be His pride and delight, children of the Living God,\n Into the world of Eden regained, Let\'s go dancing together!\n',
     ],
     SongsCategory.english,
+    musicTrackPath: 'assets/A-Morada-do-Pai.mp3',
   ),
   SongsModel(
     'THE PRINCIPLE YOUTH MARCH',
@@ -807,6 +845,7 @@ final List<SongsModel> songs = [
       'Lift high! Lift high! The banner of Truth on high;\n March forward crossing the sea, to the ends of the earth.\n',
     ],
     SongsCategory.english,
+    musicTrackPath: 'assets/marcha-da-juventude-do-principio.mp3',
     isSecondChorus: true,
   ),
   SongsModel(
@@ -823,6 +862,7 @@ final List<SongsModel> songs = [
       'We\'re His pride in the heavenly war,\n Unified soldiers! Mightily, into that ideal,\n We shall march, we shall march on!\n',
     ],
     SongsCategory.english,
+    musicTrackPath: 'assets/soldados-unidos.mp3',
     isSecondChorus: true,
   ),
   SongsModel(
@@ -837,6 +877,7 @@ final List<SongsModel> songs = [
       'Unite, Unite, let\'s unite into one\n Bring about one nation uniting all the people of the world.\n',
     ],
     SongsCategory.english,
+    musicTrackPath: 'assets/unidade.mp3',
     isSecondChorus: true,
   ),
   SongsModel(

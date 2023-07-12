@@ -10,6 +10,7 @@ class FamilyPromiseScreen extends StatefulWidget {
 
 class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
   int _currentIndex = 0;
+
   late FamilyPromiseLanguage _currentLanguage =
       FamilyPromiseLanguage.portuguese;
 
@@ -197,4 +198,4 @@ final Map<FamilyPromiseLanguage, List<String>> familyPromise = {
   ]
 };
 
-enum FamilyPromiseLanguage { portuguese, korean }
+enum FamilyPromiseLanguage { portuguese, korean, english }
