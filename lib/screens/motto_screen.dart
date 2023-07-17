@@ -13,10 +13,9 @@ class MottoScreen extends StatelessWidget {
       body: Container(
         margin: const EdgeInsets.all(14.0),
         padding: const EdgeInsets.all(14.0),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
+        child: Expanded(
+          child: SizedBox(
+            child: Column(children: const [
               Text(
                 '11° Ano da Cheon Il Guk ',
                 style: TextStyle(
@@ -30,7 +29,7 @@ class MottoScreen extends StatelessWidget {
                 style: TextStyle(fontSize: kIsWeb ? 36 : 18),
                 textAlign: TextAlign.center,
               ),
-            ],
+            ]),
           ),
         ),
       ),

@@ -1,7 +1,6 @@
 import 'package:ffpmupt/screens/family_promise_screen.dart';
 import 'package:ffpmupt/screens/list_of_songs_screen.dart';
 import 'package:ffpmupt/screens/motto_screen.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -15,6 +14,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Canções',
       theme: ThemeData(
         primarySwatch: Colors.blue,
@@ -30,42 +30,86 @@ class Home extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('FFPMU PT'),
+      body: SizedBox(
+        height: 200, // Adjust the height as needed
+        child: Align(
+          alignment: Alignment.center,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 100, left: 250,), // Adjust the top padding as needed
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                CardButton(
+                  icon: Icons.text_snippet,
+                  label: 'Lema para o ano de 2023',
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const MottoScreen(),
+                    ),
+                  ),
+                ),
+                CardButton(
+                  icon: Icons.library_music,
+                  label: 'Canções / Songs',
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const ListOfSongsScreen(),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: CardButton(
+                    icon: Icons.church_rounded,
+                    label: 'Promessa da família / Family Pledge',
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const FamilyPromiseScreen(),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
-      body: Center(
-          child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          ElevatedButton.icon(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const MottoScreen(),
-              ),
+    );
+  }
+}
+
+
+class CardButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+
+  const CardButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 120, // Adjust the width as needed
+      child: Card(
+        child: InkWell(
+          onTap: onPressed,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon),
+                const SizedBox(height: 8),
+                Expanded(child: Text(label)),
+              ],
             ),
-            icon: const Icon(Icons.text_snippet),
-            label: const Text('Lema para o ano de 2023'),
           ),
-          ElevatedButton.icon(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const ListOfSongsScreen(),
-              ),
-            ),
-            icon: const Icon(Icons.library_music),
-            label: const Text('Canções / Songs'),
-          ),
-          ElevatedButton.icon(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const FamilyPromiseScreen(),
-              ),
-            ),
-            icon: const Icon(Icons.church_rounded),
-            label: const Text('Promessa da família / Family Pledge'),
-          )
-        ],
-      )),
+        ),
+      ),
     );
   }
 }
