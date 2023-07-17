@@ -115,11 +115,7 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
                   children: [
                     Center(
                       child: Text(
-                        _currentLanguage == FamilyPromiseLanguage.portuguese
-                            ? 'Português'
-                            : _currentLanguage == FamilyPromiseLanguage.english
-                                ? 'English'
-                                : 'Coreano',
+                        _getTitleByCurrentLanguage(),
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: kIsWeb ? 42 : 26,

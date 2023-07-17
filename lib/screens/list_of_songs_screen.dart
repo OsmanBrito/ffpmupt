@@ -205,11 +205,23 @@ class SongScreen extends StatefulWidget {
 class _SongScreenState extends State<SongScreen> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   late int _currentIndex = 0;
+  bool coe = false;
 
   @override
   void initState() {
     if (widget.song.musicTrackPath.isNotEmpty) {
       _audioPlayer.setAsset(widget.song.musicTrackPath);
+      _audioPlayer.positionStream.listen((event) {
+        if (event.inSeconds == widget.song.timesToJump[_currentIndex]) {
+          if (coe) {
+            coe = false;
+          } else {
+            setState(() {
+              _currentIndex++;
+            });
+          }
+        }
+      });
     }
     super.initState();
   }
@@ -296,7 +308,10 @@ class _SongScreenState extends State<SongScreen> {
                   _currentIndex > 0
                       ? ElevatedButton(
                           onPressed: () => setState(() {
+                            coe = true;
                             _currentIndex--;
+                            _audioPlayer.seek(Duration(
+                                seconds: widget.song.times[_currentIndex]));
                           }),
                           child: const Text('<-'),
                         )
@@ -305,7 +320,12 @@ class _SongScreenState extends State<SongScreen> {
                       ? ElevatedButton(
                           onPressed: () => setState(
                             () {
+                              coe = true;
                               _currentIndex++;
+                              if (widget.song.times.isNotEmpty) {
+                                _audioPlayer.seek(Duration(
+                                    seconds: widget.song.times[_currentIndex]));
+                              }
                             },
                           ),
                           child: const Text('->'),

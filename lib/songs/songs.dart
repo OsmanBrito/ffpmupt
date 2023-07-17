@@ -1,3 +1,4 @@
+
 class SongsModel {
   SongsModel(
     this.title,
@@ -8,6 +9,7 @@ class SongsModel {
     this.isSecondChorus = false,
     this.isFirstChorus = false,
     this.times = const [],
+    this.timesToJump = const [],
   });
 
   final bool isSecondChorus;
@@ -16,7 +18,8 @@ class SongsModel {
   final String page;
   final String title;
   final List<String> lyrics;
-  final List<double> times;
+  final List<int> times;
+  final List<int> timesToJump;
   final SongsCategory songsCategory;
 
 // final List<String> chorus;
@@ -45,6 +48,8 @@ final List<SongsModel> songs = [
     ],
     SongsCategory.holy,
     musicTrackPath: 'assets/A-Morada-do-Pai.mp3',
+    times: [0, 75, 142],
+    timesToJump: [75, 142],
   ),
   SongsModel(
     'A GRAÇA DO SANTO JARDIM',
@@ -61,6 +66,8 @@ final List<SongsModel> songs = [
     ],
     SongsCategory.holy,
     musicTrackPath: 'assets/Graca-do-Jardim-Sagrado.mp3',
+    times: [0, 29, 49, 70, 90, 110, 130, 150],
+    timesToJump: [29, 49, 70, 90, 110, 130, 150],
     isSecondChorus: true,
   ),
   SongsModel(
