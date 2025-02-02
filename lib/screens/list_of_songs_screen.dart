@@ -92,7 +92,7 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
                     hasMusic: true,
                   );
                 }),
-                child: const Text('COM MUSICA'),
+                child: const Text('COM MÚSICA'),
               ),
               ElevatedButton(
                 onPressed: () => setState(() {
@@ -166,7 +166,7 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
                                 ? const Icon(Icons.music_note_rounded)
                                 : Container(),
                             Text(
-                              '${_filteredSongs[index].title} | Pag ${_filteredSongs[index].page}',
+                              '${_filteredSongs[index].title} | Pág ${_filteredSongs[index].page}',
                             ),
                             _filteredSongs[index].musicTrackPath.isNotEmpty
                                 ? const Icon(Icons.music_note_rounded)
@@ -310,8 +310,8 @@ class _SongScreenState extends State<SongScreen> {
                           onPressed: () => setState(() {
                             coe = true;
                             _currentIndex--;
-                            _audioPlayer.seek(Duration(
-                                seconds: widget.song.times[_currentIndex]));
+                            // _audioPlayer.seek(Duration(
+                            //     seconds: widget.song.times[_currentIndex]));
                           }),
                           child: const Text('<-'),
                         )

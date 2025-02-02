@@ -44,7 +44,7 @@ class Home extends StatelessWidget {
               ),
             ),
             icon: const Icon(Icons.text_snippet),
-            label: const Text('Lema para o ano de 2023'),
+            label: const Text('Lema para o ano de 2025'),
           ),
           ElevatedButton.icon(
             onPressed: () => Navigator.of(context).push(
@@ -62,7 +62,7 @@ class Home extends StatelessWidget {
               ),
             ),
             icon: const Icon(Icons.church_rounded),
-            label: const Text('Promessa da família / Family Pledge'),
+            label: const Text('Promessa da Família / Family Pledge'),
           )
         ],
       )),

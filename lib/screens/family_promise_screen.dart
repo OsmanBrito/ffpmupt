@@ -53,7 +53,7 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
   String _getTitleByCurrentLanguage() {
     switch (_currentLanguage) {
       case FamilyPromiseLanguage.portuguese:
-        return 'Promessa da familia';
+        return 'Promessa da Família';
       case FamilyPromiseLanguage.korean:
         return '가정맹세 (ka-jeong-maeng-se)';
       case FamilyPromiseLanguage.english:
