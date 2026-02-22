@@ -62,7 +62,7 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
         );
       case SongsCategory.english:
         return ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xff90CAF9),
+          backgroundColor: const Color(0xffa39400),
         );
       case SongsCategory.international:
         return ElevatedButton.styleFrom(
@@ -105,28 +105,48 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xff1A237E),
                 ),
-                child: const Text('CÂNTICOS SAGRADOS'),
+                child: const Text(
+                  'CÂNTICOS SAGRADOS',
+                  style: TextStyle(
+                    color: Colors.white,
+                  ),
+                ),
               ),
               ElevatedButton(
                 onPressed: () => _showSongsBy(SongsCategory.convivial),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xff4CAF50),
                 ),
-                child: const Text('CANÇÕES DE CONVÍVIO'),
+                child: const Text(
+                  'CANÇÕES DE CONVÍVIO',
+                  style: TextStyle(
+                    color: Colors.white,
+                  ),
+                ),
               ),
               ElevatedButton(
                 onPressed: () => _showSongsBy(SongsCategory.english),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xff90CAF9),
+                  backgroundColor: const Color(0xffa39400),
                 ),
-                child: const Text('HOLY SONGS'),
+                child: const Text(
+                  'HOLY SONGS',
+                  style: TextStyle(
+                    color: Colors.white,
+                  ),
+                ),
               ),
               ElevatedButton(
                 onPressed: () => _showSongsBy(SongsCategory.international),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xff6B5B95),
                 ),
-                child: const Text('WORSHIP SONGS (International)'),
+                child: const Text(
+                  'WORSHIP SONGS (International)',
+                  style: TextStyle(
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ],
           ),
@@ -160,19 +180,20 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             _filteredSongs[index].musicTrackPath.isNotEmpty
-                                ? const Icon(Icons.music_note_rounded)
+                                ? const Icon(Icons.music_note_rounded, color: Colors.white,)
                                 : Container(),
                             _filteredSongs[index].musicTrackPath.isNotEmpty
-                                ? const Icon(Icons.music_note_rounded)
+                                ? const Icon(Icons.music_note_rounded, color: Colors.white,)
                                 : Container(),
                             Text(
                               '${_filteredSongs[index].title} | Pág ${_filteredSongs[index].page}',
+                              style: TextStyle(color: Colors.white),
                             ),
                             _filteredSongs[index].musicTrackPath.isNotEmpty
-                                ? const Icon(Icons.music_note_rounded)
+                                ? const Icon(Icons.music_note_rounded, color: Colors.white,)
                                 : Container(),
                             _filteredSongs[index].musicTrackPath.isNotEmpty
-                                ? const Icon(Icons.music_note_rounded)
+                                ? const Icon(Icons.music_note_rounded, color: Colors.white,)
                                 : Container(),
                           ],
                         ),
@@ -276,7 +297,7 @@ class _SongScreenState extends State<SongScreen> {
       case SongsCategory.convivial:
         return const Color(0xff4CAF50);
       case SongsCategory.english:
-        return const Color(0xff90CAF9);
+        return const Color(0xffa39400);
       case SongsCategory.international:
         return const Color(0xff6B5B95);
     }

@@ -8,7 +8,7 @@ class MottoScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Lema para o ano de 2025'),
+        title: const Text('Lema para o ano de 2026'),
       ),
       body: Container(
         margin: const EdgeInsets.all(14.0),
@@ -18,7 +18,7 @@ class MottoScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: const [
               Text(
-                '13° Ano da Cheon Il Guk ',
+                '14° Ano da Cheon Il Guk ',
                 style: TextStyle(
                     fontSize: kIsWeb ? 42 : 24, fontWeight: FontWeight.bold),
               ),
@@ -26,7 +26,7 @@ class MottoScreen extends StatelessWidget {
                 height: 14,
               ),
               Text(
-                'No 13° ano do Cheon Il Guk, quando atendemos substancialmente o Criador, os Pais Celestiais, Nós, as famílias abençoadas de todo o mundo, vamos tornar-nos verdadeiros filhos e filhas da Cheon Il Guk que cumprem a nossa responsabilidade em unidade com os Verdadeiros Pais.',
+                'No 14° ano do Cheon Il Guk, quando atendemos substancialmente o Criador, os Pais Celestiais, Nós, as famílias abençoadas de todo o mundo, vamos tornar-nos verdadeiros filhos e filhas da Cheon Il Guk que cumprem a nossa responsabilidade em unidade com os Verdadeiros Pais.',
                 style: TextStyle(fontSize: kIsWeb ? 36 : 18),
                 textAlign: TextAlign.center,
               ),

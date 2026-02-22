@@ -44,7 +44,7 @@ class Home extends StatelessWidget {
               ),
             ),
             icon: const Icon(Icons.text_snippet),
-            label: const Text('Lema para o ano de 2025'),
+            label: const Text('Lema para o ano de 2026'),
           ),
           ElevatedButton.icon(
             onPressed: () => Navigator.of(context).push(
