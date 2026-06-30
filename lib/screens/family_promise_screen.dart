@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:ffpmupt/content/family_promise.dart';
 import 'package:ffpmupt/settings/app_language.dart';
 import 'package:ffpmupt/settings/app_strings.dart';
+import 'package:ffpmupt/settings/local_store.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 const _pledgeHistoryKey = 'family_promise_history_v1';
 
@@ -19,7 +19,6 @@ class FamilyPromiseScreen extends StatefulWidget {
 
 class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
   final FlutterTts _flutterTts = FlutterTts();
-  final SharedPreferencesAsync _preferences = SharedPreferencesAsync();
   int _currentIndex = 0;
   List<int> _history = [];
   bool _isSpeaking = false;
@@ -113,10 +112,7 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
       }
 
       try {
-        await _flutterTts.setVoice({
-          'name': name,
-          'locale': rawLocale,
-        });
+        await _flutterTts.setVoice({'name': name, 'locale': rawLocale});
       } catch (_) {
         _hasConfiguredKoreanVoice = true;
         return;
@@ -202,7 +198,7 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
 
   Future<void> _loadHistory() async {
     final storedHistory =
-        await _preferences.getStringList(_pledgeHistoryKey) ?? [];
+        await LocalStore.getStringList(_pledgeHistoryKey) ?? [];
 
     if (!mounted) {
       return;
@@ -223,7 +219,7 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
       ..._history.where((index) => index != _currentIndex),
     ].take(8).toList();
 
-    await _preferences.setStringList(
+    await LocalStore.setStringList(
       _pledgeHistoryKey,
       updatedHistory.map((index) => index.toString()).toList(),
     );
@@ -271,9 +267,7 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
       appBar: AppBar(
         backgroundColor: color,
         foregroundColor: Colors.white,
-        title: Text(
-          strings.familyPromise,
-        ),
+        title: Text(strings.familyPromise),
       ),
       body: SafeArea(
         child: Center(
@@ -367,8 +361,9 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               IconButton.filledTonal(
-                                onPressed:
-                                    _currentIndex == 0 ? null : _previousItem,
+                                onPressed: _currentIndex == 0
+                                    ? null
+                                    : _previousItem,
                                 icon: const Icon(Icons.arrow_back),
                               ),
                               const SizedBox(width: 16),

@@ -1,5 +1,5 @@
+import 'package:ffpmupt/settings/local_store.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 const _appLanguageKey = 'app_language_v1';
 
@@ -37,7 +37,6 @@ class AppLanguageController extends ChangeNotifier {
     _load();
   }
 
-  final SharedPreferencesAsync _preferences = SharedPreferencesAsync();
   AppLanguage _language = AppLanguage.portuguese;
 
   AppLanguage get language => _language;
@@ -49,11 +48,12 @@ class AppLanguageController extends ChangeNotifier {
 
     _language = language;
     notifyListeners();
-    await _preferences.setString(_appLanguageKey, language.name);
+
+    await LocalStore.setString(_appLanguageKey, language.name);
   }
 
   Future<void> _load() async {
-    final storedValue = await _preferences.getString(_appLanguageKey);
+    final storedValue = await LocalStore.getString(_appLanguageKey);
     AppLanguage? storedLanguage;
     for (final language in AppLanguage.values) {
       if (language.name == storedValue) {
@@ -79,15 +79,15 @@ class AppLanguageScope extends InheritedNotifier<AppLanguageController> {
   }) : super(notifier: controller);
 
   static AppLanguageController watch(BuildContext context) {
-    final scope =
-        context.dependOnInheritedWidgetOfExactType<AppLanguageScope>();
+    final scope = context
+        .dependOnInheritedWidgetOfExactType<AppLanguageScope>();
     assert(scope != null, 'AppLanguageScope not found in context');
     return scope!.notifier!;
   }
 
   static AppLanguageController read(BuildContext context) {
-    final element =
-        context.getElementForInheritedWidgetOfExactType<AppLanguageScope>();
+    final element = context
+        .getElementForInheritedWidgetOfExactType<AppLanguageScope>();
     final scope = element?.widget as AppLanguageScope?;
     assert(scope != null, 'AppLanguageScope not found in context');
     return scope!.notifier!;
