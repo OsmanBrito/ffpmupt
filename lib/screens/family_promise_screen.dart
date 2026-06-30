@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:ffpmupt/content/family_promise.dart';
+import 'package:ffpmupt/services/pledge_speaker.dart';
 import 'package:ffpmupt/settings/app_language.dart';
 import 'package:ffpmupt/settings/app_strings.dart';
 import 'package:ffpmupt/settings/local_store.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 
 const _pledgeHistoryKey = 'family_promise_history_v1';
 
@@ -18,29 +18,27 @@ class FamilyPromiseScreen extends StatefulWidget {
 }
 
 class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
-  final FlutterTts _flutterTts = FlutterTts();
+  final PledgeSpeaker _speaker = PledgeSpeaker();
   int _currentIndex = 0;
   List<int> _history = [];
   bool _isSpeaking = false;
-  bool _hasConfiguredKoreanVoice = false;
   FamilyPromiseLanguage _currentLanguage = FamilyPromiseLanguage.korean;
 
   @override
   void initState() {
     super.initState();
-    _configureTts();
-    unawaited(_configureKoreanVoice());
+    _configureSpeaker();
     _loadHistory();
   }
 
   @override
   void dispose() {
-    _flutterTts.stop();
+    _speaker.dispose();
     super.dispose();
   }
 
-  void _configureTts() {
-    _flutterTts.setCompletionHandler(() {
+  void _configureSpeaker() {
+    _speaker.onFinished = () {
       if (!mounted) {
         return;
       }
@@ -48,81 +46,8 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
       setState(() {
         _isSpeaking = false;
       });
-    });
-    _flutterTts.setCancelHandler(() {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _isSpeaking = false;
-      });
-    });
-    _flutterTts.setErrorHandler((message) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _isSpeaking = false;
-      });
-    });
-  }
-
-  Future<void> _configureKoreanVoice() async {
-    try {
-      await _flutterTts.setLanguage(koreanFamilyPromiseTtsLocale);
-      await _flutterTts.setSpeechRate(0.42);
-      await _flutterTts.setPitch(1);
-    } catch (_) {
-      return;
-    }
-
-    if (_hasConfiguredKoreanVoice) {
-      return;
-    }
-
-    final dynamic voices;
-    try {
-      voices = await _flutterTts.getVoices;
-    } catch (_) {
-      _hasConfiguredKoreanVoice = true;
-      return;
-    }
-
-    if (voices is! List) {
-      _hasConfiguredKoreanVoice = true;
-      return;
-    }
-
-    for (final voice in voices) {
-      if (voice is! Map) {
-        continue;
-      }
-
-      final rawLocale = voice['locale']?.toString();
-      final name = voice['name']?.toString();
-      if (rawLocale == null || name == null) {
-        continue;
-      }
-
-      final locale = rawLocale.replaceAll('_', '-').toLowerCase();
-      if (locale != koreanFamilyPromiseTtsLocale.toLowerCase()) {
-        continue;
-      }
-
-      try {
-        await _flutterTts.setVoice({'name': name, 'locale': rawLocale});
-      } catch (_) {
-        _hasConfiguredKoreanVoice = true;
-        return;
-      }
-
-      _hasConfiguredKoreanVoice = true;
-      return;
-    }
-
-    _hasConfiguredKoreanVoice = true;
+    };
+    unawaited(_speaker.configure());
   }
 
   void _nextItem() {
@@ -156,7 +81,7 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
       return;
     }
 
-    await _flutterTts.stop();
+    await _speaker.stop();
     if (!mounted) {
       return;
     }
@@ -172,7 +97,7 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
     }
 
     if (_isSpeaking) {
-      await _flutterTts.stop();
+      await _speaker.stop();
       if (!mounted) {
         return;
       }
@@ -183,17 +108,11 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
       return;
     }
 
-    await _configureKoreanVoice();
-
-    if (!mounted) {
-      return;
-    }
-
     setState(() {
       _isSpeaking = true;
     });
 
-    await _flutterTts.speak(koreanFamilyPromiseSpeech[_currentIndex]);
+    await _speaker.speak(koreanFamilyPromiseSpeech[_currentIndex]);
   }
 
   Future<void> _loadHistory() async {
@@ -230,6 +149,18 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
 
     setState(() {
       _history = updatedHistory;
+    });
+  }
+
+  Future<void> _resetHistory() async {
+    await LocalStore.setStringList(_pledgeHistoryKey, []);
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _history = [];
     });
   }
 
@@ -376,14 +307,27 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
                             ],
                           ),
                           const SizedBox(height: 16),
-                          ElevatedButton.icon(
-                            onPressed: _markCurrentAsUsed,
-                            icon: const Icon(Icons.history),
-                            label: Text(strings.markAsUsed),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: color,
-                              foregroundColor: Colors.white,
-                            ),
+                          Wrap(
+                            alignment: WrapAlignment.center,
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: [
+                              ElevatedButton.icon(
+                                onPressed: _markCurrentAsUsed,
+                                icon: const Icon(Icons.history),
+                                label: Text(strings.markAsUsed),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: color,
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                              if (_history.isNotEmpty)
+                                ElevatedButton.icon(
+                                  onPressed: _resetHistory,
+                                  icon: const Icon(Icons.delete_outline),
+                                  label: Text(strings.resetHistory),
+                                ),
+                            ],
                           ),
                           if (_currentLanguage ==
                               FamilyPromiseLanguage.korean) ...[
