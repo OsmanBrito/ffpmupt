@@ -1,0 +1,418 @@
+import 'package:ffpmupt/settings/app_language.dart';
+
+class AppStrings {
+  const AppStrings({
+    required this.sundayService,
+    required this.homeSubtitle,
+    required this.appLanguage,
+    required this.songs,
+    required this.songsSubtitle,
+    required this.familyPromise,
+    required this.familyPromiseSubtitle,
+    required this.promiseHistoryLabel,
+    required this.motto,
+    required this.mottoSubtitle,
+    required this.offerings,
+    required this.offeringsSubtitle,
+    required this.searchSongHint,
+    required this.all,
+    required this.withMusic,
+    required this.noSongsFound,
+    required this.page,
+    required this.songCountSuffix,
+    required this.holySongs,
+    required this.convivialSongs,
+    required this.englishSongs,
+    required this.worshipSongs,
+    required this.audioAvailable,
+    required this.markAsUsed,
+    required this.readAloud,
+    required this.stopReading,
+    required this.offeringTransfer,
+    required this.paymentQr,
+    required this.paymentQrInstruction,
+    required this.bankDetails,
+    required this.name,
+    required this.copyIban,
+    required this.ibanCopied,
+    required this.publicOfferingSubtitle,
+    required this.iban,
+    required this.bank,
+    required this.description,
+    required this.offeringQrNote,
+    required this.configureOfferingQr,
+  });
+
+  final String sundayService;
+  final String homeSubtitle;
+  final String appLanguage;
+  final String songs;
+  final String songsSubtitle;
+  final String familyPromise;
+  final String familyPromiseSubtitle;
+  final String promiseHistoryLabel;
+  final String motto;
+  final String mottoSubtitle;
+  final String offerings;
+  final String offeringsSubtitle;
+  final String searchSongHint;
+  final String all;
+  final String withMusic;
+  final String noSongsFound;
+  final String page;
+  final String songCountSuffix;
+  final String holySongs;
+  final String convivialSongs;
+  final String englishSongs;
+  final String worshipSongs;
+  final String audioAvailable;
+  final String markAsUsed;
+  final String readAloud;
+  final String stopReading;
+  final String offeringTransfer;
+  final String paymentQr;
+  final String paymentQrInstruction;
+  final String bankDetails;
+  final String name;
+  final String copyIban;
+  final String ibanCopied;
+  final String publicOfferingSubtitle;
+  final String iban;
+  final String bank;
+  final String description;
+  final String offeringQrNote;
+  final String configureOfferingQr;
+
+  static AppStrings of(AppLanguage language) {
+    switch (language) {
+      case AppLanguage.portuguese:
+        return portuguese;
+      case AppLanguage.korean:
+        return korean;
+      case AppLanguage.english:
+        return english;
+      case AppLanguage.spanish:
+        return spanish;
+      case AppLanguage.german:
+        return german;
+      case AppLanguage.italian:
+        return italian;
+      case AppLanguage.french:
+        return french;
+    }
+  }
+
+  static const portuguese = AppStrings(
+    sundayService: 'Serviço de Domingo',
+    homeSubtitle: 'Textos e canções para a comunidade FFPMU Portugal',
+    appLanguage: 'Idioma da app',
+    songs: 'Canções',
+    songsSubtitle: 'Letras, páginas e áudio disponível',
+    familyPromise: 'Promessa da Família',
+    familyPromiseSubtitle: 'Leitura, histórico e voz',
+    promiseHistoryLabel: 'Promessa',
+    motto: 'Lema 2026',
+    mottoSubtitle: 'Texto anual para ler e projetar',
+    offerings: 'Ofertas / Dízimos',
+    offeringsSubtitle: 'IBAN copiável e QR para abrir no telemóvel',
+    searchSongHint: 'Pesquise aqui uma canção',
+    all: 'Todos',
+    withMusic: 'Com música',
+    noSongsFound: 'Nenhuma canção encontrada',
+    page: 'Página',
+    songCountSuffix: 'canções',
+    holySongs: 'Cânticos Sagrados',
+    convivialSongs: 'Canções de Convívio',
+    englishSongs: 'Holy Songs',
+    worshipSongs: 'Worship Songs',
+    audioAvailable: 'Áudio disponível',
+    markAsUsed: 'Marcar como usada',
+    readAloud: 'Ler em voz alta',
+    stopReading: 'Parar leitura',
+    offeringTransfer: 'Transferência bancária',
+    paymentQr: 'QR para pagamento',
+    paymentQrInstruction:
+        'Leia para abrir a página de ofertas e copiar o IBAN.',
+    bankDetails: 'Dados de pagamento',
+    name: 'Nome',
+    copyIban: 'Copiar IBAN',
+    ibanCopied: 'IBAN copiado',
+    publicOfferingSubtitle: 'Copie o IBAN e faça a transferência na app do banco.',
+    iban: 'IBAN',
+    bank: 'Banco',
+    description: 'Descrição',
+    offeringQrNote:
+        'Nota: este QR abre uma página simples do site com o IBAN para copiar. Depois, faça a transferência na sua app bancária.',
+    configureOfferingQr:
+        'Configure offeringPageUrl em lib/content/offering.dart para ativar o QR.',
+  );
+
+  static const korean = AppStrings(
+    sundayService: '주일 예배',
+    homeSubtitle: 'FFPMU 포르투갈 공동체를 위한 말씀과 성가',
+    appLanguage: '앱 언어',
+    songs: '성가',
+    songsSubtitle: '가사, 페이지 및 사용 가능한 오디오',
+    familyPromise: '가정맹세',
+    familyPromiseSubtitle: '낭독, 기록 및 음성',
+    promiseHistoryLabel: '맹세',
+    motto: '2026년 표어',
+    mottoSubtitle: '읽고 투사할 연간 표어',
+    offerings: '헌금 / 십일조',
+    offeringsSubtitle: '복사 가능한 IBAN 및 모바일용 QR',
+    searchSongHint: '성가를 검색하세요',
+    all: '전체',
+    withMusic: '음악 있음',
+    noSongsFound: '성가를 찾을 수 없습니다',
+    page: '페이지',
+    songCountSuffix: '곡',
+    holySongs: '성가',
+    convivialSongs: '친교 노래',
+    englishSongs: '영어 성가',
+    worshipSongs: '찬양',
+    audioAvailable: '오디오 있음',
+    markAsUsed: '사용 기록에 추가',
+    readAloud: '소리내어 읽기',
+    stopReading: '읽기 중지',
+    offeringTransfer: '은행 송금',
+    paymentQr: '결제 QR',
+    paymentQrInstruction: '헌금 페이지를 열어 IBAN을 복사하려면 스캔하세요.',
+    bankDetails: '결제 정보',
+    name: '이름',
+    copyIban: 'IBAN 복사',
+    ibanCopied: 'IBAN이 복사되었습니다',
+    publicOfferingSubtitle: 'IBAN을 복사한 뒤 은행 앱에서 송금하세요.',
+    iban: 'IBAN',
+    bank: '은행',
+    description: '설명',
+    offeringQrNote:
+        '참고: 이 QR은 IBAN을 복사할 수 있는 간단한 헌금 페이지를 엽니다. 이후 은행 앱에서 송금하세요.',
+    configureOfferingQr:
+        'QR을 활성화하려면 lib/content/offering.dart에서 offeringPageUrl을 설정하세요.',
+  );
+
+  static const english = AppStrings(
+    sundayService: 'Sunday Service',
+    homeSubtitle: 'Texts and songs for the FFPMU Portugal community',
+    appLanguage: 'App language',
+    songs: 'Songs',
+    songsSubtitle: 'Lyrics, pages, and available audio',
+    familyPromise: 'Family Pledge',
+    familyPromiseSubtitle: 'Reading, history, and voice',
+    promiseHistoryLabel: 'Pledge',
+    motto: '2026 Motto',
+    mottoSubtitle: 'Annual text for reading and projection',
+    offerings: 'Offerings / Tithes',
+    offeringsSubtitle: 'Copyable IBAN and phone QR',
+    searchSongHint: 'Search for a song',
+    all: 'All',
+    withMusic: 'With music',
+    noSongsFound: 'No songs found',
+    page: 'Page',
+    songCountSuffix: 'songs',
+    holySongs: 'Holy Songs',
+    convivialSongs: 'Fellowship Songs',
+    englishSongs: 'English Songs',
+    worshipSongs: 'Worship Songs',
+    audioAvailable: 'Audio available',
+    markAsUsed: 'Mark as used',
+    readAloud: 'Read aloud',
+    stopReading: 'Stop reading',
+    offeringTransfer: 'Bank transfer',
+    paymentQr: 'Payment QR',
+    paymentQrInstruction:
+        'Scan to open the offering page and copy the IBAN.',
+    bankDetails: 'Payment details',
+    name: 'Name',
+    copyIban: 'Copy IBAN',
+    ibanCopied: 'IBAN copied',
+    publicOfferingSubtitle: 'Copy the IBAN and make the transfer in your banking app.',
+    iban: 'IBAN',
+    bank: 'Bank',
+    description: 'Description',
+    offeringQrNote:
+        'Note: this QR opens a simple website page with the IBAN to copy. Then make the transfer in your banking app.',
+    configureOfferingQr:
+        'Configure offeringPageUrl in lib/content/offering.dart to activate the QR.',
+  );
+
+  static const spanish = AppStrings(
+    sundayService: 'Servicio dominical',
+    homeSubtitle: 'Textos y canciones para la comunidad FFPMU Portugal',
+    appLanguage: 'Idioma de la app',
+    songs: 'Canciones',
+    songsSubtitle: 'Letras, páginas y audio disponible',
+    familyPromise: 'Promesa de la Familia',
+    familyPromiseSubtitle: 'Lectura, historial y voz',
+    promiseHistoryLabel: 'Promesa',
+    motto: 'Lema 2026',
+    mottoSubtitle: 'Texto anual para leer y proyectar',
+    offerings: 'Ofrendas / Diezmos',
+    offeringsSubtitle: 'IBAN copiable y QR para el móvil',
+    searchSongHint: 'Busca una canción',
+    all: 'Todo',
+    withMusic: 'Con música',
+    noSongsFound: 'No se encontraron canciones',
+    page: 'Página',
+    songCountSuffix: 'canciones',
+    holySongs: 'Cantos sagrados',
+    convivialSongs: 'Canciones de convivencia',
+    englishSongs: 'Canciones en inglés',
+    worshipSongs: 'Canciones de adoración',
+    audioAvailable: 'Audio disponible',
+    markAsUsed: 'Marcar como usada',
+    readAloud: 'Leer en voz alta',
+    stopReading: 'Detener lectura',
+    offeringTransfer: 'Transferencia bancaria',
+    paymentQr: 'QR de pago',
+    paymentQrInstruction:
+        'Escanea para abrir la página de ofrendas y copiar el IBAN.',
+    bankDetails: 'Datos de pago',
+    name: 'Nombre',
+    copyIban: 'Copiar IBAN',
+    ibanCopied: 'IBAN copiado',
+    publicOfferingSubtitle: 'Copia el IBAN y haz la transferencia en la app del banco.',
+    iban: 'IBAN',
+    bank: 'Banco',
+    description: 'Descripción',
+    offeringQrNote:
+        'Nota: este QR abre una página sencilla del sitio con el IBAN para copiar. Después, haz la transferencia en tu app bancaria.',
+    configureOfferingQr:
+        'Configura offeringPageUrl en lib/content/offering.dart para activar el QR.',
+  );
+
+  static const german = AppStrings(
+    sundayService: 'Sonntagsgottesdienst',
+    homeSubtitle: 'Texte und Lieder für die FFPMU Portugal Gemeinde',
+    appLanguage: 'App-Sprache',
+    songs: 'Lieder',
+    songsSubtitle: 'Texte, Seiten und verfügbare Audios',
+    familyPromise: 'Familiengelöbnis',
+    familyPromiseSubtitle: 'Lesung, Verlauf und Stimme',
+    promiseHistoryLabel: 'Gelöbnis',
+    motto: 'Motto 2026',
+    mottoSubtitle: 'Jahrestext zum Lesen und Projizieren',
+    offerings: 'Spenden / Zehnten',
+    offeringsSubtitle: 'Kopierbare IBAN und QR fürs Telefon',
+    searchSongHint: 'Lied suchen',
+    all: 'Alle',
+    withMusic: 'Mit Musik',
+    noSongsFound: 'Keine Lieder gefunden',
+    page: 'Seite',
+    songCountSuffix: 'Lieder',
+    holySongs: 'Heilige Lieder',
+    convivialSongs: 'Gemeinschaftslieder',
+    englishSongs: 'Englische Lieder',
+    worshipSongs: 'Lobpreislieder',
+    audioAvailable: 'Audio verfügbar',
+    markAsUsed: 'Als verwendet markieren',
+    readAloud: 'Laut vorlesen',
+    stopReading: 'Lesung stoppen',
+    offeringTransfer: 'Banküberweisung',
+    paymentQr: 'Zahlungs-QR',
+    paymentQrInstruction:
+        'Scannen, um die Spendenseite zu öffnen und die IBAN zu kopieren.',
+    bankDetails: 'Zahlungsdaten',
+    name: 'Name',
+    copyIban: 'IBAN kopieren',
+    ibanCopied: 'IBAN kopiert',
+    publicOfferingSubtitle: 'IBAN kopieren und die Überweisung in der Banking-App ausführen.',
+    iban: 'IBAN',
+    bank: 'Bank',
+    description: 'Beschreibung',
+    offeringQrNote:
+        'Hinweis: Dieser QR öffnet eine einfache Website-Seite mit der IBAN zum Kopieren. Danach die Überweisung in der Banking-App ausführen.',
+    configureOfferingQr:
+        'Konfiguriere offeringPageUrl in lib/content/offering.dart, um den QR zu aktivieren.',
+  );
+
+  static const italian = AppStrings(
+    sundayService: 'Servizio domenicale',
+    homeSubtitle: 'Testi e canti per la comunità FFPMU Portugal',
+    appLanguage: 'Lingua dell’app',
+    songs: 'Canti',
+    songsSubtitle: 'Testi, pagine e audio disponibile',
+    familyPromise: 'Promessa della Famiglia',
+    familyPromiseSubtitle: 'Lettura, cronologia e voce',
+    promiseHistoryLabel: 'Promessa',
+    motto: 'Motto 2026',
+    mottoSubtitle: 'Testo annuale da leggere e proiettare',
+    offerings: 'Offerte / Decime',
+    offeringsSubtitle: 'IBAN copiabile e QR per il telefono',
+    searchSongHint: 'Cerca un canto',
+    all: 'Tutti',
+    withMusic: 'Con musica',
+    noSongsFound: 'Nessun canto trovato',
+    page: 'Pagina',
+    songCountSuffix: 'canti',
+    holySongs: 'Canti sacri',
+    convivialSongs: 'Canti di comunione',
+    englishSongs: 'Canti in inglese',
+    worshipSongs: 'Canti di adorazione',
+    audioAvailable: 'Audio disponibile',
+    markAsUsed: 'Segna come usata',
+    readAloud: 'Leggi ad alta voce',
+    stopReading: 'Ferma lettura',
+    offeringTransfer: 'Bonifico bancario',
+    paymentQr: 'QR per pagamento',
+    paymentQrInstruction:
+        'Scansiona per aprire la pagina delle offerte e copiare l’IBAN.',
+    bankDetails: 'Dati di pagamento',
+    name: 'Nome',
+    copyIban: 'Copia IBAN',
+    ibanCopied: 'IBAN copiato',
+    publicOfferingSubtitle: 'Copia l’IBAN e fai il bonifico nell’app bancaria.',
+    iban: 'IBAN',
+    bank: 'Banca',
+    description: 'Descrizione',
+    offeringQrNote:
+        'Nota: questo QR apre una pagina semplice del sito con l’IBAN da copiare. Poi fai il bonifico nella tua app bancaria.',
+    configureOfferingQr:
+        'Configura offeringPageUrl in lib/content/offering.dart per attivare il QR.',
+  );
+
+  static const french = AppStrings(
+    sundayService: 'Service du dimanche',
+    homeSubtitle: 'Textes et chants pour la communauté FFPMU Portugal',
+    appLanguage: 'Langue de l’app',
+    songs: 'Chants',
+    songsSubtitle: 'Paroles, pages et audio disponible',
+    familyPromise: 'Promesse de la Famille',
+    familyPromiseSubtitle: 'Lecture, historique et voix',
+    promiseHistoryLabel: 'Promesse',
+    motto: 'Devise 2026',
+    mottoSubtitle: 'Texte annuel à lire et projeter',
+    offerings: 'Offrandes / Dîmes',
+    offeringsSubtitle: 'IBAN copiable et QR pour téléphone',
+    searchSongHint: 'Rechercher un chant',
+    all: 'Tous',
+    withMusic: 'Avec musique',
+    noSongsFound: 'Aucun chant trouvé',
+    page: 'Page',
+    songCountSuffix: 'chants',
+    holySongs: 'Chants sacrés',
+    convivialSongs: 'Chants de convivialité',
+    englishSongs: 'Chants en anglais',
+    worshipSongs: 'Chants de louange',
+    audioAvailable: 'Audio disponible',
+    markAsUsed: 'Marquer comme utilisée',
+    readAloud: 'Lire à voix haute',
+    stopReading: 'Arrêter la lecture',
+    offeringTransfer: 'Virement bancaire',
+    paymentQr: 'QR de paiement',
+    paymentQrInstruction:
+        'Scannez pour ouvrir la page d’offrandes et copier l’IBAN.',
+    bankDetails: 'Détails du paiement',
+    name: 'Nom',
+    copyIban: 'Copier IBAN',
+    ibanCopied: 'IBAN copié',
+    publicOfferingSubtitle: 'Copiez l’IBAN puis faites le virement dans votre app bancaire.',
+    iban: 'IBAN',
+    bank: 'Banque',
+    description: 'Description',
+    offeringQrNote:
+        'Remarque : ce QR ouvre une page simple du site avec l’IBAN à copier. Faites ensuite le virement dans votre app bancaire.',
+    configureOfferingQr:
+        'Configurez offeringPageUrl dans lib/content/offering.dart pour activer le QR.',
+  );
+}

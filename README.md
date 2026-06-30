@@ -1,16 +1,35 @@
-# ffmpupt
+# FFPMU PT
 
-A new Flutter project.
+Flutter app for FFPMU Portugal church services.
 
-## Getting Started
+The app shows:
 
-This project is a starting point for a Flutter application.
+- A Sunday service guide flow.
+- The yearly motto.
+- A global app language preference.
+- The Family Pledge in Portuguese, Korean, and English.
+- Church songs with lyrics, categories, optional audio, and verse timing.
+- Offerings/tithes payment details with a QR that opens a public IBAN copy page.
 
-A few resources to get you started if this is your first Flutter project:
+## Content
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- Yearly motto: `lib/content/motto.dart`
+- Family Pledge: `lib/content/family_promise.dart`
+- Offerings/tithes account details: `lib/content/offering.dart`
+- Songs and audio timing: `lib/songs/songs.dart`
+- Audio files: `assets/`
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Fill the real bank account values in `lib/content/offering.dart` before using
+the offerings page publicly.
+
+## Development
+
+```sh
+flutter pub get
+flutter analyze
+flutter test
+```
+
+## Notes
+
+The song tests validate that required metadata exists, referenced audio files are present, and lyric timing data cannot read beyond the available lyrics.

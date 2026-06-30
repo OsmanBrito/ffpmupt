@@ -1,5 +1,14 @@
+import 'dart:async';
+
+import 'package:ffpmupt/content/family_promise.dart';
+import 'package:ffpmupt/settings/app_language.dart';
+import 'package:ffpmupt/settings/app_strings.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+const _pledgeHistoryKey = 'family_promise_history_v1';
 
 class FamilyPromiseScreen extends StatefulWidget {
   const FamilyPromiseScreen({Key? key}) : super(key: key);
@@ -9,151 +18,410 @@ class FamilyPromiseScreen extends StatefulWidget {
 }
 
 class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
+  final FlutterTts _flutterTts = FlutterTts();
+  final SharedPreferencesAsync _preferences = SharedPreferencesAsync();
   int _currentIndex = 0;
+  List<int> _history = [];
+  bool _isSpeaking = false;
+  bool _hasConfiguredKoreanVoice = false;
+  FamilyPromiseLanguage _currentLanguage = FamilyPromiseLanguage.korean;
 
-  late FamilyPromiseLanguage _currentLanguage =
-      FamilyPromiseLanguage.portuguese;
+  @override
+  void initState() {
+    super.initState();
+    _configureTts();
+    unawaited(_configureKoreanVoice());
+    _loadHistory();
+  }
+
+  @override
+  void dispose() {
+    _flutterTts.stop();
+    super.dispose();
+  }
+
+  void _configureTts() {
+    _flutterTts.setCompletionHandler(() {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isSpeaking = false;
+      });
+    });
+    _flutterTts.setCancelHandler(() {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isSpeaking = false;
+      });
+    });
+    _flutterTts.setErrorHandler((message) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isSpeaking = false;
+      });
+    });
+  }
+
+  Future<void> _configureKoreanVoice() async {
+    try {
+      await _flutterTts.setLanguage(koreanFamilyPromiseTtsLocale);
+      await _flutterTts.setSpeechRate(0.42);
+      await _flutterTts.setPitch(1);
+    } catch (_) {
+      return;
+    }
+
+    if (_hasConfiguredKoreanVoice) {
+      return;
+    }
+
+    final dynamic voices;
+    try {
+      voices = await _flutterTts.getVoices;
+    } catch (_) {
+      _hasConfiguredKoreanVoice = true;
+      return;
+    }
+
+    if (voices is! List) {
+      _hasConfiguredKoreanVoice = true;
+      return;
+    }
+
+    for (final voice in voices) {
+      if (voice is! Map) {
+        continue;
+      }
+
+      final rawLocale = voice['locale']?.toString();
+      final name = voice['name']?.toString();
+      if (rawLocale == null || name == null) {
+        continue;
+      }
+
+      final locale = rawLocale.replaceAll('_', '-').toLowerCase();
+      if (locale != koreanFamilyPromiseTtsLocale.toLowerCase()) {
+        continue;
+      }
+
+      try {
+        await _flutterTts.setVoice({
+          'name': name,
+          'locale': rawLocale,
+        });
+      } catch (_) {
+        _hasConfiguredKoreanVoice = true;
+        return;
+      }
+
+      _hasConfiguredKoreanVoice = true;
+      return;
+    }
+
+    _hasConfiguredKoreanVoice = true;
+  }
 
   void _nextItem() {
     setState(() {
-      if (_currentIndex < 7) {
-        _currentIndex =
-            (_currentIndex + 1) % familyPromise[_currentLanguage]!.length;
+      final items = familyPromise[_currentLanguage]!;
+      if (_currentIndex < items.length - 1) {
+        _currentIndex = _currentIndex + 1;
       }
     });
+    unawaited(_stopSpeech());
   }
 
   void _previousItem() {
     setState(() {
       if (_currentIndex > 0) {
-        _currentIndex =
-            (_currentIndex - 1 + familyPromise[_currentLanguage]!.length) %
-                familyPromise[_currentLanguage]!.length;
+        _currentIndex = _currentIndex - 1;
       }
     });
+    unawaited(_stopSpeech());
   }
 
-  void _changeLanguage(FamilyPromiseLanguage newLanguage) {
+  void _changeLanguage(FamilyPromiseLanguage language) {
     setState(() {
-      _currentLanguage = newLanguage;
+      _currentLanguage = language;
+    });
+    unawaited(_stopSpeech());
+  }
+
+  Future<void> _stopSpeech() async {
+    if (!_isSpeaking) {
+      return;
+    }
+
+    await _flutterTts.stop();
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _isSpeaking = false;
     });
   }
 
-  Color _getColorByCurrentLanguage() {
-    switch (_currentLanguage) {
-      case FamilyPromiseLanguage.portuguese:
-        return Colors.green;
-      case FamilyPromiseLanguage.korean:
-        return Colors.lightBlueAccent;
-      case FamilyPromiseLanguage.english:
-        return Colors.redAccent;
+  Future<void> _toggleSpeech() async {
+    if (_currentLanguage != FamilyPromiseLanguage.korean) {
+      return;
     }
+
+    if (_isSpeaking) {
+      await _flutterTts.stop();
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isSpeaking = false;
+      });
+      return;
+    }
+
+    await _configureKoreanVoice();
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _isSpeaking = true;
+    });
+
+    await _flutterTts.speak(koreanFamilyPromiseSpeech[_currentIndex]);
   }
 
-  String _getTitleByCurrentLanguage() {
-    switch (_currentLanguage) {
+  Future<void> _loadHistory() async {
+    final storedHistory =
+        await _preferences.getStringList(_pledgeHistoryKey) ?? [];
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _history = storedHistory
+          .map(int.tryParse)
+          .whereType<int>()
+          .where((index) => index >= 0)
+          .toList();
+    });
+  }
+
+  Future<void> _markCurrentAsUsed() async {
+    final updatedHistory = [
+      _currentIndex,
+      ..._history.where((index) => index != _currentIndex),
+    ].take(8).toList();
+
+    await _preferences.setStringList(
+      _pledgeHistoryKey,
+      updatedHistory.map((index) => index.toString()).toList(),
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _history = updatedHistory;
+    });
+  }
+
+  void _showHistoryItem(int index) {
+    final items = familyPromise[_currentLanguage]!;
+    if (index >= items.length) {
+      return;
+    }
+
+    setState(() {
+      _currentIndex = index;
+    });
+    unawaited(_stopSpeech());
+  }
+
+  Color _colorByLanguage(FamilyPromiseLanguage language) {
+    switch (language) {
       case FamilyPromiseLanguage.portuguese:
-        return 'Promessa da Família';
+        return const Color(0xff2f6b4f);
       case FamilyPromiseLanguage.korean:
-        return '가정맹세 (ka-jeong-maeng-se)';
+        return const Color(0xff306f8f);
       case FamilyPromiseLanguage.english:
-        return 'Family Pledge';
+        return const Color(0xff8c3543);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(AppLanguageScope.watch(context).language);
+    final items = familyPromise[_currentLanguage]!;
+    final color = _colorByLanguage(_currentLanguage);
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: _getColorByCurrentLanguage(),
+        backgroundColor: color,
+        foregroundColor: Colors.white,
         title: Text(
-          _getTitleByCurrentLanguage(),
+          strings.familyPromise,
         ),
       ),
-      body: SingleChildScrollView(
-        child: Container(
-          margin: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1080),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  ElevatedButton.icon(
-                    onPressed: () =>
-                        _changeLanguage(FamilyPromiseLanguage.portuguese),
-                    icon: const Icon(Icons.directions_boat_rounded),
-                    label: const Text('Português'),
-                    style:
-                        ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final language in FamilyPromiseLanguage.values)
+                        _PromiseLanguageButton(
+                          label: _promiseLanguageLabel(language),
+                          selected: _currentLanguage == language,
+                          color: _colorByLanguage(language),
+                          onPressed: () => _changeLanguage(language),
+                        ),
+                    ],
                   ),
-                  const SizedBox(width: 20),
-                  const SizedBox(width: 20),
-                  ElevatedButton.icon(
-                    onPressed: () =>
-                        _changeLanguage(FamilyPromiseLanguage.korean),
-                    icon: const Icon(Icons.translate),
-                    label: const Text('Coreano'),
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.lightBlueAccent),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (var index = 0; index < items.length; index++)
+                        ChoiceChip(
+                          label: Text('${index + 1}'),
+                          selected: _currentIndex == index,
+                          selectedColor: color.withValues(alpha: 0.18),
+                          onSelected: (_) {
+                            setState(() {
+                              _currentIndex = index;
+                            });
+                            unawaited(_stopSpeech());
+                          },
+                        ),
+                    ],
                   ),
-                  const SizedBox(width: 20),
-                  const SizedBox(width: 20),
-                  ElevatedButton.icon(
-                    onPressed: () =>
-                        _changeLanguage(FamilyPromiseLanguage.english),
-                    icon: const Icon(Icons.account_balance),
-                    label: const Text('English'),
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.redAccent),
+                  if (_history.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final index in _history)
+                          ActionChip(
+                            avatar: const Icon(Icons.history, size: 18),
+                            label: Text(
+                              '${strings.promiseHistoryLabel} ${index + 1}',
+                            ),
+                            onPressed: () => _showHistoryItem(index),
+                          ),
+                      ],
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 28,
+                        vertical: 30,
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            familyPromiseTitle(_currentLanguage),
+                            textAlign: TextAlign.center,
+                            style: textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              fontSize: kIsWeb ? 40 : null,
+                              color: const Color(0xff1f2724),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            '${_currentIndex + 1} / ${items.length}',
+                            style: textTheme.titleMedium?.copyWith(
+                              color: color,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              IconButton.filledTonal(
+                                onPressed:
+                                    _currentIndex == 0 ? null : _previousItem,
+                                icon: const Icon(Icons.arrow_back),
+                              ),
+                              const SizedBox(width: 16),
+                              IconButton.filledTonal(
+                                onPressed: _currentIndex == items.length - 1
+                                    ? null
+                                    : _nextItem,
+                                icon: const Icon(Icons.arrow_forward),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            onPressed: _markCurrentAsUsed,
+                            icon: const Icon(Icons.history),
+                            label: Text(strings.markAsUsed),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: color,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                          if (_currentLanguage ==
+                              FamilyPromiseLanguage.korean) ...[
+                            const SizedBox(height: 12),
+                            ElevatedButton.icon(
+                              onPressed: _toggleSpeech,
+                              icon: Icon(
+                                _isSpeaking ? Icons.stop : Icons.play_arrow,
+                              ),
+                              label: Text(
+                                _isSpeaking
+                                    ? strings.stopReading
+                                    : strings.readAloud,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 28),
+                          Text(
+                            items[_currentIndex],
+                            textAlign: TextAlign.center,
+                            style: textTheme.headlineSmall?.copyWith(
+                              fontSize: kIsWeb ? 34 : 21,
+                              height: 1.38,
+                              color: const Color(0xff293833),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
-              Card(
-                margin: const EdgeInsets.all(32.0),
-                child: Column(
-                  children: [
-                    Center(
-                      child: Text(
-                        _getTitleByCurrentLanguage(),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: kIsWeb ? 42 : 26,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(
-                      height: 32.0,
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        ElevatedButton(
-                          onPressed: _previousItem,
-                          child: const Icon(Icons.arrow_back),
-                        ),
-                        const SizedBox(width: 20),
-                        ElevatedButton(
-                          onPressed: _nextItem,
-                          child: const Icon(Icons.arrow_forward),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(
-                      height: 32.0,
-                    ),
-                    Text(
-                      familyPromise[_currentLanguage]![_currentIndex],
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: kIsWeb ? 36 : 18,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -161,37 +429,41 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
   }
 }
 
-final Map<FamilyPromiseLanguage, List<String>> familyPromise = {
-  FamilyPromiseLanguage.portuguese: [
-    '1.  A nossa Família, senhora da Cheon Il Guk, promete procurar a nossa terra natal original e construir o Reino de Deus na Terra e no Céu, o ideal original da criação, centrando-se no verdadeiro amor.',
-    '2.  A nossa Família, senhora da Cheon Il Guk, promete representar e tornar-se central para o Céu e para a Terra ao servir o Pai Celestial e os Verdadeiros Pais; prometemos aperfeiçoar o caminho de obediência na família, de filhos e filhas de piedade filial na nossa família, patriotas na nossa nação, santos no mundo e filhos e filhas divinos no Céu e na Terra, centrando-se no verdadeiro amor.',
-    '3.  A nossa Família, senhora da Cheon Il Guk, promete aperfeiçoar as Quatro Grandes Esferas do Coração, as Três Grandes Realezas e o Reino da Família Real, centrando-se no verdadeiro amor.',
-    '4.  A nossa Família, senhora da Cheon Il Guk, promete construir a família universal que abraça o Céu e a Terra, que é o ideal da criação do Pai Celestial e aperfeiçoar o mundo de liberdade, paz, unidade e felicidade, centrando-se no verdadeiro amor.',
-    '5.  A nossa Família, senhora da Cheon Il Guk, promete labutar diariamente para o avanço da unificação do mundo espiritual e o do mundo físico, como parceiros sujeito e objecto, centrando-se no verdadeiro amor.',
-    '6.  A nossa Família, senhora da Cheon Il Guk, promete tornar-se uma família que transmite a fortuna celestial ao encarnar o Pai Celestial e os Verdadeiros Pais e aperfeiçoar uma família que transmite a bênção do Céu à nossa comunidade, centrando-se no verdadeiro amor.',
-    '7.  A nossa Família, senhora da Cheon Il Guk, promete, ao viver pela causa do bem dos outros, aperfeiçoar o mundo com base na cultura de coração, que tem a raiz na linhagem original, centrando-se no verdadeiro amor.',
-    '8.  A nossa Família, senhora da Cheon Il Guk, promete, tendo entrado na Era da Cheon Il Guk, atingir o ideal de Deus e dos seres humanos unidos em amor através da fé absoluta, amor absoluto e obediência absoluta e aperfeiçoar a esfera de libertação e plena liberdade no Reino de Deus na Terra e no Céu, centrando-se no verdadeiro amor.',
-  ],
-  FamilyPromiseLanguage.korean: [
-    '1 (il) Cheon-il-guk ju-in u-ri ka-jeong-eun,\ncham-sa-rang-eul chung-shim-há-go,\nbon-hyang-dang-eul cha-ja,\nbon-yeon-é chang-jo-i-sang-in,\nji-sang-cheon-guk-gwa cheon-sang-cheon-guk-eul,\nchang-geon-hal go-seul maeng-se-ha-na-i-da.\n',
-    '2 (hi) Cheon-il-guk   ju-in   u-ri   ka-jeong-eun,\ncham-sa-rang-eul   chung-shim-há-go,\nha-neul-bu-mo-nim-gwa   cham-bu-mo-nim-eul   mo-chi-ô,\ncheon-ju-é   dae-pyo-jeok   ka-jeong-i  dwe-myeo,\nchoong-chim-jeok ka-jeong-i   dwe-yo,\nka-jeong-e-seo-neun   hyo-ja,\ngug-ka-e-seo-neun   chung-shin,\nse-gye-e-seo-neun   seong-in,\ncheon-ju-e-seo-neun   seong-ja-é   ga-jeong-é   do-ri-rul,\nwan-seong-hal   go-seul   maeng-se-há-na-i-da.',
-    '3 (sam) Cheon-il-guk  ju-in   u-ri  ka-jeong-eun,\ncham-sa-rang-eul   chung-shim-ha-go,\nsa-dé-chim-jeong-gweon-gwa,\nsam-dae-wang-gweon-gwa   hwang-jok-kweon-eul,\nwan-seong-hal   go-seul   maeng-se-há-na-i-da.\n',
-    '4 (sa) Cheon-il-guk  ju-in   u-ri  ka-jeong-eun,\ncham-sa-rang-eul   chung-shim-ha-go,\nha-neul-bu-mo-nim-é chang-jo-i-sang-in,\ncheon-ju-dae-ga-jok-eul  hyeong-seong-ha-yeo,\nja-yu-wa  pyeong-hwa-wa  tong-il-gwa,\nhaeng-bok-é  se-gye-reul,\nwan-seong-hal  go-seul   maeng-se-há-na-i-da.\n',
-    '5 (oh) Cheon-il-guk   ju-in   u-ri   ka-jeong-eun,\ncham-sa-rang-eul   chung-shim-ha-go,\nmé-il ju-che-jeok cheon-sang-se-gye-wa,\ndae-sang-jeok ji-sang-se-gye-é tong-i-rul hwang-hae,\njeon-jin-joek pal-jeon-eul,\nchok-jin-hwa-hal go-sul maeng-se-há-na-i-da.\n',
-    '6 (yuk) Cheon-il-guk  ju-in   u-ri  ka-jeong-eun,\ncham-sa-rang-eul   chung-shim-ha-go,\nha-neul-bu-mo-nim-gwa   cham-bu-mo-nim-é,\ndae-shin    ka-jeong-eu-ro-seo,\ncheon-un-eul  um-jik-i-neun  ka-geong- i  dé-ô,\nha-neul-e  chuk-bok-eul,\nju-byeon-é   yeon-gyeol-chi-ki-neun  ka-jeong-eul,\nwan-seong-hal  go-seul  maeng-se-ha-na-i-da.\n',
-    '7 (chil) Cheon-il-guk  ju-in   u-ri  ka-jeong-eun,\ncham-sa-rang-eul   chung-shim-ha-go,\nbon-yeon-é   hyeol-tong-gwa   yeon-gyeol-doen,\nwi-ha-neun   saeng-hwa-reul   tong-ha-yeo,\nshim-jeong-mun-hwa   se-gye-reul,\nwan-seong-hal  go-seul   maeng-se-ha-na-i-da.\n',
-    '8 (pal) Cheon-il-guk  ju-in   u-ri  ka-jeong-eun,\ncham-sa-rang-eul   chung-shim-ha-go,\ncheon-il-guk-shi-de-reul   ma-ji-ha-yeo,\ncheol-dae-shin-ang,   cheol-dae-sa-rang,\ncheol-dae-bok-chong-eu-ro,\nshin-in-é   il-che-i-sang-eul   i-ru-ô,\nji-sang-cheon-guk-gwa   cheon-sang-cheon-guk-é,\nhae-bang-gweon-gwa   seok-bang-gweon-eul,\nwan-seong-hal  go-seul   maeng-se-ha-na-i-da.\n',
-  ],
-  FamilyPromiseLanguage.english: [
-    '1. Our family, the owner of Cheon II Guk, pledges to seek our original homeland and build the Kingdom of God on earth and in heaven, the original ideal of creation, by centring on true love.',
-    '2. Our family, the owner of Cheon II Guk, pledges to represent and become central to heaven and earth by attending the Heavenly Parent and True Parents; we pledge to perfect the dutiful family way of filial sons and daughters in our family, patriots in our nation, saints in the world, and divine sons and daughters in heaven and on earth, by centring on true love.',
-    '3. Our family, the owner of Cheon II Guk, pledges to perfect the Four Great Realms of Heart, the Three Great Kingships and the Realm of the Royal Family, by centring on true love.',
-    '4. Our family, the owner of Cheon II Guk, pledges to build the universal family encompassing heaven and earth, which is the Heavenly Parent\'s ideal of creation, and perfect the world of freedom, peace, unity and happiness, by centring on true love.',
-    '5. Our family, the owner of Cheon I Guk, pledges to strive every day to advance the unification of the spirit world and the physical world as subject and object partners, by centring on true love.',
-    '6. Our family, the owner of Cheon Il Guk, pledges to become a family that moves heavenly fortune by embodying the Heavenly Parent and True Parents, and to perfect a family that conveys Heaven\'s blessing to our community, by centring on true love.',
-    '7. Our family, the owner of Cheon II Guk, pledges, through living for the sake of others, to perfect the world based on the culture of heart, which is rooted in the original lineage, by centring on true love.',
-    '8. Our family, the owner of Cheon II Guk, pledges, having entered the Era of Cheon I Guk, to achieve the ideal of God and human beings united in love through absolute faith, absolute love and absolute obedience, and to perfect the realm of liberation and complete freedom in the Kingdom of God on earth and in heaven, by centring on true love.',
-  ]
-};
+String _promiseLanguageLabel(FamilyPromiseLanguage language) {
+  switch (language) {
+    case FamilyPromiseLanguage.portuguese:
+      return 'Português';
+    case FamilyPromiseLanguage.korean:
+      return 'Coreano';
+    case FamilyPromiseLanguage.english:
+      return 'English';
+  }
+}
 
-enum FamilyPromiseLanguage { portuguese, korean, english }
+class _PromiseLanguageButton extends StatelessWidget {
+  const _PromiseLanguageButton({
+    required this.label,
+    required this.selected,
+    required this.color,
+    required this.onPressed,
+  });
+
+  final String label;
+  final bool selected;
+  final Color color;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton.icon(
+      onPressed: onPressed,
+      icon: const Icon(Icons.translate),
+      label: Text(label),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: selected ? color : Colors.white,
+        foregroundColor: selected ? Colors.white : color,
+        side: BorderSide(color: color.withValues(alpha: 0.4)),
+      ),
+    );
+  }
+}

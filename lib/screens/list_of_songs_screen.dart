@@ -1,9 +1,14 @@
+import 'dart:async';
+
+import 'package:ffpmupt/settings/app_language.dart';
+import 'package:ffpmupt/settings/app_strings.dart';
+import 'package:ffpmupt/widgets/offering_payment_panel.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:just_audio/just_audio.dart';
 
 import '../songs/songs.dart';
-import 'package:flutter/foundation.dart';
-import 'package:just_audio/just_audio.dart';
 
 class ListOfSongsScreen extends StatefulWidget {
   const ListOfSongsScreen({super.key});
@@ -14,199 +19,226 @@ class ListOfSongsScreen extends StatefulWidget {
 
 class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
   final _controller = TextEditingController();
-  late List<SongsModel> _filteredSongs = songs;
+  SongsCategory? _selectedCategory;
+  bool _showOnlyWithMusic = false;
+  String _searchQuery = '';
+
+  List<SongsModel> get _filteredSongs {
+    final query = _searchQuery.trim().toLowerCase();
+
+    return songs.where((song) {
+      final matchesSearch =
+          query.isEmpty || song.title.toLowerCase().contains(query);
+      final matchesCategory =
+          _selectedCategory == null || song.songsCategory == _selectedCategory;
+      final matchesMusic =
+          !_showOnlyWithMusic || song.musicTrackPath.isNotEmpty;
+
+      return matchesSearch && matchesCategory && matchesMusic;
+    }).toList();
+  }
 
   void _filterSong(String searchString) {
     setState(() {
-      if (searchString.isEmpty) {
-        _filteredSongs = songs;
-        return;
-      }
-      _filteredSongs = songs
-          .where(
-              (s) => s.title.toLowerCase().contains(searchString.toLowerCase()))
-          .toList();
+      _searchQuery = searchString;
     });
   }
 
-  void _showSongsBy(SongsCategory? category, {bool? hasMusic}) {
+  void _showSongsBy(SongsCategory? category) {
     setState(() {
-      if (hasMusic != null && hasMusic) {
-        _filteredSongs = songs
-            .where((element) => element.musicTrackPath.isNotEmpty)
-            .toList();
-      } else {
-        _filteredSongs = songs
-            .where((element) => category != null
-                ? element.songsCategory == category &&
-                    element.title.toLowerCase().contains(
-                          _controller.text.toLowerCase(),
-                        )
-                : element.title
-                    .toLowerCase()
-                    .contains(_controller.text.toLowerCase()))
-            .toList();
-      }
+      _selectedCategory = category;
     });
   }
 
-  ButtonStyle _fillBy(SongsCategory category) {
+  void _toggleMusicFilter() {
+    setState(() {
+      _showOnlyWithMusic = !_showOnlyWithMusic;
+    });
+  }
+
+  void _showAllSongs() {
+    setState(() {
+      _selectedCategory = null;
+      _showOnlyWithMusic = false;
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Color _colorBy(SongsCategory category) {
     switch (category) {
       case SongsCategory.holy:
-        return ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xff1A237E),
-        );
+        return const Color(0xff1f3f76);
       case SongsCategory.convivial:
-        return ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xff4CAF50),
-        );
+        return const Color(0xff3f7c4e);
       case SongsCategory.english:
-        return ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xffa39400),
-        );
+        return const Color(0xff8b6f1d);
       case SongsCategory.international:
-        return ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xff6B5B95),
-        );
+        return const Color(0xff65508e);
+    }
+  }
+
+  String _labelBy(SongsCategory category, AppStrings strings) {
+    switch (category) {
+      case SongsCategory.holy:
+        return strings.holySongs;
+      case SongsCategory.convivial:
+        return strings.convivialSongs;
+      case SongsCategory.english:
+        return strings.englishSongs;
+      case SongsCategory.international:
+        return strings.worshipSongs;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(AppLanguageScope.watch(context).language);
+    final filteredSongs = _filteredSongs;
+
     return Scaffold(
       appBar: AppBar(
-        centerTitle: true,
-        title: SizedBox(
-          height: 50.0,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            shrinkWrap: true,
-            children: [
-              const SizedBox(
-                width: 42.0,
-              ),
-              ElevatedButton(
-                onPressed: () => setState(() {
-                  _showSongsBy(
-                    null,
-                    hasMusic: true,
-                  );
-                }),
-                child: const Text('COM MÚSICA'),
-              ),
-              ElevatedButton(
-                onPressed: () => setState(() {
-                  _showSongsBy(null);
-                }),
-                child: const Text('TODOS'),
-              ),
-              ElevatedButton(
-                onPressed: () => _showSongsBy(SongsCategory.holy),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xff1A237E),
-                ),
-                child: const Text(
-                  'CÂNTICOS SAGRADOS',
-                  style: TextStyle(
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              ElevatedButton(
-                onPressed: () => _showSongsBy(SongsCategory.convivial),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xff4CAF50),
-                ),
-                child: const Text(
-                  'CANÇÕES DE CONVÍVIO',
-                  style: TextStyle(
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              ElevatedButton(
-                onPressed: () => _showSongsBy(SongsCategory.english),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xffa39400),
-                ),
-                child: const Text(
-                  'HOLY SONGS',
-                  style: TextStyle(
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              ElevatedButton(
-                onPressed: () => _showSongsBy(SongsCategory.international),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xff6B5B95),
-                ),
-                child: const Text(
-                  'WORSHIP SONGS (International)',
-                  style: TextStyle(
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+        title: Text(strings.songs),
       ),
-      body: SingleChildScrollView(
-        physics: const ScrollPhysics(),
-        child: Container(
-          margin: const EdgeInsets.all(12.0),
-          padding: const EdgeInsets.all(12.0),
-          child: Column(
-            children: [
-              TextField(
-                controller: _controller,
-                onChanged: (value) => _filterSong(value),
-                textAlign: TextAlign.center,
-                decoration:
-                    const InputDecoration(hintText: 'Pesquise aqui uma canção'),
-              ),
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                scrollDirection: Axis.vertical,
-                itemCount: _filteredSongs.length,
-                itemBuilder: (context, index) {
-                  return Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: ElevatedButton(
-                        style: _fillBy(_filteredSongs[index].songsCategory),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _filteredSongs[index].musicTrackPath.isNotEmpty
-                                ? const Icon(Icons.music_note_rounded, color: Colors.white,)
-                                : Container(),
-                            _filteredSongs[index].musicTrackPath.isNotEmpty
-                                ? const Icon(Icons.music_note_rounded, color: Colors.white,)
-                                : Container(),
-                            Text(
-                              '${_filteredSongs[index].title} | Pág ${_filteredSongs[index].page}',
-                              style: TextStyle(color: Colors.white),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 980),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Column(
+                children: [
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          TextField(
+                            controller: _controller,
+                            onChanged: _filterSong,
+                            decoration: InputDecoration(
+                              prefixIcon: const Icon(Icons.search),
+                              hintText: strings.searchSongHint,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
-                            _filteredSongs[index].musicTrackPath.isNotEmpty
-                                ? const Icon(Icons.music_note_rounded, color: Colors.white,)
-                                : Container(),
-                            _filteredSongs[index].musicTrackPath.isNotEmpty
-                                ? const Icon(Icons.music_note_rounded, color: Colors.white,)
-                                : Container(),
-                          ],
-                        ),
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                SongScreen(song: _filteredSongs[index]),
                           ),
+                          const SizedBox(height: 14),
+                          Wrap(
+                            alignment: WrapAlignment.center,
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              FilterChip(
+                                label: Text(strings.all),
+                                selected: _selectedCategory == null &&
+                                    !_showOnlyWithMusic,
+                                onSelected: (_) => _showAllSongs(),
+                              ),
+                              FilterChip(
+                                avatar: const Icon(Icons.music_note, size: 18),
+                                label: Text(strings.withMusic),
+                                selected: _showOnlyWithMusic,
+                                onSelected: (_) => _toggleMusicFilter(),
+                              ),
+                              for (final category in SongsCategory.values)
+                                FilterChip(
+                                  label: Text(_labelBy(category, strings)),
+                                  selected: _selectedCategory == category,
+                                  selectedColor:
+                                      _colorBy(category).withValues(alpha: 0.18),
+                                  checkmarkColor: _colorBy(category),
+                                  onSelected: (_) => _showSongsBy(category),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 12,
+                    ),
+                    child: Row(
+                      children: [
+                        Text(
+                          '${filteredSongs.length} ${strings.songCountSuffix}',
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    color: const Color(0xff56635f),
+                                    fontWeight: FontWeight.w700,
+                                  ),
                         ),
-                      ));
-                },
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: filteredSongs.isEmpty
+                        ? Center(
+                            child: Text(
+                              strings.noSongsFound,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(
+                                    color: const Color(0xff56635f),
+                                  ),
+                            ),
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            itemCount: filteredSongs.length,
+                            separatorBuilder: (context, index) =>
+                                const SizedBox(height: 8),
+                            itemBuilder: (context, index) {
+                              final song = filteredSongs[index];
+                              final color = _colorBy(song.songsCategory);
+
+                              return Card(
+                                child: ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                  leading: CircleAvatar(
+                                    backgroundColor:
+                                        color.withValues(alpha: 0.14),
+                                    foregroundColor: color,
+                                    child: song.musicTrackPath.isNotEmpty
+                                        ? const Icon(Icons.music_note)
+                                        : const Icon(Icons.lyrics),
+                                  ),
+                                  title: Text(
+                                    song.title,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    '${_labelBy(song.songsCategory, strings)} • ${strings.page} ${song.page}',
+                                  ),
+                                  trailing: const Icon(Icons.chevron_right),
+                                  onTap: () => Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          SongScreen(song: song),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -225,40 +257,76 @@ class SongScreen extends StatefulWidget {
 
 class _SongScreenState extends State<SongScreen> {
   final AudioPlayer _audioPlayer = AudioPlayer();
+  final FocusNode _focusNode = FocusNode();
+  StreamSubscription<Duration>? _positionSubscription;
   late int _currentIndex = 0;
-  bool coe = false;
+
+  bool get _isOfferingSong => widget.song.page.trim() == '7';
 
   @override
   void initState() {
-    if (widget.song.musicTrackPath.isNotEmpty) {
-      _audioPlayer.setAsset(widget.song.musicTrackPath);
-      _audioPlayer.positionStream.listen((event) {
-        if (event.inSeconds == widget.song.timesToJump[_currentIndex]) {
-          if (coe) {
-            coe = false;
-          } else {
-            setState(() {
-              _currentIndex++;
-            });
-          }
-        }
-      });
-    }
     super.initState();
+    if (widget.song.musicTrackPath.isNotEmpty) {
+      unawaited(_audioPlayer.setAsset(widget.song.musicTrackPath));
+      _positionSubscription =
+          _audioPlayer.positionStream.listen(_syncLyricToPosition);
+    }
   }
 
   @override
   void dispose() {
+    _positionSubscription?.cancel();
+    _focusNode.dispose();
     _audioPlayer.dispose();
     super.dispose();
   }
 
+  void _syncLyricToPosition(Duration position) {
+    if (!mounted ||
+        widget.song.timesToJump.isEmpty ||
+        _currentIndex >= widget.song.lyrics.length - 1 ||
+        _currentIndex >= widget.song.timesToJump.length) {
+      return;
+    }
+
+    if (position.inSeconds >= widget.song.timesToJump[_currentIndex]) {
+      setState(() {
+        _currentIndex++;
+      });
+    }
+  }
+
+  void _showPreviousLyric() {
+    if (_currentIndex == 0) {
+      return;
+    }
+
+    _showLyricAt(_currentIndex - 1);
+  }
+
+  void _showNextLyric() {
+    if (_currentIndex >= widget.song.lyrics.length - 1) {
+      return;
+    }
+
+    _showLyricAt(_currentIndex + 1);
+  }
+
+  void _showLyricAt(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+
+    if (widget.song.musicTrackPath.isNotEmpty &&
+        widget.song.times.length > index) {
+      unawaited(_audioPlayer.seek(Duration(seconds: widget.song.times[index])));
+    }
+  }
+
   Widget _playerButton(PlayerState playerState) {
-    // 1
     final processingState = playerState.processingState;
     if (processingState == ProcessingState.loading ||
         processingState == ProcessingState.buffering) {
-      // 2
       return Container(
         margin: const EdgeInsets.all(8.0),
         width: 64.0,
@@ -266,26 +334,27 @@ class _SongScreenState extends State<SongScreen> {
         child: const CircularProgressIndicator(),
       );
     } else if (_audioPlayer.playing != true) {
-      // 3
-      return IconButton(
+      return IconButton.filled(
         icon: const Icon(Icons.play_arrow),
         iconSize: 64.0,
-        onPressed: _audioPlayer.play,
+        onPressed: () => unawaited(_audioPlayer.play()),
       );
     } else if (processingState != ProcessingState.completed) {
-      // 4
-      return IconButton(
+      return IconButton.filled(
         icon: const Icon(Icons.pause),
         iconSize: 64.0,
-        onPressed: _audioPlayer.pause,
+        onPressed: () => unawaited(_audioPlayer.pause()),
       );
     } else {
-      // 5
-      return IconButton(
+      return IconButton.filled(
         icon: const Icon(Icons.replay),
         iconSize: 64.0,
-        onPressed: () => _audioPlayer.seek(Duration.zero,
-            index: _audioPlayer.effectiveIndices?.first),
+        onPressed: () => unawaited(
+          _audioPlayer.seek(
+            Duration.zero,
+            index: _audioPlayer.effectiveIndices?.first,
+          ),
+        ),
       );
     }
   }
@@ -293,88 +362,68 @@ class _SongScreenState extends State<SongScreen> {
   Color _getColorBy(SongsCategory category) {
     switch (category) {
       case SongsCategory.holy:
-        return const Color(0xff1A237E);
+        return const Color(0xff1f3f76);
       case SongsCategory.convivial:
-        return const Color(0xff4CAF50);
+        return const Color(0xff3f7c4e);
       case SongsCategory.english:
-        return const Color(0xffa39400);
+        return const Color(0xff8b6f1d);
       case SongsCategory.international:
-        return const Color(0xff6B5B95);
+        return const Color(0xff65508e);
+    }
+  }
+
+  String _getLabelBy(SongsCategory category, AppStrings strings) {
+    switch (category) {
+      case SongsCategory.holy:
+        return strings.holySongs;
+      case SongsCategory.convivial:
+        return strings.convivialSongs;
+      case SongsCategory.english:
+        return strings.englishSongs;
+      case SongsCategory.international:
+        return strings.worshipSongs;
     }
   }
 
   Color _getColorByChorus() {
     if (_currentIndex % 2 == 0 && widget.song.isFirstChorus) {
-      return Colors.blue;
+      return const Color(0xff1f3f76);
     } else if (_currentIndex % 2 != 0 && widget.song.isSecondChorus) {
-      return Colors.blue;
+      return const Color(0xff1f3f76);
     } else {
-      return Colors.black;
+      return const Color(0xff293833);
     }
   }
 
-  Widget _buildSongWidget() {
-    return SingleChildScrollView(
-      child: Container(
-        margin: const EdgeInsets.only(left: 48.0, right: 48.0),
-        padding: const EdgeInsets.all(12.0),
+  Widget _buildLyricCard({
+    required Color color,
+    required TextTheme textTheme,
+  }) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 28,
+          vertical: 30,
+        ),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Center(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _currentIndex > 0
-                      ? ElevatedButton(
-                          onPressed: () => setState(() {
-                            coe = true;
-                            _currentIndex--;
-                            // _audioPlayer.seek(Duration(
-                            //     seconds: widget.song.times[_currentIndex]));
-                          }),
-                          child: const Text('<-'),
-                        )
-                      : Container(),
-                  _currentIndex < widget.song.lyrics.length - 1
-                      ? ElevatedButton(
-                          onPressed: () => setState(
-                            () {
-                              coe = true;
-                              _currentIndex++;
-                              if (widget.song.times.isNotEmpty) {
-                                _audioPlayer.seek(Duration(
-                                    seconds: widget.song.times[_currentIndex]));
-                              }
-                            },
-                          ),
-                          child: const Text('->'),
-                        )
-                      : Container(),
-                ],
+            Text(
+              '${_currentIndex + 1} / ${widget.song.lyrics.length}',
+              style: textTheme.titleMedium?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w800,
               ),
             ),
-            widget.song.musicTrackPath.isNotEmpty
-                ? StreamBuilder<PlayerState>(
-                    stream: _audioPlayer.playerStateStream,
-                    builder: (context, snapshot) {
-                      final playerState = snapshot.data;
-                      return _playerButton(playerState!);
-                    },
-                  )
-                : Container(),
-            Text('${_currentIndex + 1}'),
+            const SizedBox(height: 20),
             Text(
               widget.song.lyrics[_currentIndex],
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: kIsWeb ? 48 : 24,
+              style: textTheme.headlineMedium?.copyWith(
+                fontSize: kIsWeb ? 46 : 25,
+                height: 1.28,
                 color: _getColorByChorus(),
+                fontWeight: FontWeight.w500,
               ),
-            ),
-            const SizedBox(
-              height: 15.0,
             ),
           ],
         ),
@@ -382,29 +431,165 @@ class _SongScreenState extends State<SongScreen> {
     );
   }
 
+  Widget _buildSongControls() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton.filledTonal(
+          onPressed: _currentIndex == 0 ? null : _showPreviousLyric,
+          icon: const Icon(Icons.arrow_back),
+        ),
+        if (widget.song.musicTrackPath.isNotEmpty) ...[
+          const SizedBox(width: 18),
+          StreamBuilder<PlayerState>(
+            stream: _audioPlayer.playerStateStream,
+            builder: (context, snapshot) {
+              final playerState = snapshot.data;
+              if (playerState == null) {
+                return Container(
+                  margin: const EdgeInsets.all(8.0),
+                  width: 48.0,
+                  height: 48.0,
+                  child: const CircularProgressIndicator(),
+                );
+              }
+
+              return _playerButton(playerState);
+            },
+          ),
+        ],
+        const SizedBox(width: 18),
+        IconButton.filledTonal(
+          onPressed: _currentIndex == widget.song.lyrics.length - 1
+              ? null
+              : _showNextLyric,
+          icon: const Icon(Icons.arrow_forward),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSongWidget() {
+    final color = _getColorBy(widget.song.songsCategory);
+    final strings = AppStrings.of(AppLanguageScope.watch(context).language);
+    final textTheme = Theme.of(context).textTheme;
+
+    return SafeArea(
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1100),
+            child: Column(
+              children: [
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 10,
+                  runSpacing: 8,
+                  children: [
+                    Chip(
+                      avatar: const Icon(Icons.menu_book, size: 18),
+                      label: Text(
+                        _getLabelBy(widget.song.songsCategory, strings),
+                      ),
+                      backgroundColor: color.withValues(alpha: 0.14),
+                      side: BorderSide(color: color.withValues(alpha: 0.2)),
+                    ),
+                    Chip(
+                      avatar: const Icon(Icons.description, size: 18),
+                      label: Text('${strings.page} ${widget.song.page}'),
+                    ),
+                    if (widget.song.musicTrackPath.isNotEmpty)
+                      Chip(
+                        avatar: const Icon(Icons.music_note, size: 18),
+                        label: Text(strings.audioAvailable),
+                      ),
+                    if (_isOfferingSong)
+                      Chip(
+                        avatar: const Icon(Icons.volunteer_activism, size: 18),
+                        label: Text(strings.offerings),
+                        backgroundColor: const Color(0xff2f6b4f)
+                            .withValues(alpha: 0.14),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final lyricAndControls = Column(
+                      children: [
+                        _buildLyricCard(color: color, textTheme: textTheme),
+                        const SizedBox(height: 18),
+                        _buildSongControls(),
+                      ],
+                    );
+
+                    if (!_isOfferingSong || constraints.maxWidth < 920) {
+                      return Column(
+                        children: [
+                          lyricAndControls,
+                          if (_isOfferingSong) ...[
+                            const SizedBox(height: 20),
+                            OfferingPaymentPanel(
+                              strings: strings,
+                              compact: true,
+                              showNote: false,
+                            ),
+                          ],
+                        ],
+                      );
+                    }
+
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: lyricAndControls),
+                        const SizedBox(width: 16),
+                        SizedBox(
+                          width: 360,
+                          child: OfferingPaymentPanel(
+                            strings: strings,
+                            compact: true,
+                            showNote: false,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(AppLanguageScope.watch(context).language);
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.song.title} | Página ${widget.song.page}'),
+        title: Text(
+          '${widget.song.title} | ${strings.page} ${widget.song.page}',
+        ),
         backgroundColor: _getColorBy(widget.song.songsCategory),
+        foregroundColor: Colors.white,
       ),
-      body: RawKeyboardListener(
+      body: KeyboardListener(
         autofocus: true,
-        focusNode: FocusNode(),
-        onKey: (RawKeyEvent event) {
-          if (event.isKeyPressed(LogicalKeyboardKey.arrowRight)) {
-            if (_currentIndex < widget.song.lyrics.length - 1) {
-              setState(() {
-                _currentIndex++;
-              });
-            }
-          } else if (event.isKeyPressed(LogicalKeyboardKey.arrowLeft)) {
-            if (_currentIndex > 0) {
-              setState(() {
-                _currentIndex--;
-              });
-            }
+        focusNode: _focusNode,
+        onKeyEvent: (KeyEvent event) {
+          if (event is! KeyDownEvent) {
+            return;
+          }
+
+          if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+            _showNextLyric();
+          } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+            _showPreviousLyric();
           }
         },
         child: _buildSongWidget(),
@@ -412,6 +597,3 @@ class _SongScreenState extends State<SongScreen> {
     );
   }
 }
-
-// Task created after investigation.
-// DIADFF-608
