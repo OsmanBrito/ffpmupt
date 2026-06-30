@@ -3,6 +3,7 @@ import 'package:ffpmupt/screens/list_of_songs_screen.dart';
 import 'package:ffpmupt/screens/motto_screen.dart';
 import 'package:ffpmupt/screens/offering_screen.dart';
 import 'package:ffpmupt/screens/public_offering_screen.dart';
+import 'package:ffpmupt/screens/videos_screen.dart';
 import 'package:ffpmupt/settings/app_language.dart';
 import 'package:ffpmupt/settings/app_strings.dart';
 import 'package:flutter/material.dart';
@@ -67,16 +68,14 @@ class _MyAppState extends State<MyApp> {
           ),
         ),
         home: const Home(),
-        routes: {
-          '/ofertas': (context) => const PublicOfferingScreen(),
-        },
+        routes: {'/ofertas': (context) => const PublicOfferingScreen()},
       ),
     );
   }
 }
 
 class Home extends StatelessWidget {
-  const Home({Key? key}) : super(key: key);
+  const Home({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -84,9 +83,7 @@ class Home extends StatelessWidget {
     final strings = AppStrings.of(AppLanguageScope.watch(context).language);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('FFPMU PT'),
-      ),
+      appBar: AppBar(title: const Text('FFPMU PT')),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -121,8 +118,7 @@ class Home extends StatelessWidget {
                           color: const Color(0xff7d2f3a),
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (context) =>
-                                  const FamilyPromiseScreen(),
+                              builder: (context) => const FamilyPromiseScreen(),
                             ),
                           ),
                         ),
@@ -147,6 +143,18 @@ class Home extends StatelessWidget {
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (context) => const OfferingScreen(),
+                            ),
+                          ),
+                        ),
+                        _HomeActionCard(
+                          step: '5',
+                          icon: Icons.ondemand_video,
+                          title: strings.weeklyVideos,
+                          subtitle: strings.weeklyVideosSubtitle,
+                          color: const Color(0xff2f577d),
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const VideosScreen(),
                             ),
                           ),
                         ),
@@ -216,25 +224,25 @@ class _HomeHeader extends StatelessWidget {
           strings.sundayService,
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: const Color(0xff193c37),
-                fontWeight: FontWeight.w700,
-              ),
+            color: const Color(0xff193c37),
+            fontWeight: FontWeight.w700,
+          ),
         ),
         const SizedBox(height: 8),
         Text(
           strings.homeSubtitle,
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: const Color(0xff5f6d68),
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(color: const Color(0xff5f6d68)),
         ),
         const SizedBox(height: 16),
         Text(
           strings.appLanguage,
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: const Color(0xff65716c),
-                fontWeight: FontWeight.w700,
-              ),
+            color: const Color(0xff65716c),
+            fontWeight: FontWeight.w700,
+          ),
         ),
         const SizedBox(height: 8),
         const _AppLanguageSelector(),
@@ -321,16 +329,16 @@ class _HomeActionCard extends StatelessWidget {
               Text(
                 title,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: const Color(0xff1f2724),
-                      fontWeight: FontWeight.w700,
-                    ),
+                  color: const Color(0xff1f2724),
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 subtitle,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xff65716c),
-                    ),
+                  color: const Color(0xff65716c),
+                ),
               ),
             ],
           ),
