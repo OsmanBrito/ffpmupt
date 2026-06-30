@@ -8,6 +8,7 @@ class SongsModel {
     this.isSecondChorus = false,
     this.isFirstChorus = false,
     this.times = const [],
+    this.timesToJump = const [],
   });
 
   final bool isSecondChorus;
@@ -16,7 +17,8 @@ class SongsModel {
   final String page;
   final String title;
   final List<String> lyrics;
-  final List<double> times;
+  final List<int> times;
+  final List<int> timesToJump;
   final SongsCategory songsCategory;
 
 // final List<String> chorus;
@@ -45,6 +47,8 @@ final List<SongsModel> songs = [
     ],
     SongsCategory.holy,
     musicTrackPath: 'assets/A-Morada-do-Pai.mp3',
+    times: [0, 75, 142],
+    timesToJump: [75, 142],
   ),
   SongsModel(
     'A GRAÇA DO SANTO JARDIM',
@@ -61,6 +65,8 @@ final List<SongsModel> songs = [
     ],
     SongsCategory.holy,
     musicTrackPath: 'assets/Graca-do-Jardim-Sagrado.mp3',
+    times: [0, 29, 49, 70, 90, 110, 130, 150],
+    timesToJump: [29, 49, 70, 90, 110, 130, 150],
     isSecondChorus: true,
   ),
   SongsModel(
@@ -816,7 +822,8 @@ final List<SongsModel> songs = [
     'TAN SHIM GA',
     '68',
     [
-      'I mo mi ju go do ju go\n Il bek pon go jo ju go\n Beg gol ri jin to de yo\n Nok shi ra do i ko ob ko\n Im Hyung han il pyun tan shim Ka sil chul li issu rya\n Im hyung han il pyun tan shim Ka sil chul li issu rya.\n',
+      'I mo mi ju go do ju go\n Il bek pon go jo ju go\n Beg gol ri jin to de yo\n Nok shi ra do i ko ob ko\n',
+      ' Im Hyung han il pyun tan shim\n Ka sil chul li issu rya\n Im hyung han il pyun tan shim\n Ka sil chul li issu rya.\n',
       'Although my body perishes\n And yet one thousand times dies\n My bones become ashes\n Even my soul vanishes\n Still all my love and all my heart\n Unchanging remain with you\n My everlasting loyalty\n Unchanging remains with you.\n',
     ],
     SongsCategory.english,
@@ -1506,7 +1513,7 @@ final List<SongsModel> songs = [
       'It\'s a long, long journey,\n So stay by my side\n When I walk through the storm\n You\'ll be my guide, be my guide.\n If they gave me a fortune,\n My treasure would be small.\n I could lose it all tomorrow,\n And never mind at all.\n But if I should lose your love, Lord\n I don’t know what I’d do,\n For I know I\'ll never find another you\n',
     ],
     SongsCategory.international,
-    musicTrackPath: 'assets/THERE’LL-NEVER-BE-ANOTHER-YOU.mp3',
+    musicTrackPath: 'assets/THERE’LL-NEVER-BE ANOTHER YOU.mp3',
   ),
   SongsModel(
     'TOP OF THE WORLD',
@@ -1634,6 +1641,71 @@ final List<SongsModel> songs = [
       'Tu sei l’impero\n Dell’armonia\n Santa Lucia\n Santa Lucia.\n Tu sei l’impero…\n',
     ],
     SongsCategory.international,
+  ),
+  SongsModel(
+    'URIE SO WONUN TONGIL',
+    '132',
+    [
+      'Urie so wonun tongil\n Gumedo so wonun tongil\n I mog sun bachoso tongil\nTong-iri iyoora\n',
+      'I kyore salinun tongil \n Inara chanunde tongil\n Tong-iri oosoora \n Tong-iri iyoora\n',
+    ],
+    SongsCategory.international,
+  ),
+  SongsModel(
+    'LOVE YOU FOREVER LIKE SPRING RAIN',
+    '133',
+    [
+      'Majimak ipsega ttórójin ru Bólssó\n kyóulun gago\n tachi tchajaon pompikatchi \ntangchinûn ne kasûme sarangûl tchuot-ne\nShingûróun ryangie tejinûn tóppigo\nkûde sarange, ne kasûmûn tûlttûne\n',
+      'Wenji mol-lattchiman tchinagan kióulpamul\n tchisewóttón sungandûldo tangchinûl kidarinum\n Maûummm iósoo\nÓsoo urin saranûl kotpiuugoo\n Yóngwónri kantik-radorok saran Ralkóya\n',
+      'Tashi Doraon monijióttón nesarang\n Nemaûm sogue shimónoûn sarang- tchaja tanchiwa\n \nNegue táshion kidaridón kû sarang\nSarang ralsu inûn maûm-ta Tanshin ranteman\nDûriiiii ke sóyoooo\n',
+      'Naie motûn kót tangshin rate dûriri\n Yóngwónri sarang-re pópiwa katchi\nUrie sarang ûn pionthianuri\n Tashi doraón kidaridón nesarang\nPumonim sarang-re\nPompiwa katchii\nPompiwa katchi\n'
+    ],
+    SongsCategory.international,
+    musicTrackPath: 'assets/love-you-forever-like-spring-rain.mp3',
+  ),
+  SongsModel(
+    'KIDJÓK SORI',
+    '134',
+    [
+      'Kûdkkaji tarûrira maran nainde\n Sesan-en junsó-i deranûn pyon gyon punijiman\n Namae garl kirûn jóndoga innûn góya\nNim kessó barachinûn narûrl tchajaiaji\n',
+      'Dugûn górinûn ne gasumûn\n Nimûrl wuirre twí óganûn kijók soriya\n Wirre saraga-gui-e urieguen\n Duryó umûn issûrl su ópsóyo\n',
+      'Nugul wirre ne gasûmûn twigo issûrlka\n Oh ne sarang nimishiyó\nNim duí rûrl tarûri yon wontorok\n\nIrran mom darrarira menserran urinûn\n Sanee barlkórumûn garlajiji marayaji\n Nim kessó barachinûn narûrl tchajaiaji\n',
+      'Dugûn górinûn ne gasumûn\n Nimûrl wuirre twí óganûn kijók soriya\n Wirre saraga-gui-e uriegue\nDuryó umûn issûrl su ópsóyo\n',
+    ],
+    SongsCategory.international,
+    isSecondChorus: true,
+    musicTrackPath: 'assets/let-it-blow.mp3',
+  ),
+  SongsModel(
+    'SA-RANG-CHA-JA IN-SEN CHA-JA',
+    '135',
+    [
+      'la-la-lal-la la-la-la-la lal-la\nla-la-la-la la-la-la-lal-la\nsa-rang-cha-ja in-sen-úl cha-ja\nHa-ru-jon-il su mi-cha-gue ti-o-da-nin-da\n',
+      'só-ul Ha-nul Ha-nul a-ré-só \nne-kum-do ga-ka-i on-da\nsa-rang-do I-co u-jón-do I-co\nHa-nul a-re sal-go I-co\n',
+      'jó-ma-da da-run in-seng-so-gué\nto-Ha-ru-rur ba-ppu-gue san-da\nu-ri in-sen sal-da-bo-myón\nHim-dun nal-do su-ób-shi cha-ja-o-ji-man\n',
+      'sa-rang Ha-na gu-sa-rang Ha-na\ncha-ju-Ryó-go mom-bu-rim-chi-né\n',
+      'sa-rang-cha-ja in-sen-eul cha-ja\nHa-ru-jon-il sum-i-cha-gue ti-ó-da-nin-da\nsó-ul ha-nul ha-nul a-re-só\nne kum-do ga-ka-i on-da\n',
+      'sa-rang-ul al-go u-jón-do al-go\njón-Ha-na-ro sal-go i-co\njó-ma-da gab-jin in-séng-so-gé\nto-Ha-ru-rur ba-ppu-gue san-da',
+      'u-ri in-seng sal-da-bo-myón Him-dun nal-do\nsu-ób-shi cha-ja-o-ji-man\no-nul-bo-da dó-mó-jin in-sen\ncha-ki-wi-hé mom-bu-rim-chi-né\n',
+      'sa-rang cha-ja in-sen-eul cha-ja\nHa-ru-jong-il sum-i cha-gue ti-ó-da-nin-da\nsó-ul Ha-nul Ha-nul a-re-só\nne kum-do ga-ka-i on-da\n',
+      'sa-rang-cha-ja in-sén-ul cha-ja\nji-chin ga-sum ku-ró-an-go ti-ó-da-nin-da\nsó-ul Ha-nul Ha-nul a-re-só\nne kum-do ga-ka-i on-da\n',
+    ],
+    SongsCategory.international,
+    musicTrackPath: 'assets/sarang-chaja.mp3',
+  ),
+  SongsModel(
+    'KOMABSÔ',
+    '136',
+    [
+      'I naí moktorô\nSesân ul tchar moru ná bôda\nTchinshimurl tárredo\nNaegue sânttchórurl djune\nI naí moktorô\nSaram-ur tchar moruna bôda\nSaramun boyódo\nMaûmun pôidji-à ná\n',
+      'I naí tueósó kûredo\ntanshinurl manasó\nKomabsô komabsô\nNûrl saranrraô\n',
+      'Rimgiopdton kunar bam\nSôn tun-ê nunmururl ttórkur ttê\nNe sonurl kamssamyó\nKüentchaná uródjun saram\nSesân-i tundjódo\nNarasó rramkê rrarlkorago\nDundui-e bondjitón\nNunmuri tcham ttugóuósô\n',
+      'I naí tueósó kûredo\ntanshinurl manasó\nKomabsô komabsô\nNûrl saranrraô\n',
+      'Monan nnarurl manasó\nKin sewól kosenman shikin saram\nIron saramirasó\nMianago apun saram\nNa tanshinur Uirrê saraKaguesô\nNamKyódjin seuórdo\nRramkê kabshida\nKomabsô komabsô\nNurl saranrraô\n'
+    ],
+    SongsCategory.international,
+    isSecondChorus: true,
+    musicTrackPath: 'assets/gomabso.mp3',
   ),
 ];
 
