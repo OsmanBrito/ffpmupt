@@ -38,25 +38,26 @@
     }
   </script>
   <script>
-    async function startFlutter() {
-      if ('serviceWorker' in navigator) {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(registrations.map((registration) => registration.unregister()));
+    let offlineWorkerReady;
 
-        if ('caches' in window) {
-          const cacheNames = await caches.keys();
-          await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
-        }
+    if ('serviceWorker' in navigator) {
+      offlineWorkerReady = navigator.serviceWorker
+        .register('offline_service_worker.js')
+        .then(() => navigator.serviceWorker.ready);
+
+      if (navigator.storage?.persist) {
+        navigator.storage.persist();
       }
-
-      const bootstrap = document.createElement('script');
-      bootstrap.src = 'flutter_bootstrap.js';
-      bootstrap.async = true;
-      document.head.appendChild(bootstrap);
     }
 
-    startFlutter();
+    window.ffpmuCacheAudio = function(urls) {
+      if (!offlineWorkerReady) return;
+      offlineWorkerReady.then((registration) => {
+        registration.active?.postMessage({type: 'CACHE_AUDIO', urls});
+      });
+    };
   </script>
+  <script src="flutter_bootstrap.js" async></script>
 </head>
 <body>
 </body>

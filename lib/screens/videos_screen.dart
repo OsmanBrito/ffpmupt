@@ -60,52 +60,6 @@ class _VideosScreenState extends State<VideosScreen> {
     });
   }
 
-  Future<void> _showAdminLogin(AppStrings strings) async {
-    final credentials = await showDialog<_AdminCredentials>(
-      context: context,
-      builder: (context) => _AdminLoginDialog(strings: strings),
-    );
-    if (credentials == null || !mounted) {
-      return;
-    }
-
-    setState(() {
-      _isCheckingAdmin = true;
-    });
-
-    try {
-      final user = await _authService.signIn(
-        email: credentials.email,
-        password: credentials.password,
-      );
-      final isAdmin = await _authService.isAdmin(
-        user,
-        countryCode: weeklyVideosCountryCode,
-      );
-
-      if (!isAdmin) {
-        await _authService.signOut();
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(strings.adminAccessDenied)));
-        }
-      }
-    } on FirebaseAuthException {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(strings.signInFailed)));
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isCheckingAdmin = false;
-        });
-      }
-    }
-  }
-
   Future<void> _signOut() async {
     await _authService.signOut();
   }
@@ -195,7 +149,7 @@ class _VideosScreenState extends State<VideosScreen> {
           else
             IconButton(
               tooltip: strings.adminLogin,
-              onPressed: () => _showAdminLogin(strings),
+              onPressed: () => Navigator.of(context).pushNamed('/admin'),
               icon: const Icon(Icons.lock_outline),
             ),
           const SizedBox(width: 8),
@@ -234,105 +188,6 @@ class _VideosScreenState extends State<VideosScreen> {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _AdminCredentials {
-  const _AdminCredentials({required this.email, required this.password});
-
-  final String email;
-  final String password;
-}
-
-class _AdminLoginDialog extends StatefulWidget {
-  const _AdminLoginDialog({required this.strings});
-
-  final AppStrings strings;
-
-  @override
-  State<_AdminLoginDialog> createState() => _AdminLoginDialogState();
-}
-
-class _AdminLoginDialogState extends State<_AdminLoginDialog> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
-  void _submit() {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text;
-    if (email.isEmpty || password.isEmpty) {
-      return;
-    }
-
-    Navigator.of(
-      context,
-    ).pop(_AdminCredentials(email: email, password: password));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final strings = widget.strings;
-
-    return AlertDialog(
-      title: Text(strings.adminLogin),
-      content: SizedBox(
-        width: 420,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _emailController,
-              keyboardType: TextInputType.emailAddress,
-              autofocus: true,
-              decoration: InputDecoration(
-                labelText: strings.adminEmail,
-                prefixIcon: const Icon(Icons.email_outlined),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _passwordController,
-              obscureText: _obscurePassword,
-              onSubmitted: (_) => _submit(),
-              decoration: InputDecoration(
-                labelText: strings.password,
-                prefixIcon: const Icon(Icons.password),
-                suffixIcon: IconButton(
-                  tooltip: strings.togglePasswordVisibility,
-                  onPressed: () {
-                    setState(() {
-                      _obscurePassword = !_obscurePassword;
-                    });
-                  },
-                  icon: Icon(
-                    _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(strings.cancel),
-        ),
-        FilledButton.icon(
-          onPressed: _submit,
-          icon: const Icon(Icons.login),
-          label: Text(strings.signIn),
-        ),
-      ],
     );
   }
 }

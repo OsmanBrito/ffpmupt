@@ -19,7 +19,19 @@ service cloud.firestore {
         ).data.countryCodes.hasAny([countryCode]);
     }
 
+    match /countries/{countryCode} {
+      allow read: if true;
+      allow create, update: if isCountryAdmin(countryCode);
+      allow delete: if false;
+    }
+
     match /countries/{countryCode}/settings/weeklyVideos {
+      allow read: if true;
+      allow create, update: if isCountryAdmin(countryCode);
+      allow delete: if false;
+    }
+
+    match /countries/{countryCode}/songs/{songId} {
       allow read: if true;
       allow create, update: if isCountryAdmin(countryCode);
       allow delete: if false;

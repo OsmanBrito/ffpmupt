@@ -2,13 +2,15 @@ import 'dart:async';
 
 import 'package:ffpmupt/settings/app_language.dart';
 import 'package:ffpmupt/settings/app_strings.dart';
+import 'package:ffpmupt/models/song.dart';
+import 'package:ffpmupt/services/offline_audio_cache.dart';
+import 'package:ffpmupt/services/song_repository.dart';
+import 'package:ffpmupt/songs/bundled_song_catalog.dart';
 import 'package:ffpmupt/widgets/offering_payment_panel.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
-
-import '../songs/songs.dart';
 
 String _normalizeSongSearch(String value) {
   const replacements = {
@@ -56,30 +58,54 @@ class ListOfSongsScreen extends StatefulWidget {
 
 class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
   final _controller = TextEditingController();
-  SongsCategory? _selectedCategory;
+  final _repository = SongRepository();
+  final _offlineAudioCache = const OfflineAudioCache();
+  StreamSubscription<SongCatalogState>? _catalogSubscription;
+  List<SongDocument> _songs = bundledSongCatalog;
+  SongCategory? _selectedCategory;
   bool _showOnlyWithMusic = false;
   String _searchQuery = '';
 
-  List<SongsModel> get _filteredSongs {
+  List<SongDocument> get _filteredSongs {
     final query = _normalizeSongSearch(_searchQuery.trim());
 
-    return songs.where((song) {
+    return _songs.where((song) {
       final searchableText = _normalizeSongSearch(
-        [
-          song.title,
-          song.page,
-          song.songsCategory.name,
-          ...song.lyrics,
-        ].join(' '),
+        [song.title, song.page, song.category.value, ...song.lyrics].join(' '),
       );
       final matchesSearch = query.isEmpty || searchableText.contains(query);
       final matchesCategory =
-          _selectedCategory == null || song.songsCategory == _selectedCategory;
+          _selectedCategory == null || song.category == _selectedCategory;
       final matchesMusic =
-          !_showOnlyWithMusic || song.musicTrackPath.isNotEmpty;
+          !_showOnlyWithMusic || song.audioTracks.any((track) => track.enabled);
 
       return matchesSearch && matchesCategory && matchesMusic;
     }).toList();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _cacheAudio(_songs);
+    _catalogSubscription = _repository.watchCatalog().listen((state) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _songs = state.songs;
+      });
+      _cacheAudio(state.songs);
+    });
+  }
+
+  void _cacheAudio(List<SongDocument> catalog) {
+    _offlineAudioCache.cacheAll(
+      catalog.expand(
+        (song) => song.audioTracks
+            .where((track) => track.enabled)
+            .map((track) => track.url),
+      ),
+    );
   }
 
   void _filterSong(String searchString) {
@@ -88,7 +114,7 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
     });
   }
 
-  void _showSongsBy(SongsCategory? category) {
+  void _showSongsBy(SongCategory? category) {
     setState(() {
       _selectedCategory = category;
     });
@@ -114,33 +140,38 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
 
   @override
   void dispose() {
+    _catalogSubscription?.cancel();
     _controller.dispose();
     super.dispose();
   }
 
-  Color _colorBy(SongsCategory category) {
+  Color _colorBy(SongCategory category) {
     switch (category) {
-      case SongsCategory.holy:
+      case SongCategory.holy:
         return const Color(0xff1f3f76);
-      case SongsCategory.convivial:
+      case SongCategory.fellowship:
         return const Color(0xff3f7c4e);
-      case SongsCategory.english:
+      case SongCategory.english:
         return const Color(0xff8b6f1d);
-      case SongsCategory.international:
+      case SongCategory.worship:
+        return const Color(0xff7d2f3a);
+      case SongCategory.international:
         return const Color(0xff65508e);
     }
   }
 
-  String _labelBy(SongsCategory category, AppStrings strings) {
+  String _labelBy(SongCategory category, AppStrings strings) {
     switch (category) {
-      case SongsCategory.holy:
+      case SongCategory.holy:
         return strings.holySongs;
-      case SongsCategory.convivial:
+      case SongCategory.fellowship:
         return strings.convivialSongs;
-      case SongsCategory.english:
+      case SongCategory.english:
         return strings.englishSongs;
-      case SongsCategory.international:
+      case SongCategory.worship:
         return strings.worshipSongs;
+      case SongCategory.international:
+        return strings.internationalSongs;
     }
   }
 
@@ -201,7 +232,11 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
                                 selected: _showOnlyWithMusic,
                                 onSelected: (_) => _toggleMusicFilter(),
                               ),
-                              for (final category in SongsCategory.values)
+                              for (final category in SongCategory.values.where(
+                                (category) => _songs.any(
+                                  (song) => song.category == category,
+                                ),
+                              ))
                                 FilterChip(
                                   label: Text(_labelBy(category, strings)),
                                   selected: _selectedCategory == category,
@@ -251,7 +286,7 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
                                 const SizedBox(height: 8),
                             itemBuilder: (context, index) {
                               final song = filteredSongs[index];
-                              final color = _colorBy(song.songsCategory);
+                              final color = _colorBy(song.category);
 
                               return Card(
                                 child: ListTile(
@@ -264,7 +299,10 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
                                       alpha: 0.14,
                                     ),
                                     foregroundColor: color,
-                                    child: song.musicTrackPath.isNotEmpty
+                                    child:
+                                        song.audioTracks.any(
+                                          (track) => track.enabled,
+                                        )
                                         ? const Icon(Icons.music_note)
                                         : const Icon(Icons.lyrics),
                                   ),
@@ -275,7 +313,7 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
                                     ),
                                   ),
                                   subtitle: Text(
-                                    '${_labelBy(song.songsCategory, strings)} • ${strings.page} ${song.page}',
+                                    '${_labelBy(song.category, strings)} • ${strings.page} ${song.page}',
                                   ),
                                   isThreeLine: false,
                                   trailing: const Icon(Icons.chevron_right),
@@ -301,7 +339,7 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
 }
 
 class SongScreen extends StatefulWidget {
-  final SongsModel song;
+  final SongDocument song;
 
   const SongScreen({super.key, required this.song});
 
@@ -319,19 +357,44 @@ class _SongScreenState extends State<SongScreen> {
   Duration _audioPosition = Duration.zero;
   Duration _audioDuration = Duration.zero;
 
+  SongAudioTrack? get _audioTrack {
+    final tracks =
+        widget.song.audioTracks
+            .where((track) => track.enabled && track.url.trim().isNotEmpty)
+            .toList()
+          ..sort((left, right) => left.sortOrder.compareTo(right.sortOrder));
+    return tracks.firstOrNull;
+  }
+
+  bool get _hasAudio => _audioTrack != null;
+
   bool get _isOfferingSong => widget.song.page.trim() == '7';
 
   @override
   void initState() {
     super.initState();
-    if (widget.song.musicTrackPath.isNotEmpty) {
-      unawaited(_audioPlayer.setAsset(widget.song.musicTrackPath));
+    if (_hasAudio) {
+      unawaited(_loadAudio(_audioTrack!.url));
       _positionSubscription = _audioPlayer.positionStream.listen(
         _handleAudioPosition,
       );
       _durationSubscription = _audioPlayer.durationStream.listen(
         _handleAudioDuration,
       );
+    }
+  }
+
+  Future<void> _loadAudio(String source) async {
+    try {
+      if (source.startsWith('assets/')) {
+        await _audioPlayer.setAsset(source);
+      } else {
+        await _audioPlayer.setUrl(source);
+      }
+    } on PlayerException catch (error) {
+      if (kDebugMode) {
+        debugPrint('Unable to load audio: $error');
+      }
     }
   }
 
@@ -361,9 +424,10 @@ class _SongScreenState extends State<SongScreen> {
 
     var nextIndex = _currentIndex;
     final cannotSyncLyric =
-        widget.song.timesToJump.isEmpty ||
+        _audioTrack == null ||
+        _audioTrack!.verseChangeSeconds.isEmpty ||
         _currentIndex >= widget.song.lyrics.length - 1 ||
-        _currentIndex >= widget.song.timesToJump.length;
+        _currentIndex >= _audioTrack!.verseChangeSeconds.length;
 
     if (cannotSyncLyric) {
       setState(() {
@@ -372,7 +436,7 @@ class _SongScreenState extends State<SongScreen> {
       return;
     }
 
-    if (position.inSeconds >= widget.song.timesToJump[_currentIndex]) {
+    if (position.inSeconds >= _audioTrack!.verseChangeSeconds[_currentIndex]) {
       nextIndex = _currentIndex + 1;
     }
 
@@ -403,9 +467,12 @@ class _SongScreenState extends State<SongScreen> {
       _currentIndex = index;
     });
 
-    if (widget.song.musicTrackPath.isNotEmpty &&
-        widget.song.times.length > index) {
-      unawaited(_audioPlayer.seek(Duration(seconds: widget.song.times[index])));
+    if (_audioTrack != null && _audioTrack!.verseStartSeconds.length > index) {
+      unawaited(
+        _audioPlayer.seek(
+          Duration(seconds: _audioTrack!.verseStartSeconds[index]),
+        ),
+      );
     }
   }
 
@@ -422,7 +489,7 @@ class _SongScreenState extends State<SongScreen> {
   }
 
   void _toggleAudio() {
-    if (widget.song.musicTrackPath.isEmpty) {
+    if (!_hasAudio) {
       return;
     }
 
@@ -486,36 +553,41 @@ class _SongScreenState extends State<SongScreen> {
     }
   }
 
-  Color _getColorBy(SongsCategory category) {
+  Color _getColorBy(SongCategory category) {
     switch (category) {
-      case SongsCategory.holy:
+      case SongCategory.holy:
         return const Color(0xff1f3f76);
-      case SongsCategory.convivial:
+      case SongCategory.fellowship:
         return const Color(0xff3f7c4e);
-      case SongsCategory.english:
+      case SongCategory.english:
         return const Color(0xff8b6f1d);
-      case SongsCategory.international:
+      case SongCategory.worship:
+        return const Color(0xff7d2f3a);
+      case SongCategory.international:
         return const Color(0xff65508e);
     }
   }
 
-  String _getLabelBy(SongsCategory category, AppStrings strings) {
+  String _getLabelBy(SongCategory category, AppStrings strings) {
     switch (category) {
-      case SongsCategory.holy:
+      case SongCategory.holy:
         return strings.holySongs;
-      case SongsCategory.convivial:
+      case SongCategory.fellowship:
         return strings.convivialSongs;
-      case SongsCategory.english:
+      case SongCategory.english:
         return strings.englishSongs;
-      case SongsCategory.international:
+      case SongCategory.worship:
         return strings.worshipSongs;
+      case SongCategory.international:
+        return strings.internationalSongs;
     }
   }
 
   Color _getColorByChorus() {
-    if (_currentIndex % 2 == 0 && widget.song.isFirstChorus) {
+    if (_currentIndex % 2 == 0 && widget.song.chorusMode == ChorusMode.first) {
       return const Color(0xff1f3f76);
-    } else if (_currentIndex % 2 != 0 && widget.song.isSecondChorus) {
+    } else if (_currentIndex % 2 != 0 &&
+        widget.song.chorusMode == ChorusMode.second) {
       return const Color(0xff1f3f76);
     } else {
       return const Color(0xff293833);
@@ -586,7 +658,7 @@ class _SongScreenState extends State<SongScreen> {
   }
 
   Widget _buildAudioPanel(AppStrings strings) {
-    if (widget.song.musicTrackPath.isEmpty) {
+    if (!_hasAudio) {
       return const SizedBox.shrink();
     }
 
@@ -692,7 +764,7 @@ class _SongScreenState extends State<SongScreen> {
   }
 
   Widget _buildSongWidget() {
-    final color = _getColorBy(widget.song.songsCategory);
+    final color = _getColorBy(widget.song.category);
     final strings = AppStrings.of(AppLanguageScope.watch(context).language);
     final textTheme = Theme.of(context).textTheme;
 
@@ -712,9 +784,7 @@ class _SongScreenState extends State<SongScreen> {
                   children: [
                     Chip(
                       avatar: const Icon(Icons.menu_book, size: 18),
-                      label: Text(
-                        _getLabelBy(widget.song.songsCategory, strings),
-                      ),
+                      label: Text(_getLabelBy(widget.song.category, strings)),
                       backgroundColor: color.withValues(alpha: 0.14),
                       side: BorderSide(color: color.withValues(alpha: 0.2)),
                     ),
@@ -722,7 +792,7 @@ class _SongScreenState extends State<SongScreen> {
                       avatar: const Icon(Icons.description, size: 18),
                       label: Text('${strings.page} ${widget.song.page}'),
                     ),
-                    if (widget.song.musicTrackPath.isNotEmpty)
+                    if (_hasAudio)
                       Chip(
                         avatar: const Icon(Icons.music_note, size: 18),
                         label: Text(strings.audioAvailable),
@@ -743,8 +813,7 @@ class _SongScreenState extends State<SongScreen> {
                     final lyricAndControls = Column(
                       children: [
                         _buildAudioPanel(strings),
-                        if (widget.song.musicTrackPath.isNotEmpty)
-                          const SizedBox(height: 14),
+                        if (_hasAudio) const SizedBox(height: 14),
                         _buildSongControls(strings),
                         const SizedBox(height: 14),
                         _buildLyricCard(color: color, textTheme: textTheme),
@@ -803,7 +872,7 @@ class _SongScreenState extends State<SongScreen> {
         title: Text(
           '${widget.song.title} | ${strings.page} ${widget.song.page}',
         ),
-        backgroundColor: _getColorBy(widget.song.songsCategory),
+        backgroundColor: _getColorBy(widget.song.category),
         foregroundColor: Colors.white,
       ),
       body: KeyboardListener(

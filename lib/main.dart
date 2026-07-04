@@ -1,4 +1,5 @@
 import 'package:ffpmupt/firebase_options.dart';
+import 'package:ffpmupt/screens/admin/admin_screen.dart';
 import 'package:ffpmupt/screens/family_promise_screen.dart';
 import 'package:ffpmupt/screens/list_of_songs_screen.dart';
 import 'package:ffpmupt/screens/motto_screen.dart';
@@ -8,6 +9,9 @@ import 'package:ffpmupt/screens/videos_screen.dart';
 import 'package:ffpmupt/settings/app_language.dart';
 import 'package:ffpmupt/settings/app_strings.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ffpmupt/services/offline_audio_cache.dart';
+import 'package:ffpmupt/services/song_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -17,9 +21,28 @@ Future<void> main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    FirebaseFirestore.instance.settings = const Settings(
+      persistenceEnabled: true,
+      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+      webPersistentTabManager: WebPersistentMultipleTabManager(),
+    );
   }
 
   runApp(const MyApp());
+  _startOfflineSync();
+}
+
+void _startOfflineSync() {
+  const audioCache = OfflineAudioCache();
+  SongRepository().watchCatalog().listen((state) {
+    audioCache.cacheAll(
+      state.songs.expand(
+        (song) => song.audioTracks
+            .where((track) => track.enabled)
+            .map((track) => track.url),
+      ),
+    );
+  });
 }
 
 class MyApp extends StatefulWidget {
@@ -78,7 +101,10 @@ class _MyAppState extends State<MyApp> {
           ),
         ),
         home: const Home(),
-        routes: {'/ofertas': (context) => const PublicOfferingScreen()},
+        routes: {
+          '/admin': (context) => const AdminScreen(),
+          '/ofertas': (context) => const PublicOfferingScreen(),
+        },
       ),
     );
   }
@@ -93,7 +119,17 @@ class Home extends StatelessWidget {
     final strings = AppStrings.of(AppLanguageScope.watch(context).language);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('FFPMU PT')),
+      appBar: AppBar(
+        title: const Text('FFPMU PT'),
+        actions: [
+          IconButton(
+            tooltip: strings.adminArea,
+            onPressed: () => Navigator.of(context).pushNamed('/admin'),
+            icon: const Icon(Icons.admin_panel_settings_outlined),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(

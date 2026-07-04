@@ -1373,7 +1373,7 @@ final List<SongsModel> songs = [
       'It\'s a long, long journey,\n So stay by my side\n When I walk through the storm\n You\'ll be my guide, be my guide.\n If they gave me a fortune,\n My treasure would be small.\n I could lose it all tomorrow,\n And never mind at all.\n But if I should lose your love, Lord\n I don’t know what I’d do,\n For I know I\'ll never find another you\n',
     ],
     SongsCategory.international,
-    musicTrackPath: 'assets/THERE’LL-NEVER-BE ANOTHER YOU.mp3',
+    musicTrackPath: 'assets/therell-never-be-another-you.mp3',
   ),
   SongsModel(
     'TOP OF THE WORLD',

@@ -11,7 +11,7 @@ import 'package:flutter/material.dart';
 const _pledgeHistoryKey = 'family_promise_history_v1';
 
 class FamilyPromiseScreen extends StatefulWidget {
-  const FamilyPromiseScreen({Key? key}) : super(key: key);
+  const FamilyPromiseScreen({super.key});
 
   @override
   State<FamilyPromiseScreen> createState() => _FamilyPromiseScreenState();
