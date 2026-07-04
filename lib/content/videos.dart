@@ -2,18 +2,52 @@ class WeeklyVideo {
   const WeeklyVideo({
     required this.title,
     required this.sourceName,
+    required this.sourceUrl,
     required this.watchUrl,
     required this.embedUrl,
   });
 
   final String title;
   final String sourceName;
+  final String sourceUrl;
   final String watchUrl;
   final String embedUrl;
+
+  Map<String, Object?> toMap() {
+    return {
+      'title': title,
+      'sourceName': sourceName,
+      'sourceUrl': sourceUrl,
+      'watchUrl': watchUrl,
+      'embedUrl': embedUrl,
+    };
+  }
+
+  static WeeklyVideo? fromMap(Map<String, Object?> map) {
+    final sourceName = map['sourceName'];
+    final title = map['title'];
+    final sourceUrl = map['sourceUrl'];
+    final watchUrl = map['watchUrl'];
+
+    if (sourceName is! String ||
+        title is! String ||
+        sourceUrl is! String ||
+        watchUrl is! String) {
+      return null;
+    }
+
+    return weeklyVideoFromUrl(
+      sourceName: sourceName,
+      sourceUrl: sourceUrl,
+      title: title,
+      url: watchUrl,
+    );
+  }
 }
 
 WeeklyVideo? weeklyVideoFromUrl({
   required String sourceName,
+  required String sourceUrl,
   required String title,
   required String url,
 }) {
@@ -36,6 +70,7 @@ WeeklyVideo? weeklyVideoFromUrl({
     return WeeklyVideo(
       title: title,
       sourceName: sourceName,
+      sourceUrl: sourceUrl,
       watchUrl: trimmedUrl,
       embedUrl: 'https://www.youtube-nocookie.com/embed/$videoId',
     );
@@ -50,6 +85,7 @@ WeeklyVideo? weeklyVideoFromUrl({
     return WeeklyVideo(
       title: title,
       sourceName: sourceName,
+      sourceUrl: sourceUrl,
       watchUrl: trimmedUrl,
       embedUrl: 'https://player.vimeo.com/video/$videoId',
     );
@@ -101,12 +137,14 @@ const weeklyVideos = [
   WeeklyVideo(
     title: 'HJ Global News Português (27.06.2026)',
     sourceName: 'YouTube',
+    sourceUrl: youtubeWeeklySourceUrl,
     watchUrl: 'https://www.youtube.com/watch?v=uXhZBoveiiM',
     embedUrl: 'https://www.youtube-nocookie.com/embed/uXhZBoveiiM',
   ),
   WeeklyVideo(
     title: 'Weekly News',
     sourceName: 'Vimeo',
+    sourceUrl: vimeoWeeklySourceUrl,
     watchUrl: 'https://vimeo.com/1202206348',
     embedUrl: 'https://player.vimeo.com/video/1202206348',
   ),

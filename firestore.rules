@@ -1,0 +1,37 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isCountryAdmin(countryCode) {
+      return isSignedIn()
+        && get(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        ).data.role == 'admin'
+        && get(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        ).data.enabled == true
+        && get(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        ).data.countryCodes.hasAny([countryCode]);
+    }
+
+    match /countries/{countryCode}/settings/weeklyVideos {
+      allow read: if true;
+      allow create, update: if isCountryAdmin(countryCode);
+      allow delete: if false;
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

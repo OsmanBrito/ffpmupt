@@ -4,6 +4,7 @@ import 'package:ffpmupt/content/family_promise.dart';
 import 'package:ffpmupt/content/motto.dart';
 import 'package:ffpmupt/content/offering.dart';
 import 'package:ffpmupt/content/videos.dart';
+import 'package:ffpmupt/services/weekly_videos_repository.dart';
 import 'package:ffpmupt/songs/songs.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -101,16 +102,19 @@ void main() {
     test('weekly video links can be converted to embeds', () {
       final youtubeVideo = weeklyVideoFromUrl(
         sourceName: 'YouTube',
+        sourceUrl: youtubeWeeklySourceUrl,
         title: 'YouTube test',
         url: 'https://www.youtube.com/watch?v=uXhZBoveiiM',
       );
       final shortYoutubeVideo = weeklyVideoFromUrl(
         sourceName: 'YouTube',
+        sourceUrl: youtubeWeeklySourceUrl,
         title: 'YouTube short link test',
         url: 'https://youtu.be/uXhZBoveiiM',
       );
       final vimeoVideo = weeklyVideoFromUrl(
         sourceName: 'Vimeo',
+        sourceUrl: vimeoWeeklySourceUrl,
         title: 'Vimeo test',
         url: 'https://vimeo.com/1202206348',
       );
@@ -124,6 +128,17 @@ void main() {
         'https://www.youtube-nocookie.com/embed/uXhZBoveiiM',
       );
       expect(vimeoVideo?.embedUrl, 'https://player.vimeo.com/video/1202206348');
+    });
+
+    test('weekly video settings match Firestore document shape', () {
+      final settings = WeeklyVideosSettings.fallback;
+      final decoded = WeeklyVideosSettings.fromMap(settings.toMap());
+
+      expect(weeklyVideosCollectionPath, 'countries/pt/settings');
+      expect(weeklyVideosDocumentId, 'weeklyVideos');
+      expect(settings.toMap()['countryCode'], 'pt');
+      expect(decoded?.youtube.watchUrl, settings.youtube.watchUrl);
+      expect(decoded?.vimeo.watchUrl, settings.vimeo.watchUrl);
     });
   });
 }

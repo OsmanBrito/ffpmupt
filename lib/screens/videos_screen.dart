@@ -1,13 +1,14 @@
+import 'dart:async';
+
 import 'package:ffpmupt/content/videos.dart';
+import 'package:ffpmupt/services/admin_auth_service.dart';
+import 'package:ffpmupt/services/weekly_videos_repository.dart';
 import 'package:ffpmupt/settings/app_language.dart';
 import 'package:ffpmupt/settings/app_strings.dart';
-import 'package:ffpmupt/settings/local_store.dart';
 import 'package:ffpmupt/widgets/video_embed.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
-const _youtubeVideoUrlKey = 'weekly_video_youtube_url';
-const _vimeoVideoUrlKey = 'weekly_video_vimeo_url';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class VideosScreen extends StatefulWidget {
   const VideosScreen({super.key});
@@ -17,50 +18,109 @@ class VideosScreen extends StatefulWidget {
 }
 
 class _VideosScreenState extends State<VideosScreen> {
+  final _authService = AdminAuthService();
+  final _repository = WeeklyVideosRepository();
   final _youtubeController = TextEditingController();
   final _vimeoController = TextEditingController();
+  StreamSubscription<User?>? _authSubscription;
   late List<WeeklyVideo> _videos = weeklyVideos;
   bool _isLoading = true;
+  bool _isCheckingAdmin = true;
+  bool _isAdmin = false;
 
   @override
   void initState() {
     super.initState();
+    _authSubscription = _authService.authStateChanges().listen(
+      _refreshAdminAccess,
+    );
     _loadSavedVideoLinks();
   }
 
   @override
   void dispose() {
+    _authSubscription?.cancel();
     _youtubeController.dispose();
     _vimeoController.dispose();
     super.dispose();
   }
 
+  Future<void> _refreshAdminAccess(User? user) async {
+    final isAdmin = await _authService.isAdmin(
+      user,
+      countryCode: weeklyVideosCountryCode,
+    );
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _isAdmin = isAdmin;
+      _isCheckingAdmin = false;
+    });
+  }
+
+  Future<void> _showAdminLogin(AppStrings strings) async {
+    final credentials = await showDialog<_AdminCredentials>(
+      context: context,
+      builder: (context) => _AdminLoginDialog(strings: strings),
+    );
+    if (credentials == null || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _isCheckingAdmin = true;
+    });
+
+    try {
+      final user = await _authService.signIn(
+        email: credentials.email,
+        password: credentials.password,
+      );
+      final isAdmin = await _authService.isAdmin(
+        user,
+        countryCode: weeklyVideosCountryCode,
+      );
+
+      if (!isAdmin) {
+        await _authService.signOut();
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(strings.adminAccessDenied)));
+        }
+      }
+    } on FirebaseAuthException {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(strings.signInFailed)));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCheckingAdmin = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _signOut() async {
+    await _authService.signOut();
+  }
+
   Future<void> _loadSavedVideoLinks() async {
-    final savedYoutubeUrl = await LocalStore.getString(_youtubeVideoUrlKey);
-    final savedVimeoUrl = await LocalStore.getString(_vimeoVideoUrlKey);
-    final youtubeVideo =
-        weeklyVideoFromUrl(
-          sourceName: 'YouTube',
-          title: 'YouTube Semanário',
-          url: savedYoutubeUrl ?? weeklyVideos[0].watchUrl,
-        ) ??
-        weeklyVideos[0];
-    final vimeoVideo =
-        weeklyVideoFromUrl(
-          sourceName: 'Vimeo',
-          title: 'Vimeo Weekly News',
-          url: savedVimeoUrl ?? weeklyVideos[1].watchUrl,
-        ) ??
-        weeklyVideos[1];
+    final settings = await _repository.load();
 
     if (!mounted) {
       return;
     }
 
     setState(() {
-      _videos = [youtubeVideo, vimeoVideo];
-      _youtubeController.text = youtubeVideo.watchUrl;
-      _vimeoController.text = vimeoVideo.watchUrl;
+      _videos = settings.videos;
+      _youtubeController.text = settings.youtube.watchUrl;
+      _vimeoController.text = settings.vimeo.watchUrl;
       _isLoading = false;
     });
   }
@@ -68,11 +128,13 @@ class _VideosScreenState extends State<VideosScreen> {
   Future<void> _saveVideoLinks(AppStrings strings) async {
     final youtubeVideo = weeklyVideoFromUrl(
       sourceName: 'YouTube',
+      sourceUrl: youtubeWeeklySourceUrl,
       title: 'YouTube Semanário',
       url: _youtubeController.text,
     );
     final vimeoVideo = weeklyVideoFromUrl(
       sourceName: 'Vimeo',
+      sourceUrl: vimeoWeeklySourceUrl,
       title: 'Vimeo Weekly News',
       url: _vimeoController.text,
     );
@@ -84,19 +146,28 @@ class _VideosScreenState extends State<VideosScreen> {
       return;
     }
 
-    await LocalStore.setString(_youtubeVideoUrlKey, youtubeVideo.watchUrl);
-    await LocalStore.setString(_vimeoVideoUrlKey, vimeoVideo.watchUrl);
+    final settings = WeeklyVideosSettings(
+      youtube: youtubeVideo,
+      vimeo: vimeoVideo,
+    );
+    final savedInFirestore = await _repository.save(settings);
 
     if (!mounted) {
       return;
     }
 
     setState(() {
-      _videos = [youtubeVideo, vimeoVideo];
+      _videos = settings.videos;
     });
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(strings.videoLinksSaved)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          savedInFirestore
+              ? strings.videoLinksSaved
+              : strings.videoLinksSavedLocally,
+        ),
+      ),
+    );
   }
 
   @override
@@ -104,7 +175,32 @@ class _VideosScreenState extends State<VideosScreen> {
     final strings = AppStrings.of(AppLanguageScope.watch(context).language);
 
     return Scaffold(
-      appBar: AppBar(title: Text(strings.weeklyVideos)),
+      appBar: AppBar(
+        title: Text(strings.weeklyVideos),
+        actions: [
+          if (_isCheckingAdmin)
+            const Padding(
+              padding: EdgeInsets.all(14),
+              child: SizedBox.square(
+                dimension: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            )
+          else if (_isAdmin)
+            IconButton(
+              tooltip: strings.signOut,
+              onPressed: _signOut,
+              icon: const Icon(Icons.logout),
+            )
+          else
+            IconButton(
+              tooltip: strings.adminLogin,
+              onPressed: () => _showAdminLogin(strings),
+              icon: const Icon(Icons.lock_outline),
+            ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -114,7 +210,7 @@ class _VideosScreenState extends State<VideosScreen> {
               child: ListView.separated(
                 padding: const EdgeInsets.fromLTRB(20, 20, 32, 28),
                 physics: const AlwaysScrollableScrollPhysics(),
-                itemCount: _isLoading ? 1 : _videos.length + 1,
+                itemCount: _isLoading ? 1 : _videos.length + (_isAdmin ? 1 : 0),
                 separatorBuilder: (context, index) =>
                     const SizedBox(height: 16),
                 itemBuilder: (context, index) {
@@ -122,7 +218,7 @@ class _VideosScreenState extends State<VideosScreen> {
                     return const Center(child: CircularProgressIndicator());
                   }
 
-                  if (index == 0) {
+                  if (_isAdmin && index == 0) {
                     return _VideoLinksPanel(
                       youtubeController: _youtubeController,
                       vimeoController: _vimeoController,
@@ -130,13 +226,113 @@ class _VideosScreenState extends State<VideosScreen> {
                     );
                   }
 
-                  return _WeeklyVideoCard(video: _videos[index - 1]);
+                  final videoIndex = index - (_isAdmin ? 1 : 0);
+                  return _WeeklyVideoCard(video: _videos[videoIndex]);
                 },
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class _AdminCredentials {
+  const _AdminCredentials({required this.email, required this.password});
+
+  final String email;
+  final String password;
+}
+
+class _AdminLoginDialog extends StatefulWidget {
+  const _AdminLoginDialog({required this.strings});
+
+  final AppStrings strings;
+
+  @override
+  State<_AdminLoginDialog> createState() => _AdminLoginDialogState();
+}
+
+class _AdminLoginDialogState extends State<_AdminLoginDialog> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _obscurePassword = true;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    if (email.isEmpty || password.isEmpty) {
+      return;
+    }
+
+    Navigator.of(
+      context,
+    ).pop(_AdminCredentials(email: email, password: password));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = widget.strings;
+
+    return AlertDialog(
+      title: Text(strings.adminLogin),
+      content: SizedBox(
+        width: 420,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: strings.adminEmail,
+                prefixIcon: const Icon(Icons.email_outlined),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _passwordController,
+              obscureText: _obscurePassword,
+              onSubmitted: (_) => _submit(),
+              decoration: InputDecoration(
+                labelText: strings.password,
+                prefixIcon: const Icon(Icons.password),
+                suffixIcon: IconButton(
+                  tooltip: strings.togglePasswordVisibility,
+                  onPressed: () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(strings.cancel),
+        ),
+        FilledButton.icon(
+          onPressed: _submit,
+          icon: const Icon(Icons.login),
+          label: Text(strings.signIn),
+        ),
+      ],
     );
   }
 }

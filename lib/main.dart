@@ -1,3 +1,4 @@
+import 'package:ffpmupt/firebase_options.dart';
 import 'package:ffpmupt/screens/family_promise_screen.dart';
 import 'package:ffpmupt/screens/list_of_songs_screen.dart';
 import 'package:ffpmupt/screens/motto_screen.dart';
@@ -6,9 +7,18 @@ import 'package:ffpmupt/screens/public_offering_screen.dart';
 import 'package:ffpmupt/screens/videos_screen.dart';
 import 'package:ffpmupt/settings/app_language.dart';
 import 'package:ffpmupt/settings/app_strings.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  if (kIsWeb) {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  }
+
   runApp(const MyApp());
 }
 

@@ -1,4 +1,7 @@
 {
+  "firestore": {
+    "rules": "firestore.rules"
+  },
   "hosting": {
     "public": "build/web",
     "ignore": [
@@ -12,5 +15,17 @@
         "destination": "/index.html"
       }
     ]
+  },
+  "flutter": {
+    "platforms": {
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "ffpmupt-402e1",
+          "configurations": {
+            "web": "1:204525883362:web:0f55dc86a8ba21522b33bb"
+          }
+        }
+      }
+    }
   }
 }
