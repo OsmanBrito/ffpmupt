@@ -1,6 +1,7 @@
 const CACHE_VERSION = 'ffpmupt-offline-v2';
 const APP_CACHE = `${CACHE_VERSION}-app`;
 const AUDIO_CACHE = `${CACHE_VERSION}-audio`;
+let audioCacheQueue = Promise.resolve();
 
 const APP_SHELL = [
   './',
@@ -46,7 +47,10 @@ self.addEventListener('message', (event) => {
     return;
   }
 
-  event.waitUntil(cacheAudioFiles(event.data.urls));
+  audioCacheQueue = audioCacheQueue
+    .then(() => cacheAudioFiles(event.data.urls))
+    .catch(() => undefined);
+  event.waitUntil(audioCacheQueue);
 });
 
 self.addEventListener('fetch', (event) => {
@@ -68,21 +72,72 @@ self.addEventListener('fetch', (event) => {
 
 async function cacheAudioFiles(urls) {
   const cache = await caches.open(AUDIO_CACHE);
-  for (const rawUrl of urls) {
-    const url = normalizeAudioUrl(rawUrl);
+  const normalizedUrls = [...new Set(urls.map(normalizeAudioUrl))];
+  const missingUrls = [];
+  let completed = 0;
+  let failed = 0;
+
+  await broadcastAudioProgress({
+    status: 'checking',
+    completed,
+    total: normalizedUrls.length,
+    failed,
+  });
+
+  for (const url of normalizedUrls) {
     const existing = await cache.match(url);
     if (existing) {
+      completed += 1;
       continue;
     }
+    missingUrls.push(url);
+  }
 
+  if (missingUrls.length > 0) {
+    await broadcastAudioProgress({
+      status: 'downloading',
+      completed,
+      total: normalizedUrls.length,
+      failed,
+    });
+  }
+
+  for (const url of missingUrls) {
     try {
       const response = await fetch(url);
       if (response.ok || response.type === 'opaque') {
         await cache.put(url, response);
+        completed += 1;
+      } else {
+        failed += 1;
       }
     } catch (_) {
-      // A later synchronization will retry files that are still missing.
+      failed += 1;
     }
+
+    await broadcastAudioProgress({
+      status: 'downloading',
+      completed,
+      total: normalizedUrls.length,
+      failed,
+    });
+  }
+
+  await broadcastAudioProgress({
+    status: failed === 0 ? 'ready' : 'partial',
+    completed,
+    total: normalizedUrls.length,
+    failed,
+  });
+}
+
+async function broadcastAudioProgress(progress) {
+  const windows = await self.clients.matchAll({
+    type: 'window',
+    includeUncontrolled: true,
+  });
+  for (const client of windows) {
+    client.postMessage({type: 'AUDIO_CACHE_PROGRESS', ...progress});
   }
 }
 

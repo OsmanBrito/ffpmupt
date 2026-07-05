@@ -2,10 +2,13 @@ import 'package:ffpmupt/models/country.dart';
 import 'package:ffpmupt/services/country_repository.dart';
 import 'package:ffpmupt/settings/app_language.dart';
 import 'package:ffpmupt/settings/app_strings.dart';
+import 'package:ffpmupt/settings/country_scope.dart';
 import 'package:flutter/material.dart';
 
 class CountryAdminScreen extends StatefulWidget {
-  const CountryAdminScreen({super.key});
+  const CountryAdminScreen({super.key, required this.countryCode});
+
+  final String countryCode;
 
   @override
   State<CountryAdminScreen> createState() => _CountryAdminScreenState();
@@ -34,7 +37,7 @@ class _CountryAdminScreenState extends State<CountryAdminScreen> {
   }
 
   Future<void> _load() async {
-    final country = await _repository.load(CountryModel.portugal.code);
+    final country = await _repository.load(widget.countryCode);
     if (!mounted) {
       return;
     }
@@ -59,15 +62,14 @@ class _CountryAdminScreenState extends State<CountryAdminScreen> {
       _isSaving = true;
     });
 
-    final saved = await _repository.save(
-      CountryModel(
-        code: CountryModel.portugal.code,
-        name: name,
-        defaultLanguage: _defaultLanguage,
-        timezone: timezone,
-        enabled: _enabled,
-      ),
+    final country = CountryModel(
+      code: widget.countryCode,
+      name: name,
+      defaultLanguage: _defaultLanguage,
+      timezone: timezone,
+      enabled: _enabled,
     );
+    final saved = await _repository.save(country);
 
     if (!mounted) {
       return;
@@ -76,6 +78,12 @@ class _CountryAdminScreenState extends State<CountryAdminScreen> {
     setState(() {
       _isSaving = false;
     });
+    if (saved) {
+      await CountryScope.read(context).updateCountry(country);
+    }
+    if (!mounted) {
+      return;
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(saved ? strings.countrySaved : strings.countrySaveFailed),
@@ -100,7 +108,7 @@ class _CountryAdminScreenState extends State<CountryAdminScreen> {
                     children: [
                       TextFormField(
                         readOnly: true,
-                        initialValue: CountryModel.portugal.code,
+                        initialValue: widget.countryCode,
                         decoration: InputDecoration(
                           labelText: strings.countryCode,
                           prefixIcon: const Icon(Icons.flag_outlined),

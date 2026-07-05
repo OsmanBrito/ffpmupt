@@ -5,6 +5,7 @@ const _appLanguageKey = 'app_language_v1';
 
 enum AppLanguage {
   portuguese,
+  brazilian,
   korean,
   english,
   spanish,
@@ -16,6 +17,7 @@ enum AppLanguage {
 String appLanguageLabel(AppLanguage language) {
   switch (language) {
     case AppLanguage.portuguese:
+    case AppLanguage.brazilian:
       return 'Português';
     case AppLanguage.korean:
       return '한국어';
@@ -32,9 +34,24 @@ String appLanguageLabel(AppLanguage language) {
   }
 }
 
+AppLanguage appLanguageFromCode(String code) {
+  return switch (code.toLowerCase()) {
+    'pt' => AppLanguage.portuguese,
+    'pt-br' => AppLanguage.portuguese,
+    'ko' => AppLanguage.korean,
+    'es' => AppLanguage.spanish,
+    'de' => AppLanguage.german,
+    'it' => AppLanguage.italian,
+    'fr' => AppLanguage.french,
+    _ => AppLanguage.english,
+  };
+}
+
 class AppLanguageController extends ChangeNotifier {
-  AppLanguageController() {
-    _load();
+  AppLanguageController({bool loadStoredLanguage = true}) {
+    if (loadStoredLanguage) {
+      _load();
+    }
   }
 
   AppLanguage _language = AppLanguage.portuguese;
@@ -50,6 +67,15 @@ class AppLanguageController extends ChangeNotifier {
     notifyListeners();
 
     await LocalStore.setString(_appLanguageKey, language.name);
+  }
+
+  void useCountryLanguage(String languageCode) {
+    final language = appLanguageFromCode(languageCode);
+    if (_language == language) {
+      return;
+    }
+    _language = language;
+    notifyListeners();
   }
 
   Future<void> _load() async {

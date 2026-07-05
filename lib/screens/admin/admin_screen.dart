@@ -1,17 +1,23 @@
 import 'dart:async';
 
+import 'package:ffpmupt/models/country.dart';
 import 'package:ffpmupt/screens/admin/country_admin_screen.dart';
+import 'package:ffpmupt/screens/admin/family_promise_admin_screen.dart';
+import 'package:ffpmupt/screens/admin/holy_grounds_admin_screen.dart';
+import 'package:ffpmupt/screens/admin/operational_crm_screen.dart';
+import 'package:ffpmupt/screens/admin/payment_settings_admin_screen.dart';
 import 'package:ffpmupt/screens/admin/songs_admin_screen.dart';
 import 'package:ffpmupt/screens/videos_screen.dart';
 import 'package:ffpmupt/services/admin_auth_service.dart';
-import 'package:ffpmupt/services/weekly_videos_repository.dart';
 import 'package:ffpmupt/settings/app_language.dart';
 import 'package:ffpmupt/settings/app_strings.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class AdminScreen extends StatefulWidget {
-  const AdminScreen({super.key});
+  const AdminScreen({super.key, required this.country});
+
+  final CountryModel country;
 
   @override
   State<AdminScreen> createState() => _AdminScreenState();
@@ -24,6 +30,7 @@ class _AdminScreenState extends State<AdminScreen> {
   StreamSubscription<User?>? _authSubscription;
   User? _user;
   bool _isAdmin = false;
+  bool _isSuperAdmin = false;
   bool _isChecking = true;
   bool _isSigningIn = false;
   bool _obscurePassword = true;
@@ -43,9 +50,9 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 
   Future<void> _checkAccess(User? user) async {
-    final isAdmin = await _authService.isAdmin(
+    final access = await _authService.getAccess(
       user,
-      countryCode: weeklyVideosCountryCode,
+      countryCode: widget.country.code,
     );
     if (!mounted) {
       return;
@@ -53,7 +60,8 @@ class _AdminScreenState extends State<AdminScreen> {
 
     setState(() {
       _user = user;
-      _isAdmin = isAdmin;
+      _isAdmin = access.canManageCountry;
+      _isSuperAdmin = access.isSuperAdmin;
       _isChecking = false;
     });
   }
@@ -71,11 +79,11 @@ class _AdminScreenState extends State<AdminScreen> {
 
     try {
       final user = await _authService.signIn(email: email, password: password);
-      final isAdmin = await _authService.isAdmin(
+      final access = await _authService.getAccess(
         user,
-        countryCode: weeklyVideosCountryCode,
+        countryCode: widget.country.code,
       );
-      if (!isAdmin) {
+      if (!access.canManageCountry) {
         await _authService.signOut();
         if (mounted) {
           ScaffoldMessenger.of(
@@ -160,12 +168,68 @@ class _AdminScreenState extends State<AdminScreen> {
           ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 16),
+        if (_isSuperAdmin) ...[
+          _AdminActionCard(
+            icon: Icons.business_outlined,
+            title: 'CRM operacional',
+            subtitle: 'Gerencie países, igrejas locais e administradores.',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const OperationalCrmScreen(),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        _AdminActionCard(
+          icon: Icons.auto_stories_outlined,
+          title: strings.familyPromise,
+          subtitle: strings.familyPromiseSubtitle,
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) =>
+                  FamilyPromiseAdminScreen(country: widget.country),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _AdminActionCard(
+          icon: Icons.landscape_outlined,
+          title: 'Holy Grounds',
+          subtitle: 'Cadastre os locais sagrados deste país.',
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => HolyGroundsAdminScreen(
+                countryCode: widget.country.code,
+                defaultLanguage: widget.country.defaultLanguage,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
         _AdminActionCard(
           icon: Icons.library_music_outlined,
           title: strings.songs,
           subtitle: strings.songsSubtitle,
           onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (context) => const SongsAdminScreen()),
+            MaterialPageRoute(
+              builder: (context) => SongsAdminScreen(
+                countryCode: widget.country.code,
+                defaultLanguage: widget.country.defaultLanguage,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _AdminActionCard(
+          icon: Icons.payments_outlined,
+          title: 'Pagamentos e dízimos',
+          subtitle: 'Configure os métodos de pagamento deste país.',
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) =>
+                  PaymentSettingsAdminScreen(countryCode: widget.country.code),
+            ),
           ),
         ),
         const SizedBox(height: 12),
@@ -173,9 +237,12 @@ class _AdminScreenState extends State<AdminScreen> {
           icon: Icons.ondemand_video,
           title: strings.weeklyVideos,
           subtitle: strings.weeklyVideosSubtitle,
-          onTap: () => Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (context) => const VideosScreen())),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) =>
+                  VideosScreen(countryCode: widget.country.code),
+            ),
+          ),
         ),
         const SizedBox(height: 12),
         _AdminActionCard(
@@ -183,7 +250,10 @@ class _AdminScreenState extends State<AdminScreen> {
           title: strings.countrySettings,
           subtitle: strings.countrySettingsSubtitle,
           onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (context) => const CountryAdminScreen()),
+            MaterialPageRoute(
+              builder: (context) =>
+                  CountryAdminScreen(countryCode: widget.country.code),
+            ),
           ),
         ),
       ],

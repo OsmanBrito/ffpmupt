@@ -5,13 +5,16 @@ import 'package:ffpmupt/content/videos.dart';
 import 'package:ffpmupt/settings/local_store.dart';
 import 'package:firebase_core/firebase_core.dart';
 
-const weeklyVideosCountryCode = 'pt';
-const weeklyVideosCollectionPath = 'countries/pt/settings';
 const weeklyVideosDocumentId = 'weeklyVideos';
 
 class WeeklyVideosSettings {
-  const WeeklyVideosSettings({required this.youtube, required this.vimeo});
+  const WeeklyVideosSettings({
+    required this.countryCode,
+    required this.youtube,
+    required this.vimeo,
+  });
 
+  final String countryCode;
   final WeeklyVideo youtube;
   final WeeklyVideo vimeo;
 
@@ -19,24 +22,29 @@ class WeeklyVideosSettings {
 
   Map<String, Object?> toMap() {
     return {
-      'countryCode': weeklyVideosCountryCode,
+      'countryCode': countryCode,
       'youtube': youtube.toMap(),
       'vimeo': vimeo.toMap(),
     };
   }
 
-  static WeeklyVideosSettings get fallback {
+  static WeeklyVideosSettings fallback(String countryCode) {
     return WeeklyVideosSettings(
+      countryCode: countryCode,
       youtube: weeklyVideos[0],
       vimeo: weeklyVideos[1],
     );
   }
 
-  static WeeklyVideosSettings? fromMap(Map<String, Object?> map) {
+  static WeeklyVideosSettings? fromMap(
+    Map<String, Object?> map, {
+    String? fallbackCountryCode,
+  }) {
+    final countryCode = map['countryCode'] ?? fallbackCountryCode;
     final youtube = map['youtube'];
     final vimeo = map['vimeo'];
 
-    if (youtube is! Map || vimeo is! Map) {
+    if (countryCode is! String || youtube is! Map || vimeo is! Map) {
       return null;
     }
 
@@ -49,15 +57,22 @@ class WeeklyVideosSettings {
       return null;
     }
 
-    return WeeklyVideosSettings(youtube: youtubeVideo, vimeo: vimeoVideo);
+    return WeeklyVideosSettings(
+      countryCode: countryCode,
+      youtube: youtubeVideo,
+      vimeo: vimeoVideo,
+    );
   }
 }
 
 class WeeklyVideosRepository {
-  WeeklyVideosRepository({FirebaseFirestore? firestore})
-    : _firestore = firestore;
+  WeeklyVideosRepository({
+    required this.countryCode,
+    FirebaseFirestore? firestore,
+  }) : _firestore = firestore;
 
-  static const _localSettingsKey = 'weekly_videos_settings';
+  final String countryCode;
+  String get _localSettingsKey => 'weekly_videos_settings.$countryCode';
 
   final FirebaseFirestore? _firestore;
 
@@ -69,7 +84,7 @@ class WeeklyVideosRepository {
     }
 
     return (_firestore ?? FirebaseFirestore.instance)
-        .collection(weeklyVideosCollectionPath)
+        .collection('countries/$countryCode/settings')
         .doc(weeklyVideosDocumentId);
   }
 
@@ -80,7 +95,7 @@ class WeeklyVideosRepository {
       return firestoreSettings;
     }
 
-    return await _loadLocal() ?? WeeklyVideosSettings.fallback;
+    return await _loadLocal() ?? WeeklyVideosSettings.fallback(countryCode);
   }
 
   Future<bool> save(WeeklyVideosSettings settings) async {
@@ -114,7 +129,10 @@ class WeeklyVideosRepository {
         return null;
       }
 
-      return WeeklyVideosSettings.fromMap(data);
+      return WeeklyVideosSettings.fromMap(
+        data,
+        fallbackCountryCode: countryCode,
+      );
     } on FirebaseException {
       return null;
     }
@@ -131,7 +149,10 @@ class WeeklyVideosRepository {
       return null;
     }
 
-    return WeeklyVideosSettings.fromMap(Map<String, Object?>.from(decoded));
+    return WeeklyVideosSettings.fromMap(
+      Map<String, Object?>.from(decoded),
+      fallbackCountryCode: countryCode,
+    );
   }
 
   Future<void> _saveLocal(WeeklyVideosSettings settings) {

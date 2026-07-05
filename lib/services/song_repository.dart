@@ -7,8 +7,6 @@ import 'package:ffpmupt/settings/local_store.dart';
 import 'package:ffpmupt/songs/bundled_song_catalog.dart';
 import 'package:firebase_core/firebase_core.dart';
 
-const songsCountryCode = 'pt';
-
 enum SongCatalogSource { bundled, localCache, firestore }
 
 class SongCatalogState {
@@ -26,10 +24,12 @@ class SongCatalogState {
 }
 
 class SongRepository {
-  SongRepository({FirebaseFirestore? firestore}) : _firestore = firestore;
+  SongRepository({required this.countryCode, FirebaseFirestore? firestore})
+    : _firestore = firestore;
 
-  static const _cacheKey = 'songs.$songsCountryCode.catalog.v1';
-  static const _lastSyncKey = 'songs.$songsCountryCode.lastSync.v1';
+  final String countryCode;
+  String get _cacheKey => 'songs.$countryCode.catalog.v1';
+  String get _lastSyncKey => 'songs.$countryCode.lastSync.v1';
 
   final FirebaseFirestore? _firestore;
 
@@ -50,13 +50,15 @@ class SongRepository {
     }
     return database
         .collection('countries')
-        .doc(songsCountryCode)
+        .doc(countryCode)
         .collection('songs');
   }
 
   Stream<SongCatalogState> watchCatalog() async* {
     final cached = await _readCache();
-    var current = cached ?? bundledSongCatalog;
+    var current = cached == null
+        ? bundledCatalogForCountry(countryCode)
+        : _mergeDefaults(cached);
     final cachedSync = await _readLastSync();
 
     yield SongCatalogState(
@@ -82,9 +84,9 @@ class SongRepository {
           continue;
         }
 
-        current = remoteSongs;
+        current = _mergeDefaults(remoteSongs);
         final syncedAt = DateTime.now().toUtc();
-        await _writeCacheIfChanged(remoteSongs);
+        await _writeCacheIfChanged(current);
         await LocalStore.setString(_lastSyncKey, syncedAt.toIso8601String());
 
         yield SongCatalogState(
@@ -118,9 +120,9 @@ class SongRepository {
   Future<int> importMissingBundledSongs() async {
     final existing = await _songsCollection.get();
     final existingIds = existing.docs.map((document) => document.id).toSet();
-    final missing = bundledSongCatalog
-        .where((song) => !existingIds.contains(song.id))
-        .toList();
+    final missing = bundledCatalogForCountry(
+      countryCode,
+    ).where((song) => !existingIds.contains(song.id)).toList();
     if (missing.isEmpty) {
       return 0;
     }
@@ -136,6 +138,73 @@ class SongRepository {
     }
     await batch.commit();
     return missing.length;
+  }
+
+  Future<bool> canRunInitialImport() async {
+    final marker = await _database!
+        .collection('countries')
+        .doc(countryCode)
+        .collection('settings')
+        .doc('songImport')
+        .get();
+    if (marker.data()?['completed'] == true) {
+      return false;
+    }
+
+    final existing = await _songsCollection.get();
+    return !existing.docs.any((document) {
+      final category = document.data()['category'];
+      return category != SongCategory.worship.value;
+    });
+  }
+
+  Future<int> importInitialSongs(List<SongDocument> songs) async {
+    if (songs.isEmpty) {
+      return 0;
+    }
+    if (!await canRunInitialImport()) {
+      throw StateError('A importação inicial já foi concluída para este país.');
+    }
+
+    final usedIds = <String>{};
+    final prepared = <SongDocument>[];
+    for (var index = 0; index < songs.length; index++) {
+      final song = songs[index];
+      final baseId = _songId(song.title);
+      var id = baseId;
+      var suffix = 2;
+      while (!usedIds.add(id)) {
+        id = '$baseId-$suffix';
+        suffix++;
+      }
+      prepared.add(song.copyWith(id: id));
+    }
+
+    final database = _database!;
+    for (var start = 0; start < prepared.length; start += 400) {
+      final end = (start + 400).clamp(0, prepared.length);
+      final batch = database.batch();
+      for (final song in prepared.sublist(start, end)) {
+        batch.set(_songsCollection.doc(song.id), {
+          ...song.toMap(),
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+      await batch.commit();
+    }
+
+    await database
+        .collection('countries')
+        .doc(countryCode)
+        .collection('settings')
+        .doc('songImport')
+        .set({
+          'completed': true,
+          'songCount': prepared.length,
+          'completedAt': FieldValue.serverTimestamp(),
+        });
+    return prepared.length;
   }
 
   Future<String> saveSong(SongDocument song) async {
@@ -165,7 +234,7 @@ class SongRepository {
     for (final document in snapshot.docs) {
       final song = SongDocument.fromMap(id: document.id, map: document.data());
       if (song != null) {
-        decoded.add(song);
+        decoded.add(normalizeLegacyWorshipSong(song));
       }
     }
     decoded.sort((left, right) => left.sortOrder.compareTo(right.sortOrder));
@@ -173,7 +242,19 @@ class SongRepository {
   }
 
   List<SongDocument> _enabledSongs(List<SongDocument> source) {
-    return source.where((song) => song.enabled).toList(growable: false);
+    return source
+        .where((song) => song.enabled)
+        .map(normalizeLegacyWorshipSong)
+        .toList(growable: false);
+  }
+
+  List<SongDocument> _mergeDefaults(List<SongDocument> saved) {
+    final byId = {
+      for (final song in bundledCatalogForCountry(countryCode)) song.id: song,
+      for (final song in saved) song.id: normalizeLegacyWorshipSong(song),
+    };
+    return byId.values.toList()
+      ..sort((left, right) => left.sortOrder.compareTo(right.sortOrder));
   }
 
   Future<List<SongDocument>?> _readCache() async {
@@ -223,4 +304,18 @@ class SongRepository {
     final value = await LocalStore.getString(_lastSyncKey);
     return value == null ? null : DateTime.tryParse(value);
   }
+}
+
+String _songId(String title) {
+  final normalized = title
+      .toLowerCase()
+      .replaceAll(RegExp('[áàâãä]'), 'a')
+      .replaceAll(RegExp('[éèêë]'), 'e')
+      .replaceAll(RegExp('[íìîï]'), 'i')
+      .replaceAll(RegExp('[óòôõö]'), 'o')
+      .replaceAll(RegExp('[úùûü]'), 'u')
+      .replaceAll('ç', 'c')
+      .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+      .replaceAll(RegExp(r'^-+|-+$'), '');
+  return normalized.isEmpty ? 'song' : normalized;
 }

@@ -11,7 +11,9 @@ import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class VideosScreen extends StatefulWidget {
-  const VideosScreen({super.key});
+  const VideosScreen({super.key, required this.countryCode});
+
+  final String countryCode;
 
   @override
   State<VideosScreen> createState() => _VideosScreenState();
@@ -19,7 +21,7 @@ class VideosScreen extends StatefulWidget {
 
 class _VideosScreenState extends State<VideosScreen> {
   final _authService = AdminAuthService();
-  final _repository = WeeklyVideosRepository();
+  late final WeeklyVideosRepository _repository;
   final _youtubeController = TextEditingController();
   final _vimeoController = TextEditingController();
   StreamSubscription<User?>? _authSubscription;
@@ -31,6 +33,7 @@ class _VideosScreenState extends State<VideosScreen> {
   @override
   void initState() {
     super.initState();
+    _repository = WeeklyVideosRepository(countryCode: widget.countryCode);
     _authSubscription = _authService.authStateChanges().listen(
       _refreshAdminAccess,
     );
@@ -48,7 +51,7 @@ class _VideosScreenState extends State<VideosScreen> {
   Future<void> _refreshAdminAccess(User? user) async {
     final isAdmin = await _authService.isAdmin(
       user,
-      countryCode: weeklyVideosCountryCode,
+      countryCode: widget.countryCode,
     );
     if (!mounted) {
       return;
@@ -101,6 +104,7 @@ class _VideosScreenState extends State<VideosScreen> {
     }
 
     final settings = WeeklyVideosSettings(
+      countryCode: widget.countryCode,
       youtube: youtubeVideo,
       vimeo: vimeoVideo,
     );

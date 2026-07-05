@@ -37,6 +37,7 @@ class AppStrings {
     required this.signInFailed,
     required this.adminArea,
     required this.adminDashboard,
+    required this.changeCountry,
     required this.countrySettings,
     required this.countrySettingsSubtitle,
     required this.countryCode,
@@ -61,6 +62,9 @@ class AppStrings {
     required this.worshipSongs,
     required this.internationalSongs,
     required this.audioAvailable,
+    required this.offlineAudioPreparing,
+    required this.offlineAudioReady,
+    required this.offlineAudioPartial,
     required this.previousLyric,
     required this.nextLyric,
     required this.increaseTextSize,
@@ -120,6 +124,7 @@ class AppStrings {
   final String signInFailed;
   final String adminArea;
   final String adminDashboard;
+  final String changeCountry;
   final String countrySettings;
   final String countrySettingsSubtitle;
   final String countryCode;
@@ -144,6 +149,9 @@ class AppStrings {
   final String worshipSongs;
   final String internationalSongs;
   final String audioAvailable;
+  final String offlineAudioPreparing;
+  final String offlineAudioReady;
+  final String offlineAudioPartial;
   final String previousLyric;
   final String nextLyric;
   final String increaseTextSize;
@@ -170,6 +178,7 @@ class AppStrings {
   static AppStrings of(AppLanguage language) {
     switch (language) {
       case AppLanguage.portuguese:
+      case AppLanguage.brazilian:
         return portuguese;
       case AppLanguage.korean:
         return korean;
@@ -223,6 +232,7 @@ class AppStrings {
     signInFailed: 'Não foi possível entrar. Confira email e palavra-passe.',
     adminArea: 'Administração',
     adminDashboard: 'Gestão de conteúdo',
+    changeCountry: 'Mudar país',
     countrySettings: 'Configuração do país',
     countrySettingsSubtitle: 'Nome, idioma, timezone e estado de Portugal',
     countryCode: 'Código do país',
@@ -247,6 +257,9 @@ class AppStrings {
     worshipSongs: 'Worship Songs',
     internationalSongs: 'Canções Internacionais',
     audioAvailable: 'Áudio disponível',
+    offlineAudioPreparing: 'A preparar áudios offline',
+    offlineAudioReady: 'Áudios disponíveis offline',
+    offlineAudioPartial: 'Alguns áudios ainda precisam de internet',
     previousLyric: 'Estrofe anterior',
     nextLyric: 'Estrofe seguinte',
     increaseTextSize: 'Aumentar letra',
@@ -311,6 +324,7 @@ class AppStrings {
     signInFailed: '로그인할 수 없습니다. 이메일과 비밀번호를 확인하세요.',
     adminArea: '관리',
     adminDashboard: '콘텐츠 관리',
+    changeCountry: '국가 변경',
     countrySettings: '국가 설정',
     countrySettingsSubtitle: '포르투갈의 이름, 언어, 시간대 및 상태',
     countryCode: '국가 코드',
@@ -335,6 +349,9 @@ class AppStrings {
     worshipSongs: '찬양',
     internationalSongs: '국제 노래',
     audioAvailable: '오디오 있음',
+    offlineAudioPreparing: '오프라인 오디오 준비 중',
+    offlineAudioReady: '오프라인 오디오 준비 완료',
+    offlineAudioPartial: '일부 오디오는 인터넷이 필요합니다',
     previousLyric: '이전 절',
     nextLyric: '다음 절',
     increaseTextSize: '글자 크게',
@@ -398,6 +415,7 @@ class AppStrings {
     signInFailed: 'Could not sign in. Check the email and password.',
     adminArea: 'Administration',
     adminDashboard: 'Content management',
+    changeCountry: 'Change country',
     countrySettings: 'Country settings',
     countrySettingsSubtitle: 'Portugal name, language, timezone, and status',
     countryCode: 'Country code',
@@ -422,6 +440,9 @@ class AppStrings {
     worshipSongs: 'Worship Songs',
     internationalSongs: 'International Songs',
     audioAvailable: 'Audio available',
+    offlineAudioPreparing: 'Preparing offline audio',
+    offlineAudioReady: 'Audio available offline',
+    offlineAudioPartial: 'Some audio still needs internet',
     previousLyric: 'Previous verse',
     nextLyric: 'Next verse',
     increaseTextSize: 'Increase text size',
@@ -486,6 +507,7 @@ class AppStrings {
     signInFailed: 'No se pudo entrar. Revisa el email y la contraseña.',
     adminArea: 'Administración',
     adminDashboard: 'Gestión de contenido',
+    changeCountry: 'Cambiar país',
     countrySettings: 'Configuración del país',
     countrySettingsSubtitle:
         'Nombre, idioma, zona horaria y estado de Portugal',
@@ -511,6 +533,9 @@ class AppStrings {
     worshipSongs: 'Canciones de adoración',
     internationalSongs: 'Canciones internacionales',
     audioAvailable: 'Audio disponible',
+    offlineAudioPreparing: 'Preparando audio sin conexión',
+    offlineAudioReady: 'Audio disponible sin conexión',
+    offlineAudioPartial: 'Parte del audio aún necesita internet',
     previousLyric: 'Estrofa anterior',
     nextLyric: 'Estrofa siguiente',
     increaseTextSize: 'Aumentar texto',
@@ -576,6 +601,7 @@ class AppStrings {
     signInFailed: 'Anmeldung fehlgeschlagen. E-Mail und Passwort prüfen.',
     adminArea: 'Administration',
     adminDashboard: 'Inhaltsverwaltung',
+    changeCountry: 'Land wechseln',
     countrySettings: 'Ländereinstellungen',
     countrySettingsSubtitle: 'Name, Sprache, Zeitzone und Status von Portugal',
     countryCode: 'Ländercode',
@@ -600,6 +626,9 @@ class AppStrings {
     worshipSongs: 'Lobpreislieder',
     internationalSongs: 'Internationale Lieder',
     audioAvailable: 'Audio verfügbar',
+    offlineAudioPreparing: 'Offline-Audio wird vorbereitet',
+    offlineAudioReady: 'Audio offline verfügbar',
+    offlineAudioPartial: 'Einige Audios benötigen noch Internet',
     previousLyric: 'Vorherige Strophe',
     nextLyric: 'Nächste Strophe',
     increaseTextSize: 'Text vergrößern',
@@ -665,6 +694,7 @@ class AppStrings {
     signInFailed: 'Accesso non riuscito. Controlla email e password.',
     adminArea: 'Amministrazione',
     adminDashboard: 'Gestione contenuti',
+    changeCountry: 'Cambia paese',
     countrySettings: 'Impostazioni paese',
     countrySettingsSubtitle: 'Nome, lingua, fuso orario e stato del Portogallo',
     countryCode: 'Codice paese',
@@ -689,6 +719,9 @@ class AppStrings {
     worshipSongs: 'Canti di adorazione',
     internationalSongs: 'Canti internazionali',
     audioAvailable: 'Audio disponibile',
+    offlineAudioPreparing: 'Preparazione audio offline',
+    offlineAudioReady: 'Audio disponibile offline',
+    offlineAudioPartial: 'Alcuni audio richiedono ancora internet',
     previousLyric: 'Strofa precedente',
     nextLyric: 'Strofa successiva',
     increaseTextSize: 'Aumenta testo',
@@ -753,6 +786,7 @@ class AppStrings {
     signInFailed: 'Connexion impossible. Vérifiez l’email et le mot de passe.',
     adminArea: 'Administration',
     adminDashboard: 'Gestion du contenu',
+    changeCountry: 'Changer de pays',
     countrySettings: 'Paramètres du pays',
     countrySettingsSubtitle:
         'Nom, langue, fuseau horaire et statut du Portugal',
@@ -778,6 +812,9 @@ class AppStrings {
     worshipSongs: 'Chants de louange',
     internationalSongs: 'Chants internationaux',
     audioAvailable: 'Audio disponible',
+    offlineAudioPreparing: 'Préparation des audios hors ligne',
+    offlineAudioReady: 'Audios disponibles hors ligne',
+    offlineAudioPartial: 'Certains audios nécessitent encore internet',
     previousLyric: 'Couplet précédent',
     nextLyric: 'Couplet suivant',
     increaseTextSize: 'Agrandir le texte',

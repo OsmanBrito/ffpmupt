@@ -39,11 +39,35 @@
   </script>
   <script>
     let offlineWorkerReady;
+    let lastAudioCacheProgress;
+    let pendingAudioUrls = [];
+    const audioCacheListeners = new Set();
+
+    function sendAudioCacheRequest() {
+      if (!offlineWorkerReady || pendingAudioUrls.length === 0) return;
+      offlineWorkerReady.then((registration) => {
+        registration.active?.postMessage({
+          type: 'CACHE_AUDIO',
+          urls: pendingAudioUrls,
+        });
+      });
+    }
 
     if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data?.type !== 'AUDIO_CACHE_PROGRESS') return;
+        lastAudioCacheProgress = event.data;
+        audioCacheListeners.forEach((listener) => listener(event.data));
+      });
+
       offlineWorkerReady = navigator.serviceWorker
         .register('offline_service_worker.js')
         .then(() => navigator.serviceWorker.ready);
+
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        offlineWorkerReady = navigator.serviceWorker.ready;
+        sendAudioCacheRequest();
+      });
 
       if (navigator.storage?.persist) {
         navigator.storage.persist();
@@ -51,10 +75,13 @@
     }
 
     window.ffpmuCacheAudio = function(urls) {
-      if (!offlineWorkerReady) return;
-      offlineWorkerReady.then((registration) => {
-        registration.active?.postMessage({type: 'CACHE_AUDIO', urls});
-      });
+      pendingAudioUrls = [...new Set(urls)];
+      sendAudioCacheRequest();
+    };
+
+    window.ffpmuListenAudioCache = function(listener) {
+      audioCacheListeners.add(listener);
+      if (lastAudioCacheProgress) listener(lastAudioCacheProgress);
     };
   </script>
   <script src="flutter_bootstrap.js" async></script>

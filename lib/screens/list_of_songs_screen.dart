@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:ffpmupt/settings/app_language.dart';
 import 'package:ffpmupt/settings/app_strings.dart';
 import 'package:ffpmupt/models/song.dart';
-import 'package:ffpmupt/services/offline_audio_cache.dart';
 import 'package:ffpmupt/services/song_repository.dart';
 import 'package:ffpmupt/songs/bundled_song_catalog.dart';
 import 'package:ffpmupt/widgets/offering_payment_panel.dart';
@@ -50,7 +49,9 @@ String _normalizeSongSearch(String value) {
 }
 
 class ListOfSongsScreen extends StatefulWidget {
-  const ListOfSongsScreen({super.key});
+  const ListOfSongsScreen({super.key, required this.countryCode});
+
+  final String countryCode;
 
   @override
   State<ListOfSongsScreen> createState() => _ListOfSongsScreenState();
@@ -58,10 +59,9 @@ class ListOfSongsScreen extends StatefulWidget {
 
 class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
   final _controller = TextEditingController();
-  final _repository = SongRepository();
-  final _offlineAudioCache = const OfflineAudioCache();
+  late final SongRepository _repository;
   StreamSubscription<SongCatalogState>? _catalogSubscription;
-  List<SongDocument> _songs = bundledSongCatalog;
+  late List<SongDocument> _songs;
   SongCategory? _selectedCategory;
   bool _showOnlyWithMusic = false;
   String _searchQuery = '';
@@ -86,7 +86,8 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
   @override
   void initState() {
     super.initState();
-    _cacheAudio(_songs);
+    _repository = SongRepository(countryCode: widget.countryCode);
+    _songs = bundledCatalogForCountry(widget.countryCode);
     _catalogSubscription = _repository.watchCatalog().listen((state) {
       if (!mounted) {
         return;
@@ -94,18 +95,7 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
       setState(() {
         _songs = state.songs;
       });
-      _cacheAudio(state.songs);
     });
-  }
-
-  void _cacheAudio(List<SongDocument> catalog) {
-    _offlineAudioCache.cacheAll(
-      catalog.expand(
-        (song) => song.audioTracks
-            .where((track) => track.enabled)
-            .map((track) => track.url),
-      ),
-    );
   }
 
   void _filterSong(String searchString) {
@@ -319,8 +309,10 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
                                   trailing: const Icon(Icons.chevron_right),
                                   onTap: () => Navigator.of(context).push(
                                     MaterialPageRoute(
-                                      builder: (context) =>
-                                          SongScreen(song: song),
+                                      builder: (context) => SongScreen(
+                                        song: song,
+                                        countryCode: widget.countryCode,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -340,8 +332,9 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
 
 class SongScreen extends StatefulWidget {
   final SongDocument song;
+  final String countryCode;
 
-  const SongScreen({super.key, required this.song});
+  const SongScreen({super.key, required this.song, required this.countryCode});
 
   @override
   State<SongScreen> createState() => _SongScreenState();
@@ -829,6 +822,7 @@ class _SongScreenState extends State<SongScreen> {
                           if (_isOfferingSong) ...[
                             const SizedBox(height: 20),
                             OfferingPaymentPanel(
+                              countryCode: widget.countryCode,
                               strings: strings,
                               compact: true,
                               showNote: false,
@@ -846,6 +840,7 @@ class _SongScreenState extends State<SongScreen> {
                         SizedBox(
                           width: 360,
                           child: OfferingPaymentPanel(
+                            countryCode: widget.countryCode,
                             strings: strings,
                             compact: true,
                             showNote: false,

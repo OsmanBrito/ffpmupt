@@ -40,6 +40,26 @@ final List<SongDocument> bundledSongCatalog = List.unmodifiable(
   }),
 );
 
+List<SongDocument> bundledCatalogForCountry(String countryCode) {
+  final normalized = bundledSongCatalog.map(_normalizeWorship).toList();
+  if (countryCode.toLowerCase() == 'pt') {
+    return normalized;
+  }
+  return normalized
+      .where((song) => song.category == SongCategory.worship)
+      .toList();
+}
+
+SongDocument normalizeLegacyWorshipSong(SongDocument song) {
+  return _normalizeWorship(song);
+}
+
+SongDocument _normalizeWorship(SongDocument song) {
+  return song.category == SongCategory.international
+      ? song.copyWith(category: SongCategory.worship)
+      : song;
+}
+
 SongCategory _categoryFromLegacy(legacy.SongsCategory category) {
   return switch (category) {
     legacy.SongsCategory.holy => SongCategory.holy,

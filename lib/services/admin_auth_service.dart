@@ -2,6 +2,21 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 
+class AdminAccess {
+  const AdminAccess({
+    required this.isSuperAdmin,
+    required this.canManageCountry,
+  });
+
+  final bool isSuperAdmin;
+  final bool canManageCountry;
+
+  static const denied = AdminAccess(
+    isSuperAdmin: false,
+    canManageCountry: false,
+  );
+}
+
 class AdminAuthService {
   AdminAuthService({FirebaseAuth? auth, FirebaseFirestore? firestore})
     : _auth = auth,
@@ -49,25 +64,40 @@ class AdminAuthService {
   }
 
   Future<bool> isAdmin(User? user, {required String countryCode}) async {
+    final access = await getAccess(user, countryCode: countryCode);
+    return access.canManageCountry;
+  }
+
+  Future<AdminAccess> getAccess(
+    User? user, {
+    required String countryCode,
+  }) async {
     final firestore = _firebaseFirestore;
     if (user == null || firestore == null) {
-      return false;
+      return AdminAccess.denied;
     }
 
     try {
       final snapshot = await firestore.collection('users').doc(user.uid).get();
       final data = snapshot.data();
       if (data == null) {
-        return false;
+        return AdminAccess.denied;
       }
 
       final countries = data['countryCodes'];
-      return data['role'] == 'admin' &&
-          data['enabled'] == true &&
+      final enabled = data['enabled'] == true;
+      final isSuperAdmin = enabled && data['role'] == 'superadmin';
+      final isCountryAdmin =
+          enabled &&
+          data['role'] == 'admin' &&
           countries is List &&
           countries.contains(countryCode);
+      return AdminAccess(
+        isSuperAdmin: isSuperAdmin,
+        canManageCountry: isSuperAdmin || isCountryAdmin,
+      );
     } on FirebaseException {
-      return false;
+      return AdminAccess.denied;
     }
   }
 

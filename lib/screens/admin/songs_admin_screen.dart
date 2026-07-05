@@ -1,21 +1,39 @@
 import 'dart:async';
 
 import 'package:ffpmupt/models/song.dart';
+import 'package:ffpmupt/services/song_import_service.dart';
 import 'package:ffpmupt/services/song_repository.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class SongsAdminScreen extends StatefulWidget {
-  const SongsAdminScreen({super.key});
+  const SongsAdminScreen({
+    super.key,
+    required this.countryCode,
+    required this.defaultLanguage,
+  });
+
+  final String countryCode;
+  final String defaultLanguage;
 
   @override
   State<SongsAdminScreen> createState() => _SongsAdminScreenState();
 }
 
 class _SongsAdminScreenState extends State<SongsAdminScreen> {
-  final _repository = SongRepository();
+  late final SongRepository _repository;
   final _searchController = TextEditingController();
   bool _isImporting = false;
+  bool _isReadingFiles = false;
   String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _repository = SongRepository(countryCode: widget.countryCode);
+  }
 
   @override
   void dispose() {
@@ -53,8 +71,143 @@ class _SongsAdminScreenState extends State<SongsAdminScreen> {
 
   Future<void> _openEditor([SongDocument? song]) async {
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => SongEditorScreen(song: song)),
+      MaterialPageRoute(
+        builder: (context) => SongEditorScreen(
+          song: song,
+          countryCode: widget.countryCode,
+          defaultLanguage: widget.defaultLanguage,
+        ),
+      ),
     );
+  }
+
+  Future<void> _downloadTemplate() async {
+    try {
+      final data = await rootBundle.load(
+        'assets/modelo_importacao_musicas.xlsx',
+      );
+      await FilePicker.saveFile(
+        dialogTitle: 'Guardar modelo de importação',
+        fileName: 'modelo_importacao_musicas.xlsx',
+        type: FileType.custom,
+        allowedExtensions: const ['xlsx'],
+        bytes: data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+      );
+    } on Object catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Não foi possível baixar o modelo: $error')),
+        );
+      }
+    }
+  }
+
+  Future<void> _pickImportFiles(List<SongDocument> existingSongs) async {
+    setState(() => _isReadingFiles = true);
+    try {
+      if (!await _repository.canRunInitialImport()) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'A importação inicial já foi concluída para este país.',
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
+      final selection = await FilePicker.pickFiles(
+        dialogTitle: 'Selecionar músicas',
+        type: FileType.custom,
+        allowedExtensions: const ['xlsx', 'pptx'],
+        allowMultiple: true,
+        withData: true,
+      );
+      if (selection == null || selection.files.isEmpty || !mounted) {
+        return;
+      }
+
+      final service = SongImportService();
+      final songs = <SongDocument>[];
+      final warnings = <String>[];
+      final errors = <String>[];
+      final firstSortOrder = existingSongs.isEmpty
+          ? 0
+          : existingSongs
+                    .map((song) => song.sortOrder)
+                    .reduce((left, right) => left > right ? left : right) +
+                1;
+      for (final file in selection.files) {
+        final bytes = file.bytes;
+        if (bytes == null) {
+          errors.add('${file.name}: o navegador não forneceu os dados.');
+          continue;
+        }
+        final result = service.parse(
+          fileName: file.name,
+          bytes: bytes,
+          defaultLanguage: widget.defaultLanguage,
+          startingSortOrder: firstSortOrder + songs.length,
+        );
+        songs.addAll(result.songs);
+        warnings.addAll(result.warnings);
+        errors.addAll(result.errors);
+      }
+
+      if (!mounted) {
+        return;
+      }
+      if (songs.isEmpty) {
+        await showDialog<void>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Nenhuma música reconhecida'),
+            content: Text(errors.join('\n')),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Fechar'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => SongImportPreviewScreen(
+            countryCode: widget.countryCode,
+            songs: songs,
+            warnings: warnings,
+            errors: errors,
+          ),
+        ),
+      );
+    } on FirebaseException catch (error) {
+      if (mounted) {
+        final message = error.code == 'permission-denied'
+            ? 'Sem permissão para verificar a importação. Publique as regras '
+                  'mais recentes do Firestore e confirme que este país está '
+                  'no campo countryCodes do administrador.'
+            : 'Não foi possível verificar a importação: ${error.message ?? error.code}';
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+      }
+    } on Object catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Não foi possível importar: $error')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isReadingFiles = false);
+      }
+    }
   }
 
   @override
@@ -101,34 +254,60 @@ class _SongsAdminScreenState extends State<SongsAdminScreen> {
                   children: [
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                      child: Row(
+                      child: Column(
                         children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _searchController,
-                              onChanged: (value) =>
-                                  setState(() => _query = value),
-                              decoration: const InputDecoration(
-                                labelText: 'Pesquisar música ou página',
-                                prefixIcon: Icon(Icons.search),
-                                border: OutlineInputBorder(),
-                              ),
+                          TextField(
+                            controller: _searchController,
+                            onChanged: (value) =>
+                                setState(() => _query = value),
+                            decoration: const InputDecoration(
+                              labelText: 'Pesquisar música ou página',
+                              prefixIcon: Icon(Icons.search),
+                              border: OutlineInputBorder(),
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          FilledButton.icon(
-                            onPressed: _isImporting
-                                ? null
-                                : _importBundledSongs,
-                            icon: _isImporting
-                                ? const SizedBox.square(
-                                    dimension: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(Icons.cloud_upload_outlined),
-                            label: const Text('Importar catálogo'),
+                          const SizedBox(height: 12),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Wrap(
+                              spacing: 10,
+                              runSpacing: 10,
+                              children: [
+                                OutlinedButton.icon(
+                                  onPressed: _downloadTemplate,
+                                  icon: const Icon(Icons.download_outlined),
+                                  label: const Text('Modelo XLSX'),
+                                ),
+                                FilledButton.tonalIcon(
+                                  onPressed: _isImporting
+                                      ? null
+                                      : _importBundledSongs,
+                                  icon: _isImporting
+                                      ? const SizedBox.square(
+                                          dimension: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Icon(Icons.cloud_upload_outlined),
+                                  label: const Text('Catálogo padrão'),
+                                ),
+                                FilledButton.icon(
+                                  onPressed: _isReadingFiles
+                                      ? null
+                                      : () => _pickImportFiles(snapshot.data!),
+                                  icon: _isReadingFiles
+                                      ? const SizedBox.square(
+                                          dimension: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Icon(Icons.upload_file),
+                                  label: const Text('Importar XLSX/PPTX'),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -213,10 +392,261 @@ class _SongsAdminScreenState extends State<SongsAdminScreen> {
   }
 }
 
+class SongImportPreviewScreen extends StatefulWidget {
+  const SongImportPreviewScreen({
+    super.key,
+    required this.countryCode,
+    required this.songs,
+    required this.warnings,
+    required this.errors,
+  });
+
+  final String countryCode;
+  final List<SongDocument> songs;
+  final List<String> warnings;
+  final List<String> errors;
+
+  @override
+  State<SongImportPreviewScreen> createState() =>
+      _SongImportPreviewScreenState();
+}
+
+class _SongImportPreviewScreenState extends State<SongImportPreviewScreen> {
+  late final SongRepository _repository;
+  late final List<SongDocument> _songs;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _repository = SongRepository(countryCode: widget.countryCode);
+    _songs = List<SongDocument>.from(widget.songs);
+  }
+
+  Future<void> _editSong(int index) async {
+    final song = _songs[index];
+    final title = TextEditingController(text: song.title);
+    final page = TextEditingController(text: song.page);
+    final language = TextEditingController(text: song.languageCode);
+    var category = song.category;
+    final updated = await showDialog<SongDocument>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Rever música'),
+          content: SizedBox(
+            width: 520,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: title,
+                    decoration: const InputDecoration(
+                      labelText: 'Título',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: page,
+                    decoration: const InputDecoration(
+                      labelText: 'Página',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: language,
+                    decoration: const InputDecoration(
+                      labelText: 'Idioma',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<SongCategory>(
+                    initialValue: category,
+                    decoration: const InputDecoration(
+                      labelText: 'Categoria',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: SongCategory.values
+                        .map(
+                          (value) => DropdownMenuItem(
+                            value: value,
+                            child: Text(_categoryLabel(value)),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setDialogState(() => category = value);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      '${song.lyrics.length} blocos de letra reconhecidos',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (title.text.trim().isEmpty || page.text.trim().isEmpty) {
+                  return;
+                }
+                Navigator.of(context).pop(
+                  song.copyWith(
+                    title: title.text.trim(),
+                    page: page.text.trim(),
+                    languageCode: language.text.trim().toLowerCase(),
+                    category: category,
+                  ),
+                );
+              },
+              child: const Text('Aplicar'),
+            ),
+          ],
+        ),
+      ),
+    );
+    title.dispose();
+    page.dispose();
+    language.dispose();
+    if (updated != null && mounted) {
+      setState(() => _songs[index] = updated);
+    }
+  }
+
+  Future<void> _import() async {
+    setState(() => _isSaving = true);
+    try {
+      final imported = await _repository.importInitialSongs(_songs);
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('$imported músicas importadas.')));
+      Navigator.of(context).pop();
+    } on Object catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Não foi possível importar: $error')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Rever importação')),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 980),
+            child: ListView(
+              padding: const EdgeInsets.all(20),
+              children: [
+                Text(
+                  '${_songs.length} músicas prontas para importar',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Confirme os dados antes de gravar. Áudios não fazem parte desta importação.',
+                ),
+                if (widget.warnings.isNotEmpty || widget.errors.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Card(
+                    color: const Color(0xfffff7e6),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        [...widget.warnings, ...widget.errors].join('\n'),
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                for (var index = 0; index < _songs.length; index++)
+                  Card(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    child: ListTile(
+                      leading: CircleAvatar(child: Text(_songs[index].page)),
+                      title: Text(
+                        _songs[index].title,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      subtitle: Text(
+                        '${_categoryLabel(_songs[index].category)} · ${_songs[index].languageCode.toUpperCase()} · ${_songs[index].lyrics.length} blocos',
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            tooltip: 'Remover',
+                            onPressed: () =>
+                                setState(() => _songs.removeAt(index)),
+                            icon: const Icon(Icons.delete_outline),
+                          ),
+                          IconButton(
+                            tooltip: 'Editar',
+                            onPressed: () => _editSong(index),
+                            icon: const Icon(Icons.edit_outlined),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 18),
+                FilledButton.icon(
+                  onPressed: _songs.isEmpty || _isSaving ? null : _import,
+                  icon: _isSaving
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.cloud_upload_outlined),
+                  label: const Text('Confirmar importação'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class SongEditorScreen extends StatefulWidget {
-  const SongEditorScreen({super.key, this.song});
+  const SongEditorScreen({
+    super.key,
+    this.song,
+    required this.countryCode,
+    required this.defaultLanguage,
+  });
 
   final SongDocument? song;
+  final String countryCode;
+  final String defaultLanguage;
 
   @override
   State<SongEditorScreen> createState() => _SongEditorScreenState();
@@ -224,7 +654,7 @@ class SongEditorScreen extends StatefulWidget {
 
 class _SongEditorScreenState extends State<SongEditorScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _repository = SongRepository();
+  late final SongRepository _repository;
   late final TextEditingController _titleController;
   late final TextEditingController _pageController;
   late final TextEditingController _languageController;
@@ -239,11 +669,12 @@ class _SongEditorScreenState extends State<SongEditorScreen> {
   @override
   void initState() {
     super.initState();
+    _repository = SongRepository(countryCode: widget.countryCode);
     final song = widget.song;
     _titleController = TextEditingController(text: song?.title ?? '');
     _pageController = TextEditingController(text: song?.page ?? '');
     _languageController = TextEditingController(
-      text: song?.languageCode ?? 'pt',
+      text: song?.languageCode ?? widget.defaultLanguage,
     );
     _sortOrderController = TextEditingController(
       text: (song?.sortOrder ?? 0).toString(),

@@ -6,17 +6,81 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isCountryAdmin(countryCode) {
+    function isSuperAdmin() {
       return isSignedIn()
         && get(
           /databases/$(database)/documents/users/$(request.auth.uid)
-        ).data.role == 'admin'
+        ).data.role == 'superadmin'
         && get(
           /databases/$(database)/documents/users/$(request.auth.uid)
-        ).data.enabled == true
-        && get(
-          /databases/$(database)/documents/users/$(request.auth.uid)
-        ).data.countryCodes.hasAny([countryCode]);
+        ).data.enabled == true;
+    }
+
+    function isCountryAdmin(countryCode) {
+      return isSuperAdmin()
+        || (isSignedIn()
+          && get(
+            /databases/$(database)/documents/users/$(request.auth.uid)
+          ).data.role == 'admin'
+          && get(
+            /databases/$(database)/documents/users/$(request.auth.uid)
+          ).data.enabled == true
+          && get(
+            /databases/$(database)/documents/users/$(request.auth.uid)
+          ).data.countryCodes.hasAny([countryCode]));
+    }
+
+    function isInviteEmail(invite) {
+      return isSignedIn()
+        && request.auth.token.email is string
+        && request.auth.token.email.lower() == invite.email;
+    }
+
+    function isValidInviteProfileCreate(userId) {
+      let invite = getAfter(
+        /databases/$(database)/documents/adminInvites/$(request.resource.data.lastInviteId)
+      ).data;
+      return request.auth.uid == userId
+        && request.auth.token.email_verified == true
+        && isInviteEmail(invite)
+        && invite.enabled == false
+        && invite.acceptedBy == userId
+        && invite.expiresAt > request.time
+        && request.resource.data.role == 'admin'
+        && request.resource.data.enabled == true
+        && request.resource.data.email == invite.email
+        && request.resource.data.displayName == invite.displayName
+        && request.resource.data.countryCodes.toSet() == invite.countryCodes.toSet()
+        && request.resource.data.keys().hasAll([
+          'email', 'displayName', 'role', 'enabled', 'countryCodes',
+          'lastInviteId', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'email', 'displayName', 'role', 'enabled', 'countryCodes',
+          'lastInviteId', 'createdAt', 'updatedAt'
+        ]);
+    }
+
+    function isValidInviteProfileUpdate(userId) {
+      let invite = getAfter(
+        /databases/$(database)/documents/adminInvites/$(request.resource.data.lastInviteId)
+      ).data;
+      return request.auth.uid == userId
+        && request.auth.token.email_verified == true
+        && resource.data.role == 'admin'
+        && isInviteEmail(invite)
+        && invite.enabled == false
+        && invite.acceptedBy == userId
+        && invite.expiresAt > request.time
+        && request.resource.data.role == 'admin'
+        && request.resource.data.enabled == resource.data.enabled
+        && request.resource.data.email == invite.email
+        && request.resource.data.displayName == invite.displayName
+        && request.resource.data.countryCodes.toSet()
+          == resource.data.countryCodes.toSet().union(invite.countryCodes.toSet())
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'email', 'displayName', 'countryCodes', 'lastInviteId', 'updatedAt'
+        ]);
     }
 
     match /countries/{countryCode} {
@@ -31,15 +95,66 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /countries/{countryCode}/settings/payments {
+      allow read: if true;
+      allow create, update: if isCountryAdmin(countryCode);
+      allow delete: if false;
+    }
+
+    match /countries/{countryCode}/settings/songImport {
+      allow read: if isCountryAdmin(countryCode);
+      allow create, update: if isCountryAdmin(countryCode);
+      allow delete: if false;
+    }
+
     match /countries/{countryCode}/songs/{songId} {
       allow read: if true;
       allow create, update: if isCountryAdmin(countryCode);
       allow delete: if false;
     }
 
+    match /countries/{countryCode}/promises/{languageCode} {
+      allow read: if true;
+      allow create, update: if isCountryAdmin(countryCode);
+      allow delete: if false;
+    }
+
+    match /countries/{countryCode}/churches/{churchId} {
+      allow read, create, update: if isCountryAdmin(countryCode);
+      allow delete: if false;
+    }
+
+    match /countries/{countryCode}/holyGrounds/{holyGroundId} {
+      allow read: if true;
+      allow create, update: if isCountryAdmin(countryCode);
+      allow delete: if false;
+    }
+
+    match /adminInvites/{inviteId} {
+      allow get: if isSuperAdmin() || isInviteEmail(resource.data);
+      allow list, create: if isSuperAdmin();
+      allow update: if isSuperAdmin()
+        || (isInviteEmail(resource.data)
+          && request.auth.token.email_verified == true
+          && resource.data.enabled == true
+          && resource.data.acceptedBy == ''
+          && resource.data.expiresAt > request.time
+          && request.resource.data.enabled == false
+          && request.resource.data.acceptedBy == request.auth.uid
+          && request.resource.data.acceptedAt == request.time
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'enabled', 'acceptedBy', 'acceptedAt', 'updatedAt'
+          ]));
+      allow delete: if false;
+    }
+
     match /users/{userId} {
-      allow read: if isSignedIn() && request.auth.uid == userId;
-      allow write: if false;
+      allow read: if isSuperAdmin()
+        || (isSignedIn() && request.auth.uid == userId);
+      allow create: if isSuperAdmin() || isValidInviteProfileCreate(userId);
+      allow update: if isSuperAdmin() || isValidInviteProfileUpdate(userId);
+      allow delete: if false;
     }
 
     match /{document=**} {

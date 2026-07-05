@@ -1,6 +1,12 @@
+import 'dart:async';
+
 import 'package:ffpmupt/firebase_options.dart';
+import 'package:ffpmupt/models/country.dart';
 import 'package:ffpmupt/screens/admin/admin_screen.dart';
+import 'package:ffpmupt/screens/admin/admin_invite_screen.dart';
+import 'package:ffpmupt/screens/country_selection_screen.dart';
 import 'package:ffpmupt/screens/family_promise_screen.dart';
+import 'package:ffpmupt/screens/holy_grounds_screen.dart';
 import 'package:ffpmupt/screens/list_of_songs_screen.dart';
 import 'package:ffpmupt/screens/motto_screen.dart';
 import 'package:ffpmupt/screens/offering_screen.dart';
@@ -8,6 +14,7 @@ import 'package:ffpmupt/screens/public_offering_screen.dart';
 import 'package:ffpmupt/screens/videos_screen.dart';
 import 'package:ffpmupt/settings/app_language.dart';
 import 'package:ffpmupt/settings/app_strings.dart';
+import 'package:ffpmupt/settings/country_scope.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ffpmupt/services/offline_audio_cache.dart';
@@ -29,20 +36,6 @@ Future<void> main() async {
   }
 
   runApp(const MyApp());
-  _startOfflineSync();
-}
-
-void _startOfflineSync() {
-  const audioCache = OfflineAudioCache();
-  SongRepository().watchCatalog().listen((state) {
-    audioCache.cacheAll(
-      state.songs.expand(
-        (song) => song.audioTracks
-            .where((track) => track.enabled)
-            .map((track) => track.url),
-      ),
-    );
-  });
 }
 
 class MyApp extends StatefulWidget {
@@ -53,60 +46,141 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  final AppLanguageController _languageController = AppLanguageController();
+  final AppLanguageController _languageController = AppLanguageController(
+    loadStoredLanguage: false,
+  );
+  final CountryController _countryController = CountryController();
+  StreamSubscription<SongCatalogState>? _offlineSyncSubscription;
+  String? _syncedCountryCode;
+
+  @override
+  void initState() {
+    super.initState();
+    _countryController.addListener(_handleCountryChanged);
+    unawaited(_countryController.initialize());
+  }
+
+  void _handleCountryChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+    final country = _countryController.country;
+    if (country == null) {
+      _syncedCountryCode = null;
+      unawaited(_offlineSyncSubscription?.cancel());
+      _offlineSyncSubscription = null;
+      return;
+    }
+    _languageController.useCountryLanguage(country.defaultLanguage);
+    if (_syncedCountryCode == country.code) {
+      return;
+    }
+
+    _syncedCountryCode = country.code;
+    unawaited(_offlineSyncSubscription?.cancel());
+    final audioCache = OfflineAudioCache();
+    _offlineSyncSubscription = SongRepository(countryCode: country.code)
+        .watchCatalog()
+        .listen((state) {
+          audioCache.cacheAll(
+            state.songs.expand(
+              (song) => song.audioTracks
+                  .where((track) => track.enabled)
+                  .map((track) => track.url),
+            ),
+          );
+        });
+  }
 
   @override
   void dispose() {
+    _countryController.removeListener(_handleCountryChanged);
+    _countryController.dispose();
+    unawaited(_offlineSyncSubscription?.cancel());
     _languageController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return AppLanguageScope(
-      controller: _languageController,
-      child: MaterialApp(
-        title: 'FFPMU PT',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xff245c52),
-            brightness: Brightness.light,
-          ),
-          scaffoldBackgroundColor: const Color(0xfff7f5ef),
-          appBarTheme: const AppBarTheme(
-            centerTitle: true,
-            elevation: 0,
-            backgroundColor: Color(0xfff7f5ef),
-            foregroundColor: Color(0xff193c37),
-          ),
-          cardTheme: CardThemeData(
-            elevation: 0,
-            color: Colors.white,
-            margin: EdgeInsets.zero,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-              side: const BorderSide(color: Color(0xffe8e1d5)),
+    return CountryScope(
+      controller: _countryController,
+      child: AppLanguageScope(
+        controller: _languageController,
+        child: MaterialApp(
+          title: 'FFPMU',
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            useMaterial3: true,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xff245c52),
+              brightness: Brightness.light,
             ),
-          ),
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
+            scaffoldBackgroundColor: const Color(0xfff7f5ef),
+            appBarTheme: const AppBarTheme(
+              centerTitle: true,
               elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+              backgroundColor: Color(0xfff7f5ef),
+              foregroundColor: Color(0xff193c37),
+            ),
+            cardTheme: CardThemeData(
+              elevation: 0,
+              color: Colors.white,
+              margin: EdgeInsets.zero,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
+                side: const BorderSide(color: Color(0xffe8e1d5)),
+              ),
+            ),
+            elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 14,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
           ),
+          home: _homeForCountry(),
+          routes: {
+            if (_countryController.country case final country?)
+              '/admin': (context) => AdminScreen(country: country),
+            '/ofertas': (context) => PublicOfferingScreen(
+              countryCode: _countryController.country?.code ?? 'pt',
+            ),
+          },
+          onGenerateRoute: (settings) {
+            final segments = Uri.parse(settings.name ?? '').pathSegments;
+            if (segments.length == 2 && segments.first == 'invite') {
+              return MaterialPageRoute<void>(
+                settings: settings,
+                builder: (context) => AdminInviteScreen(inviteId: segments[1]),
+              );
+            }
+            return null;
+          },
         ),
-        home: const Home(),
-        routes: {
-          '/admin': (context) => const AdminScreen(),
-          '/ofertas': (context) => const PublicOfferingScreen(),
-        },
       ),
     );
+  }
+
+  Widget _homeForCountry() {
+    if (_countryController.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    final country = _countryController.country;
+    if (country == null) {
+      return CountrySelectionScreen(
+        countries: _countryController.countries,
+        onSelected: (selected) =>
+            unawaited(_countryController.selectCountry(selected)),
+      );
+    }
+    return const Home();
   }
 }
 
@@ -117,11 +191,18 @@ class Home extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final strings = AppStrings.of(AppLanguageScope.watch(context).language);
+    final country = CountryScope.watch(context).country!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('FFPMU PT'),
+        title: Text('FFPMU ${country.code.toUpperCase()}'),
         actions: [
+          IconButton(
+            tooltip: strings.changeCountry,
+            onPressed: () =>
+                unawaited(CountryScope.read(context).showCountrySelection()),
+            icon: const Icon(Icons.public),
+          ),
           IconButton(
             tooltip: strings.adminArea,
             onPressed: () => Navigator.of(context).pushNamed('/admin'),
@@ -139,7 +220,7 @@ class Home extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const _HomeHeader(),
+                  _HomeHeader(country: country),
                   const SizedBox(height: 24),
                   Expanded(
                     child: _SundayGuideGrid(
@@ -152,7 +233,8 @@ class Home extends StatelessWidget {
                           color: const Color(0xff7a5428),
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (context) => const ListOfSongsScreen(),
+                              builder: (context) =>
+                                  ListOfSongsScreen(countryCode: country.code),
                             ),
                           ),
                         ),
@@ -164,7 +246,8 @@ class Home extends StatelessWidget {
                           color: const Color(0xff7d2f3a),
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (context) => const FamilyPromiseScreen(),
+                              builder: (context) =>
+                                  FamilyPromiseScreen(country: country),
                             ),
                           ),
                         ),
@@ -188,7 +271,8 @@ class Home extends StatelessWidget {
                           color: const Color(0xff2f6b4f),
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (context) => const OfferingScreen(),
+                              builder: (context) =>
+                                  OfferingScreen(countryCode: country.code),
                             ),
                           ),
                         ),
@@ -200,7 +284,22 @@ class Home extends StatelessWidget {
                           color: const Color(0xff2f577d),
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (context) => const VideosScreen(),
+                              builder: (context) =>
+                                  VideosScreen(countryCode: country.code),
+                            ),
+                          ),
+                        ),
+                        _HomeActionCard(
+                          step: '6',
+                          icon: Icons.landscape_outlined,
+                          title: 'Holy Grounds',
+                          subtitle: _holyGroundsSubtitle(
+                            AppLanguageScope.watch(context).language,
+                          ),
+                          color: const Color(0xff536b3f),
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const HolyGroundsScreen(),
                             ),
                           ),
                         ),
@@ -215,6 +314,18 @@ class Home extends StatelessWidget {
       ),
     );
   }
+}
+
+String _holyGroundsSubtitle(AppLanguage language) {
+  return switch (language) {
+    AppLanguage.english => 'Sacred places across Europe',
+    AppLanguage.spanish => 'Lugares sagrados de Europa',
+    AppLanguage.german => 'Heilige Orte in Europa',
+    AppLanguage.italian => 'Luoghi sacri in Europa',
+    AppLanguage.french => 'Lieux sacrés en Europe',
+    AppLanguage.korean => '유럽의 성지',
+    _ => 'Locais sagrados na Europa',
+  };
 }
 
 class _SundayGuideGrid extends StatelessWidget {
@@ -244,7 +355,9 @@ class _SundayGuideGrid extends StatelessWidget {
 }
 
 class _HomeHeader extends StatelessWidget {
-  const _HomeHeader();
+  const _HomeHeader({required this.country});
+
+  final CountryModel country;
 
   @override
   Widget build(BuildContext context) {
@@ -282,41 +395,95 @@ class _HomeHeader extends StatelessWidget {
             context,
           ).textTheme.titleMedium?.copyWith(color: const Color(0xff5f6d68)),
         ),
-        const SizedBox(height: 16),
-        Text(
-          strings.appLanguage,
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: const Color(0xff65716c),
-            fontWeight: FontWeight.w700,
-          ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.location_on_outlined, size: 18),
+            const SizedBox(width: 6),
+            Text(
+              country.name,
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
-        const _AppLanguageSelector(),
+        const SizedBox(height: 14),
+        const _OfflineAudioCacheIndicator(),
       ],
     );
   }
 }
 
-class _AppLanguageSelector extends StatelessWidget {
-  const _AppLanguageSelector();
+class _OfflineAudioCacheIndicator extends StatelessWidget {
+  const _OfflineAudioCacheIndicator();
 
   @override
   Widget build(BuildContext context) {
-    final controller = AppLanguageScope.watch(context);
+    final cache = OfflineAudioCache();
+    final strings = AppStrings.of(AppLanguageScope.watch(context).language);
 
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        for (final language in AppLanguage.values)
-          ChoiceChip(
-            avatar: const Icon(Icons.language, size: 18),
-            label: Text(appLanguageLabel(language)),
-            selected: controller.language == language,
-            onSelected: (_) => controller.setLanguage(language),
-          ),
-      ],
+    return SizedBox(
+      height: 42,
+      child: StreamBuilder<OfflineAudioCacheProgress>(
+        stream: cache.progress,
+        initialData: cache.currentProgress,
+        builder: (context, snapshot) {
+          final progress = snapshot.data ?? OfflineAudioCacheProgress.idle;
+          final isReady = progress.status == OfflineAudioCacheStatus.ready;
+          final isPartial = progress.status == OfflineAudioCacheStatus.partial;
+          final color = isPartial
+              ? Theme.of(context).colorScheme.error
+              : const Color(0xff2f6b4f);
+          final label = switch (progress.status) {
+            OfflineAudioCacheStatus.ready => strings.offlineAudioReady,
+            OfflineAudioCacheStatus.partial => strings.offlineAudioPartial,
+            _ => strings.offlineAudioPreparing,
+          };
+          final counter = progress.total > 0 && !isReady
+              ? ' ${progress.completed}/${progress.total}'
+              : '';
+
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                isReady
+                    ? Icons.offline_pin_outlined
+                    : isPartial
+                    ? Icons.cloud_off_outlined
+                    : Icons.download_outlined,
+                size: 20,
+                color: color,
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  '$label$counter',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              if (!isReady && !isPartial) ...[
+                const SizedBox(width: 12),
+                SizedBox(
+                  width: 120,
+                  child: LinearProgressIndicator(
+                    value: progress.fraction,
+                    minHeight: 4,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ],
+            ],
+          );
+        },
+      ),
     );
   }
 }

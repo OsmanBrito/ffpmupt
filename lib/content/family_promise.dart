@@ -1,3 +1,5 @@
+import 'package:ffpmupt/models/family_promise.dart';
+
 enum FamilyPromiseLanguage { portuguese, korean, english }
 
 String familyPromiseTitle(FamilyPromiseLanguage language) {
@@ -58,3 +60,38 @@ const Map<FamilyPromiseLanguage, List<String>> familyPromise = {
   ],
   FamilyPromiseLanguage.english: englishFamilyPromise,
 };
+
+List<FamilyPromiseDocument> bundledFamilyPromisesForCountry({
+  required String countryCode,
+  required String defaultLanguage,
+}) {
+  final promises = <FamilyPromiseDocument>[
+    FamilyPromiseDocument(
+      languageCode: 'ko',
+      title: familyPromiseTitle(FamilyPromiseLanguage.korean),
+      verses: familyPromise[FamilyPromiseLanguage.korean]!,
+      enabled: true,
+      sortOrder: defaultLanguage == 'ko' ? 0 : 1,
+    ),
+    FamilyPromiseDocument(
+      languageCode: 'en',
+      title: familyPromiseTitle(FamilyPromiseLanguage.english),
+      verses: familyPromise[FamilyPromiseLanguage.english]!,
+      enabled: true,
+      sortOrder: defaultLanguage == 'en' ? 0 : 2,
+    ),
+  ];
+  if (countryCode.toLowerCase() == 'pt' || defaultLanguage == 'pt') {
+    promises.add(
+      FamilyPromiseDocument(
+        languageCode: 'pt',
+        title: familyPromiseTitle(FamilyPromiseLanguage.portuguese),
+        verses: familyPromise[FamilyPromiseLanguage.portuguese]!,
+        enabled: true,
+        sortOrder: 0,
+      ),
+    );
+  }
+  promises.sort((left, right) => left.sortOrder.compareTo(right.sortOrder));
+  return promises;
+}
