@@ -131,10 +131,9 @@ void main() {
     });
 
     test('weekly video settings match Firestore document shape', () {
-      final settings = WeeklyVideosSettings.fallback;
+      final settings = WeeklyVideosSettings.fallback('pt');
       final decoded = WeeklyVideosSettings.fromMap(settings.toMap());
 
-      expect(weeklyVideosCollectionPath, 'countries/pt/settings');
       expect(weeklyVideosDocumentId, 'weeklyVideos');
       expect(settings.toMap()['countryCode'], 'pt');
       expect(decoded?.youtube.watchUrl, settings.youtube.watchUrl);

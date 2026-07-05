@@ -1,4 +1,6 @@
+import 'package:ffpmupt/content/family_promise.dart';
 import 'package:ffpmupt/models/country.dart';
+import 'package:ffpmupt/models/family_promise.dart';
 import 'package:ffpmupt/models/song.dart';
 import 'package:ffpmupt/songs/bundled_song_catalog.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -77,5 +79,55 @@ void main() {
       expect(decoded, isNotNull, reason: song.title);
       expect(decoded?.lyrics, song.lyrics, reason: song.title);
     }
+  });
+
+  test('family promise model round-trips through Firestore data', () {
+    const promise = FamilyPromiseDocument(
+      languageCode: 'pt',
+      title: 'Promessa da Família',
+      verses: ['Um', 'Dois'],
+      enabled: true,
+      sortOrder: 0,
+    );
+
+    final decoded = FamilyPromiseDocument.fromMap(promise.toMap());
+
+    expect(decoded?.languageCode, 'pt');
+    expect(decoded?.verses, ['Um', 'Dois']);
+  });
+
+  test('country promise defaults remove duplicate languages', () {
+    final portugal = bundledFamilyPromisesForCountry(
+      countryCode: 'pt',
+      defaultLanguage: 'pt',
+    );
+    final england = bundledFamilyPromisesForCountry(
+      countryCode: 'gb',
+      defaultLanguage: 'en',
+    );
+    final spain = bundledFamilyPromisesForCountry(
+      countryCode: 'es',
+      defaultLanguage: 'es',
+    );
+
+    expect(portugal.map((item) => item.languageCode).toSet(), {
+      'pt',
+      'ko',
+      'en',
+    });
+    expect(england.map((item) => item.languageCode).toSet(), {'ko', 'en'});
+    expect(spain.map((item) => item.languageCode).toSet(), {'ko', 'en'});
+  });
+
+  test('new countries start with worship songs only', () {
+    final portugal = bundledCatalogForCountry('pt');
+    final spain = bundledCatalogForCountry('es');
+
+    expect(portugal, hasLength(129));
+    expect(spain, isNotEmpty);
+    expect(
+      spain.every((song) => song.category == SongCategory.worship),
+      isTrue,
+    );
   });
 }
