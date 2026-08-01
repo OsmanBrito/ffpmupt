@@ -40,6 +40,11 @@ function linkHref(block) {
   return match ? decodeXmlText(match[1]) : '';
 }
 
+function vimeoPlayerUrl(block) {
+  const match = block.match(/<media:player[^>]+url="([^"]+)"/);
+  return match ? decodeXmlText(match[1]) : '';
+}
+
 export function parseYoutubeFeed(xml) {
   const entries = [];
   const matches = xml.matchAll(/<entry>([\s\S]*?)<\/entry>/g);
@@ -71,12 +76,13 @@ export function parseVimeoFeed(xml) {
     const watchUrl = tagText(block, 'link');
     const publishedAt = tagText(block, 'pubDate');
     const videoId = watchUrl.match(/vimeo\.com\/(\d+)/)?.[1] ?? '';
+    const embedUrl = vimeoPlayerUrl(block);
 
     if (!videoId || !title || !watchUrl) {
       continue;
     }
 
-    items.push({ title, watchUrl, videoId, publishedAt });
+    items.push({ title, watchUrl, videoId, publishedAt, embedUrl });
   }
 
   return items;
@@ -115,11 +121,18 @@ export function chooseVimeoVideo(entries) {
   );
 }
 
-function weeklyVideoMap({ title, sourceName, sourceUrl, watchUrl, videoId }) {
-  const embedUrl =
-    sourceName === 'YouTube'
+function weeklyVideoMap({
+  title,
+  sourceName,
+  sourceUrl,
+  watchUrl,
+  videoId,
+  embedUrl: providedEmbedUrl,
+}) {
+  const embedUrl = providedEmbedUrl ||
+    (sourceName === 'YouTube'
       ? `https://www.youtube-nocookie.com/embed/${videoId}`
-      : `https://player.vimeo.com/video/${videoId}`;
+      : `https://player.vimeo.com/video/${videoId}`);
 
   return { title, sourceName, sourceUrl, watchUrl, embedUrl };
 }

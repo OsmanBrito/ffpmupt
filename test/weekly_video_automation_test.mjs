@@ -66,10 +66,18 @@ test('parses Vimeo RSS and chooses Weekly News', () => {
         <title>EUME Weekly News 440</title>
         <pubDate>Wed, 01 Jul 2026 12:31:38 -0400</pubDate>
         <link>https://vimeo.com/1206206314</link>
+        <media:content medium="video">
+          <media:player url="https://player.vimeo.com/video/1206206314?h=0f8a68b6af"/>
+        </media:content>
       </item>
     </channel></rss>
   `);
 
   assert.equal(entries.length, 2);
-  assert.equal(chooseVimeoVideo(entries).videoId, '1206206314');
+  const weeklyNews = chooseVimeoVideo(entries);
+  assert.equal(weeklyNews.videoId, '1206206314');
+  assert.equal(
+    weeklyNews.embedUrl,
+    'https://player.vimeo.com/video/1206206314?h=0f8a68b6af',
+  );
 });
