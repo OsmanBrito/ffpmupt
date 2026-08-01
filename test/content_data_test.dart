@@ -3,11 +3,18 @@ import 'dart:io';
 import 'package:ffpmupt/content/family_promise.dart';
 import 'package:ffpmupt/content/motto.dart';
 import 'package:ffpmupt/content/offering.dart';
+import 'package:ffpmupt/content/videos.dart';
+import 'package:ffpmupt/services/weekly_videos_repository.dart';
 import 'package:ffpmupt/songs/songs.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('content data', () {
+    test('offline worker resolves Flutter web assets from the build path', () {
+      final worker = File('web/offline_service_worker.js').readAsStringSync();
+      expect(worker, contains(r'`assets/${rawUrl}`'));
+    });
+
     test('current motto is ready to display', () {
       expect(currentMotto.title.trim(), isNotEmpty);
       expect(currentMotto.body.trim(), isNotEmpty);
@@ -39,10 +46,13 @@ void main() {
     test('songs have required metadata and lyrics', () {
       for (final song in songs) {
         expect(song.title.trim(), isNotEmpty);
-        expect(song.page.trim(), isNotEmpty);
+        expect(song.page.trim(), isNot('0'));
         expect(song.lyrics, isNotEmpty, reason: song.title);
-        expect(song.lyrics.every((lyric) => lyric.trim().isNotEmpty), isTrue,
-            reason: song.title);
+        expect(
+          song.lyrics.every((lyric) => lyric.trim().isNotEmpty),
+          isTrue,
+          reason: song.title,
+        );
       }
     });
 
@@ -58,10 +68,16 @@ void main() {
 
     test('song timing data cannot read past available lyrics', () {
       for (final song in songs) {
-        expect(song.times.length <= song.lyrics.length, isTrue,
-            reason: song.title);
-        expect(song.timesToJump.length < song.lyrics.length, isTrue,
-            reason: song.title);
+        expect(
+          song.times.length <= song.lyrics.length,
+          isTrue,
+          reason: song.title,
+        );
+        expect(
+          song.timesToJump.length < song.lyrics.length,
+          isTrue,
+          reason: song.title,
+        );
       }
     });
 
@@ -72,6 +88,61 @@ void main() {
         offeringAccount.qrPayload,
         'https://ffpmupt-402e1.web.app/#/ofertas',
       );
+    });
+
+    test('weekly videos are ready to embed', () {
+      expect(weeklyVideos, hasLength(2));
+      expect(youtubeWeeklySourceUrl, startsWith('https://www.youtube.com/'));
+      expect(vimeoWeeklySourceUrl, startsWith('https://vimeo.com/'));
+
+      for (final video in weeklyVideos) {
+        expect(video.title.trim(), isNotEmpty);
+        expect(video.sourceName.trim(), isNotEmpty);
+        expect(video.watchUrl, startsWith('https://'));
+        expect(video.embedUrl, startsWith('https://'));
+        expect(video.embedUrl, isNot(contains('/watch?')));
+      }
+    });
+
+    test('weekly video links can be converted to embeds', () {
+      final youtubeVideo = weeklyVideoFromUrl(
+        sourceName: 'YouTube',
+        sourceUrl: youtubeWeeklySourceUrl,
+        title: 'YouTube test',
+        url: 'https://www.youtube.com/watch?v=uXhZBoveiiM',
+      );
+      final shortYoutubeVideo = weeklyVideoFromUrl(
+        sourceName: 'YouTube',
+        sourceUrl: youtubeWeeklySourceUrl,
+        title: 'YouTube short link test',
+        url: 'https://youtu.be/uXhZBoveiiM',
+      );
+      final vimeoVideo = weeklyVideoFromUrl(
+        sourceName: 'Vimeo',
+        sourceUrl: vimeoWeeklySourceUrl,
+        title: 'Vimeo test',
+        url: 'https://vimeo.com/1202206348',
+      );
+
+      expect(
+        youtubeVideo?.embedUrl,
+        'https://www.youtube-nocookie.com/embed/uXhZBoveiiM',
+      );
+      expect(
+        shortYoutubeVideo?.embedUrl,
+        'https://www.youtube-nocookie.com/embed/uXhZBoveiiM',
+      );
+      expect(vimeoVideo?.embedUrl, 'https://player.vimeo.com/video/1202206348');
+    });
+
+    test('weekly video settings match Firestore document shape', () {
+      final settings = WeeklyVideosSettings.fallback('pt');
+      final decoded = WeeklyVideosSettings.fromMap(settings.toMap());
+
+      expect(weeklyVideosDocumentId, 'weeklyVideos');
+      expect(settings.toMap()['countryCode'], 'pt');
+      expect(decoded?.youtube.watchUrl, settings.youtube.watchUrl);
+      expect(decoded?.vimeo.watchUrl, settings.vimeo.watchUrl);
     });
   });
 }

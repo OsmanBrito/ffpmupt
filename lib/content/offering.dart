@@ -1,3 +1,5 @@
+import 'package:ffpmupt/models/payment_settings.dart';
+
 class OfferingAccount {
   const OfferingAccount({
     required this.beneficiaryName,
@@ -39,8 +41,9 @@ class OfferingAccount {
   }
 
   String get epcQrPayload {
-    final amountLine =
-        defaultAmount == null ? '' : 'EUR${defaultAmount!.toStringAsFixed(2)}';
+    final amountLine = defaultAmount == null
+        ? ''
+        : 'EUR${defaultAmount!.toStringAsFixed(2)}';
 
     return [
       'BCD',
@@ -85,3 +88,43 @@ const offeringAccount = OfferingAccount(
   defaultRemittance: 'Oferta Domingo',
   notes: '',
 );
+
+PaymentSettings defaultPaymentSettings(String countryCode) {
+  if (countryCode.toLowerCase() != 'pt') {
+    return const PaymentSettings(
+      enabled: true,
+      title: 'Ofertas e dízimos',
+      subtitle: 'Os dados de pagamento ainda não foram configurados.',
+      note: '',
+      methods: [],
+    );
+  }
+
+  return PaymentSettings(
+    enabled: true,
+    title: 'Ofertas e dízimos',
+    subtitle: 'Escolha uma opção para fazer a sua contribuição.',
+    note: '',
+    methods: [
+      PaymentMethod(
+        id: 'bank-transfer',
+        type: PaymentMethodType.bankTransfer,
+        label: 'Transferência bancária',
+        description: '',
+        details: [
+          PaymentDetail(label: 'Nome', value: offeringAccount.beneficiaryName),
+          PaymentDetail(label: 'IBAN', value: offeringAccount.iban),
+          PaymentDetail(label: 'Banco', value: offeringAccount.bankName),
+          PaymentDetail(
+            label: 'Descrição',
+            value: offeringAccount.defaultRemittance,
+          ),
+        ],
+        paymentUrl: '',
+        qrContent: offeringAccount.qrPayload,
+        enabled: true,
+        sortOrder: 0,
+      ),
+    ],
+  );
+}

@@ -2,16 +2,56 @@ import 'dart:async';
 
 import 'package:ffpmupt/settings/app_language.dart';
 import 'package:ffpmupt/settings/app_strings.dart';
+import 'package:ffpmupt/models/song.dart';
+import 'package:ffpmupt/services/song_repository.dart';
+import 'package:ffpmupt/songs/bundled_song_catalog.dart';
 import 'package:ffpmupt/widgets/offering_payment_panel.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 
-import '../songs/songs.dart';
+String _normalizeSongSearch(String value) {
+  const replacements = {
+    'á': 'a',
+    'à': 'a',
+    'ã': 'a',
+    'â': 'a',
+    'ä': 'a',
+    'é': 'e',
+    'è': 'e',
+    'ê': 'e',
+    'ë': 'e',
+    'í': 'i',
+    'ì': 'i',
+    'î': 'i',
+    'ï': 'i',
+    'ó': 'o',
+    'ò': 'o',
+    'õ': 'o',
+    'ô': 'o',
+    'ö': 'o',
+    'ú': 'u',
+    'ù': 'u',
+    'û': 'u',
+    'ü': 'u',
+    'ç': 'c',
+  };
+
+  final lower = value.toLowerCase();
+  final buffer = StringBuffer();
+  for (final codeUnit in lower.codeUnits) {
+    final character = String.fromCharCode(codeUnit);
+    buffer.write(replacements[character] ?? character);
+  }
+
+  return buffer.toString();
+}
 
 class ListOfSongsScreen extends StatefulWidget {
-  const ListOfSongsScreen({super.key});
+  const ListOfSongsScreen({super.key, required this.countryCode});
+
+  final String countryCode;
 
   @override
   State<ListOfSongsScreen> createState() => _ListOfSongsScreenState();
@@ -19,23 +59,43 @@ class ListOfSongsScreen extends StatefulWidget {
 
 class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
   final _controller = TextEditingController();
-  SongsCategory? _selectedCategory;
+  late final SongRepository _repository;
+  StreamSubscription<SongCatalogState>? _catalogSubscription;
+  late List<SongDocument> _songs;
+  SongCategory? _selectedCategory;
   bool _showOnlyWithMusic = false;
   String _searchQuery = '';
 
-  List<SongsModel> get _filteredSongs {
-    final query = _searchQuery.trim().toLowerCase();
+  List<SongDocument> get _filteredSongs {
+    final query = _normalizeSongSearch(_searchQuery.trim());
 
-    return songs.where((song) {
-      final matchesSearch =
-          query.isEmpty || song.title.toLowerCase().contains(query);
+    return _songs.where((song) {
+      final searchableText = _normalizeSongSearch(
+        [song.title, song.page, song.category.value, ...song.lyrics].join(' '),
+      );
+      final matchesSearch = query.isEmpty || searchableText.contains(query);
       final matchesCategory =
-          _selectedCategory == null || song.songsCategory == _selectedCategory;
+          _selectedCategory == null || song.category == _selectedCategory;
       final matchesMusic =
-          !_showOnlyWithMusic || song.musicTrackPath.isNotEmpty;
+          !_showOnlyWithMusic || song.audioTracks.any((track) => track.enabled);
 
       return matchesSearch && matchesCategory && matchesMusic;
     }).toList();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _repository = SongRepository(countryCode: widget.countryCode);
+    _songs = bundledCatalogForCountry(widget.countryCode);
+    _catalogSubscription = _repository.watchCatalog().listen((state) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _songs = state.songs;
+      });
+    });
   }
 
   void _filterSong(String searchString) {
@@ -44,7 +104,7 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
     });
   }
 
-  void _showSongsBy(SongsCategory? category) {
+  void _showSongsBy(SongCategory? category) {
     setState(() {
       _selectedCategory = category;
     });
@@ -63,35 +123,45 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
     });
   }
 
+  void _clearSearch() {
+    _controller.clear();
+    _filterSong('');
+  }
+
   @override
   void dispose() {
+    _catalogSubscription?.cancel();
     _controller.dispose();
     super.dispose();
   }
 
-  Color _colorBy(SongsCategory category) {
+  Color _colorBy(SongCategory category) {
     switch (category) {
-      case SongsCategory.holy:
+      case SongCategory.holy:
         return const Color(0xff1f3f76);
-      case SongsCategory.convivial:
+      case SongCategory.fellowship:
         return const Color(0xff3f7c4e);
-      case SongsCategory.english:
+      case SongCategory.english:
         return const Color(0xff8b6f1d);
-      case SongsCategory.international:
+      case SongCategory.worship:
+        return const Color(0xff7d2f3a);
+      case SongCategory.international:
         return const Color(0xff65508e);
     }
   }
 
-  String _labelBy(SongsCategory category, AppStrings strings) {
+  String _labelBy(SongCategory category, AppStrings strings) {
     switch (category) {
-      case SongsCategory.holy:
+      case SongCategory.holy:
         return strings.holySongs;
-      case SongsCategory.convivial:
+      case SongCategory.fellowship:
         return strings.convivialSongs;
-      case SongsCategory.english:
+      case SongCategory.english:
         return strings.englishSongs;
-      case SongsCategory.international:
+      case SongCategory.worship:
         return strings.worshipSongs;
+      case SongCategory.international:
+        return strings.internationalSongs;
     }
   }
 
@@ -101,9 +171,7 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
     final filteredSongs = _filteredSongs;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(strings.songs),
-      ),
+      appBar: AppBar(title: Text(strings.songs)),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -123,6 +191,13 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
                             decoration: InputDecoration(
                               prefixIcon: const Icon(Icons.search),
                               hintText: strings.searchSongHint,
+                              suffixIcon: _searchQuery.isEmpty
+                                  ? null
+                                  : IconButton(
+                                      tooltip: strings.clearSearch,
+                                      icon: const Icon(Icons.close),
+                                      onPressed: _clearSearch,
+                                    ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -136,7 +211,8 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
                             children: [
                               FilterChip(
                                 label: Text(strings.all),
-                                selected: _selectedCategory == null &&
+                                selected:
+                                    _selectedCategory == null &&
                                     !_showOnlyWithMusic,
                                 onSelected: (_) => _showAllSongs(),
                               ),
@@ -146,12 +222,17 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
                                 selected: _showOnlyWithMusic,
                                 onSelected: (_) => _toggleMusicFilter(),
                               ),
-                              for (final category in SongsCategory.values)
+                              for (final category in SongCategory.values.where(
+                                (category) => _songs.any(
+                                  (song) => song.category == category,
+                                ),
+                              ))
                                 FilterChip(
                                   label: Text(_labelBy(category, strings)),
                                   selected: _selectedCategory == category,
-                                  selectedColor:
-                                      _colorBy(category).withValues(alpha: 0.18),
+                                  selectedColor: _colorBy(
+                                    category,
+                                  ).withValues(alpha: 0.18),
                                   checkmarkColor: _colorBy(category),
                                   onSelected: (_) => _showSongsBy(category),
                                 ),
@@ -169,12 +250,12 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
                     child: Row(
                       children: [
                         Text(
-                          '${filteredSongs.length} ${strings.songCountSuffix}',
-                          style:
-                              Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    color: const Color(0xff56635f),
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                          '${filteredSongs.length} ${strings.songCountSuffix} • ${strings.searchByTitlePageLyrics}',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                color: const Color(0xff56635f),
+                                fontWeight: FontWeight.w700,
+                              ),
                         ),
                       ],
                     ),
@@ -182,14 +263,25 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
                   Expanded(
                     child: filteredSongs.isEmpty
                         ? Center(
-                            child: Text(
-                              strings.noSongsFound,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(
-                                    color: const Color(0xff56635f),
-                                  ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.search_off_outlined, size: 48),
+                                const SizedBox(height: 12),
+                                Text(
+                                  strings.noSongsFound,
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(
+                                        color: const Color(0xff56635f),
+                                      ),
+                                ),
+                                const SizedBox(height: 14),
+                                FilledButton.tonalIcon(
+                                  onPressed: _showAllSongs,
+                                  icon: const Icon(Icons.refresh),
+                                  label: Text(strings.clearSearch),
+                                ),
+                              ],
                             ),
                           )
                         : ListView.separated(
@@ -199,7 +291,7 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
                                 const SizedBox(height: 8),
                             itemBuilder: (context, index) {
                               final song = filteredSongs[index];
-                              final color = _colorBy(song.songsCategory);
+                              final color = _colorBy(song.category);
 
                               return Card(
                                 child: ListTile(
@@ -208,10 +300,14 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
                                     vertical: 8,
                                   ),
                                   leading: CircleAvatar(
-                                    backgroundColor:
-                                        color.withValues(alpha: 0.14),
+                                    backgroundColor: color.withValues(
+                                      alpha: 0.14,
+                                    ),
                                     foregroundColor: color,
-                                    child: song.musicTrackPath.isNotEmpty
+                                    child:
+                                        song.audioTracks.any(
+                                          (track) => track.enabled,
+                                        )
                                         ? const Icon(Icons.music_note)
                                         : const Icon(Icons.lyrics),
                                   ),
@@ -222,13 +318,21 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
                                     ),
                                   ),
                                   subtitle: Text(
-                                    '${_labelBy(song.songsCategory, strings)} • ${strings.page} ${song.page}',
+                                    [
+                                      _labelBy(song.category, strings),
+                                      if (song.page.trim().isNotEmpty &&
+                                          song.page.trim() != '0')
+                                        '${strings.page} ${song.page}',
+                                    ].join(' • '),
                                   ),
+                                  isThreeLine: false,
                                   trailing: const Icon(Icons.chevron_right),
                                   onTap: () => Navigator.of(context).push(
                                     MaterialPageRoute(
-                                      builder: (context) =>
-                                          SongScreen(song: song),
+                                      builder: (context) => SongScreen(
+                                        song: song,
+                                        countryCode: widget.countryCode,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -247,9 +351,10 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
 }
 
 class SongScreen extends StatefulWidget {
-  final SongsModel song;
+  final SongDocument song;
+  final String countryCode;
 
-  const SongScreen({Key? key, required this.song}) : super(key: key);
+  const SongScreen({super.key, required this.song, required this.countryCode});
 
   @override
   State<SongScreen> createState() => _SongScreenState();
@@ -259,41 +364,99 @@ class _SongScreenState extends State<SongScreen> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   final FocusNode _focusNode = FocusNode();
   StreamSubscription<Duration>? _positionSubscription;
+  StreamSubscription<Duration?>? _durationSubscription;
   late int _currentIndex = 0;
+  late double _lyricFontSize = kIsWeb ? 46 : 25;
+  Duration _audioPosition = Duration.zero;
+  Duration _audioDuration = Duration.zero;
+
+  SongAudioTrack? get _audioTrack {
+    final tracks =
+        widget.song.audioTracks
+            .where((track) => track.enabled && track.url.trim().isNotEmpty)
+            .toList()
+          ..sort((left, right) => left.sortOrder.compareTo(right.sortOrder));
+    return tracks.firstOrNull;
+  }
+
+  bool get _hasAudio => _audioTrack != null;
 
   bool get _isOfferingSong => widget.song.page.trim() == '7';
 
   @override
   void initState() {
     super.initState();
-    if (widget.song.musicTrackPath.isNotEmpty) {
-      unawaited(_audioPlayer.setAsset(widget.song.musicTrackPath));
-      _positionSubscription =
-          _audioPlayer.positionStream.listen(_syncLyricToPosition);
+    if (_hasAudio) {
+      unawaited(_loadAudio(_audioTrack!.url));
+      _positionSubscription = _audioPlayer.positionStream.listen(
+        _handleAudioPosition,
+      );
+      _durationSubscription = _audioPlayer.durationStream.listen(
+        _handleAudioDuration,
+      );
+    }
+  }
+
+  Future<void> _loadAudio(String source) async {
+    try {
+      if (source.startsWith('assets/')) {
+        await _audioPlayer.setAsset(source);
+      } else {
+        await _audioPlayer.setUrl(source);
+      }
+    } on PlayerException catch (error) {
+      if (kDebugMode) {
+        debugPrint('Unable to load audio: $error');
+      }
     }
   }
 
   @override
   void dispose() {
     _positionSubscription?.cancel();
+    _durationSubscription?.cancel();
     _focusNode.dispose();
     _audioPlayer.dispose();
     super.dispose();
   }
 
-  void _syncLyricToPosition(Duration position) {
-    if (!mounted ||
-        widget.song.timesToJump.isEmpty ||
-        _currentIndex >= widget.song.lyrics.length - 1 ||
-        _currentIndex >= widget.song.timesToJump.length) {
+  void _handleAudioDuration(Duration? duration) {
+    if (!mounted) {
       return;
     }
 
-    if (position.inSeconds >= widget.song.timesToJump[_currentIndex]) {
-      setState(() {
-        _currentIndex++;
-      });
+    setState(() {
+      _audioDuration = duration ?? Duration.zero;
+    });
+  }
+
+  void _handleAudioPosition(Duration position) {
+    if (!mounted) {
+      return;
     }
+
+    var nextIndex = _currentIndex;
+    final cannotSyncLyric =
+        _audioTrack == null ||
+        _audioTrack!.verseChangeSeconds.isEmpty ||
+        _currentIndex >= widget.song.lyrics.length - 1 ||
+        _currentIndex >= _audioTrack!.verseChangeSeconds.length;
+
+    if (cannotSyncLyric) {
+      setState(() {
+        _audioPosition = position;
+      });
+      return;
+    }
+
+    if (position.inSeconds >= _audioTrack!.verseChangeSeconds[_currentIndex]) {
+      nextIndex = _currentIndex + 1;
+    }
+
+    setState(() {
+      _audioPosition = position;
+      _currentIndex = nextIndex;
+    });
   }
 
   void _showPreviousLyric() {
@@ -317,10 +480,54 @@ class _SongScreenState extends State<SongScreen> {
       _currentIndex = index;
     });
 
-    if (widget.song.musicTrackPath.isNotEmpty &&
-        widget.song.times.length > index) {
-      unawaited(_audioPlayer.seek(Duration(seconds: widget.song.times[index])));
+    if (_audioTrack != null && _audioTrack!.verseStartSeconds.length > index) {
+      unawaited(
+        _audioPlayer.seek(
+          Duration(seconds: _audioTrack!.verseStartSeconds[index]),
+        ),
+      );
     }
+  }
+
+  void _increaseLyricSize() {
+    setState(() {
+      _lyricFontSize = (_lyricFontSize + 4).clamp(22, 72);
+    });
+  }
+
+  void _decreaseLyricSize() {
+    setState(() {
+      _lyricFontSize = (_lyricFontSize - 4).clamp(22, 72);
+    });
+  }
+
+  void _toggleAudio() {
+    if (!_hasAudio) {
+      return;
+    }
+
+    if (_audioPlayer.playing) {
+      unawaited(_audioPlayer.pause());
+    } else {
+      _playAudio();
+    }
+  }
+
+  void _playAudio() {
+    unawaited(
+      _audioPlayer.play().catchError((Object error, StackTrace stackTrace) {
+        if (kDebugMode) {
+          debugPrint('Unable to start audio: $error');
+        }
+      }),
+    );
+  }
+
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes.remainder(60).toString();
+    final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
+
+    return '$minutes:$seconds';
   }
 
   Widget _playerButton(PlayerState playerState) {
@@ -329,82 +536,81 @@ class _SongScreenState extends State<SongScreen> {
         processingState == ProcessingState.buffering) {
       return Container(
         margin: const EdgeInsets.all(8.0),
-        width: 64.0,
-        height: 64.0,
+        width: 48.0,
+        height: 48.0,
         child: const CircularProgressIndicator(),
       );
     } else if (_audioPlayer.playing != true) {
       return IconButton.filled(
         icon: const Icon(Icons.play_arrow),
-        iconSize: 64.0,
-        onPressed: () => unawaited(_audioPlayer.play()),
+        iconSize: 40.0,
+        onPressed: _playAudio,
       );
     } else if (processingState != ProcessingState.completed) {
       return IconButton.filled(
         icon: const Icon(Icons.pause),
-        iconSize: 64.0,
+        iconSize: 40.0,
         onPressed: () => unawaited(_audioPlayer.pause()),
       );
     } else {
       return IconButton.filled(
         icon: const Icon(Icons.replay),
-        iconSize: 64.0,
+        iconSize: 40.0,
         onPressed: () => unawaited(
           _audioPlayer.seek(
             Duration.zero,
-            index: _audioPlayer.effectiveIndices?.first,
+            index: _audioPlayer.effectiveIndices.first,
           ),
         ),
       );
     }
   }
 
-  Color _getColorBy(SongsCategory category) {
+  Color _getColorBy(SongCategory category) {
     switch (category) {
-      case SongsCategory.holy:
+      case SongCategory.holy:
         return const Color(0xff1f3f76);
-      case SongsCategory.convivial:
+      case SongCategory.fellowship:
         return const Color(0xff3f7c4e);
-      case SongsCategory.english:
+      case SongCategory.english:
         return const Color(0xff8b6f1d);
-      case SongsCategory.international:
+      case SongCategory.worship:
+        return const Color(0xff7d2f3a);
+      case SongCategory.international:
         return const Color(0xff65508e);
     }
   }
 
-  String _getLabelBy(SongsCategory category, AppStrings strings) {
+  String _getLabelBy(SongCategory category, AppStrings strings) {
     switch (category) {
-      case SongsCategory.holy:
+      case SongCategory.holy:
         return strings.holySongs;
-      case SongsCategory.convivial:
+      case SongCategory.fellowship:
         return strings.convivialSongs;
-      case SongsCategory.english:
+      case SongCategory.english:
         return strings.englishSongs;
-      case SongsCategory.international:
+      case SongCategory.worship:
         return strings.worshipSongs;
+      case SongCategory.international:
+        return strings.internationalSongs;
     }
   }
 
   Color _getColorByChorus() {
-    if (_currentIndex % 2 == 0 && widget.song.isFirstChorus) {
+    if (_currentIndex % 2 == 0 && widget.song.chorusMode == ChorusMode.first) {
       return const Color(0xff1f3f76);
-    } else if (_currentIndex % 2 != 0 && widget.song.isSecondChorus) {
+    } else if (_currentIndex % 2 != 0 &&
+        widget.song.chorusMode == ChorusMode.second) {
       return const Color(0xff1f3f76);
     } else {
       return const Color(0xff293833);
     }
   }
 
-  Widget _buildLyricCard({
-    required Color color,
-    required TextTheme textTheme,
-  }) {
+  Widget _buildLyricCard({required Color color, required TextTheme textTheme}) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 28,
-          vertical: 30,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 30),
         child: Column(
           children: [
             Text(
@@ -419,7 +625,7 @@ class _SongScreenState extends State<SongScreen> {
               widget.song.lyrics[_currentIndex],
               textAlign: TextAlign.center,
               style: textTheme.headlineMedium?.copyWith(
-                fontSize: kIsWeb ? 46 : 25,
+                fontSize: _lyricFontSize,
                 height: 1.28,
                 color: _getColorByChorus(),
                 fontWeight: FontWeight.w500,
@@ -431,35 +637,30 @@ class _SongScreenState extends State<SongScreen> {
     );
   }
 
-  Widget _buildSongControls() {
+  Widget _buildSongControls(AppStrings strings) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         IconButton.filledTonal(
+          tooltip: strings.previousLyric,
           onPressed: _currentIndex == 0 ? null : _showPreviousLyric,
           icon: const Icon(Icons.arrow_back),
         ),
-        if (widget.song.musicTrackPath.isNotEmpty) ...[
-          const SizedBox(width: 18),
-          StreamBuilder<PlayerState>(
-            stream: _audioPlayer.playerStateStream,
-            builder: (context, snapshot) {
-              final playerState = snapshot.data;
-              if (playerState == null) {
-                return Container(
-                  margin: const EdgeInsets.all(8.0),
-                  width: 48.0,
-                  height: 48.0,
-                  child: const CircularProgressIndicator(),
-                );
-              }
-
-              return _playerButton(playerState);
-            },
-          ),
-        ],
-        const SizedBox(width: 18),
+        const SizedBox(width: 10),
         IconButton.filledTonal(
+          tooltip: strings.decreaseTextSize,
+          onPressed: _lyricFontSize <= 22 ? null : _decreaseLyricSize,
+          icon: const Icon(Icons.text_decrease),
+        ),
+        const SizedBox(width: 10),
+        IconButton.filledTonal(
+          tooltip: strings.increaseTextSize,
+          onPressed: _lyricFontSize >= 72 ? null : _increaseLyricSize,
+          icon: const Icon(Icons.text_increase),
+        ),
+        const SizedBox(width: 10),
+        IconButton.filledTonal(
+          tooltip: strings.nextLyric,
           onPressed: _currentIndex == widget.song.lyrics.length - 1
               ? null
               : _showNextLyric,
@@ -469,8 +670,114 @@ class _SongScreenState extends State<SongScreen> {
     );
   }
 
+  Widget _buildAudioPanel(AppStrings strings) {
+    if (!_hasAudio) {
+      return const SizedBox.shrink();
+    }
+
+    final duration = _audioDuration;
+    final maxMilliseconds = duration.inMilliseconds <= 0
+        ? 1.0
+        : duration.inMilliseconds.toDouble();
+    final positionMilliseconds = _audioPosition.inMilliseconds.clamp(
+      0,
+      maxMilliseconds.toInt(),
+    );
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            StreamBuilder<PlayerState>(
+              stream: _audioPlayer.playerStateStream,
+              builder: (context, snapshot) {
+                final playerState = snapshot.data;
+                if (playerState == null) {
+                  return Container(
+                    margin: const EdgeInsets.all(8.0),
+                    width: 40.0,
+                    height: 40.0,
+                    child: const CircularProgressIndicator(),
+                  );
+                }
+
+                return _playerButton(playerState);
+              },
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.music_note,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        strings.audioAvailable,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${_formatDuration(_audioPosition)} / ${_formatDuration(duration)}',
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: const Color(0xff56635f),
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ],
+                  ),
+                  Slider(
+                    value: positionMilliseconds.toDouble(),
+                    max: maxMilliseconds,
+                    onChanged: (value) => unawaited(
+                      _audioPlayer.seek(Duration(milliseconds: value.round())),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLyricNavigator(Color color, AppStrings strings) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (var index = 0; index < widget.song.lyrics.length; index++)
+              Tooltip(
+                message: '${strings.verse} ${index + 1}',
+                child: ChoiceChip(
+                  label: Text('${index + 1}'),
+                  selected: _currentIndex == index,
+                  selectedColor: color.withValues(alpha: 0.18),
+                  checkmarkColor: color,
+                  onSelected: (_) => _showLyricAt(index),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildSongWidget() {
-    final color = _getColorBy(widget.song.songsCategory);
+    final color = _getColorBy(widget.song.category);
     final strings = AppStrings.of(AppLanguageScope.watch(context).language);
     final textTheme = Theme.of(context).textTheme;
 
@@ -490,17 +797,17 @@ class _SongScreenState extends State<SongScreen> {
                   children: [
                     Chip(
                       avatar: const Icon(Icons.menu_book, size: 18),
-                      label: Text(
-                        _getLabelBy(widget.song.songsCategory, strings),
-                      ),
+                      label: Text(_getLabelBy(widget.song.category, strings)),
                       backgroundColor: color.withValues(alpha: 0.14),
                       side: BorderSide(color: color.withValues(alpha: 0.2)),
                     ),
-                    Chip(
-                      avatar: const Icon(Icons.description, size: 18),
-                      label: Text('${strings.page} ${widget.song.page}'),
-                    ),
-                    if (widget.song.musicTrackPath.isNotEmpty)
+                    if (widget.song.page.trim().isNotEmpty &&
+                        widget.song.page.trim() != '0')
+                      Chip(
+                        avatar: const Icon(Icons.description, size: 18),
+                        label: Text('${strings.page} ${widget.song.page}'),
+                      ),
+                    if (_hasAudio)
                       Chip(
                         avatar: const Icon(Icons.music_note, size: 18),
                         label: Text(strings.audioAvailable),
@@ -509,8 +816,9 @@ class _SongScreenState extends State<SongScreen> {
                       Chip(
                         avatar: const Icon(Icons.volunteer_activism, size: 18),
                         label: Text(strings.offerings),
-                        backgroundColor: const Color(0xff2f6b4f)
-                            .withValues(alpha: 0.14),
+                        backgroundColor: const Color(
+                          0xff2f6b4f,
+                        ).withValues(alpha: 0.14),
                       ),
                   ],
                 ),
@@ -519,9 +827,13 @@ class _SongScreenState extends State<SongScreen> {
                   builder: (context, constraints) {
                     final lyricAndControls = Column(
                       children: [
+                        _buildAudioPanel(strings),
+                        if (_hasAudio) const SizedBox(height: 14),
+                        _buildSongControls(strings),
+                        const SizedBox(height: 14),
                         _buildLyricCard(color: color, textTheme: textTheme),
-                        const SizedBox(height: 18),
-                        _buildSongControls(),
+                        const SizedBox(height: 14),
+                        _buildLyricNavigator(color, strings),
                       ],
                     );
 
@@ -532,6 +844,7 @@ class _SongScreenState extends State<SongScreen> {
                           if (_isOfferingSong) ...[
                             const SizedBox(height: 20),
                             OfferingPaymentPanel(
+                              countryCode: widget.countryCode,
                               strings: strings,
                               compact: true,
                               showNote: false,
@@ -549,6 +862,7 @@ class _SongScreenState extends State<SongScreen> {
                         SizedBox(
                           width: 360,
                           child: OfferingPaymentPanel(
+                            countryCode: widget.countryCode,
                             strings: strings,
                             compact: true,
                             showNote: false,
@@ -573,9 +887,11 @@ class _SongScreenState extends State<SongScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          '${widget.song.title} | ${strings.page} ${widget.song.page}',
+          widget.song.page.trim().isEmpty || widget.song.page.trim() == '0'
+              ? widget.song.title
+              : '${widget.song.title} | ${strings.page} ${widget.song.page}',
         ),
-        backgroundColor: _getColorBy(widget.song.songsCategory),
+        backgroundColor: _getColorBy(widget.song.category),
         foregroundColor: Colors.white,
       ),
       body: KeyboardListener(
@@ -590,6 +906,14 @@ class _SongScreenState extends State<SongScreen> {
             _showNextLyric();
           } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
             _showPreviousLyric();
+          } else if (event.logicalKey == LogicalKeyboardKey.space) {
+            _toggleAudio();
+          } else if (event.logicalKey == LogicalKeyboardKey.equal ||
+              event.logicalKey == LogicalKeyboardKey.add) {
+            _increaseLyricSize();
+          } else if (event.logicalKey == LogicalKeyboardKey.minus ||
+              event.logicalKey == LogicalKeyboardKey.numpadSubtract) {
+            _decreaseLyricSize();
           }
         },
         child: _buildSongWidget(),

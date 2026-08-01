@@ -1,26 +1,27 @@
-# FFPMU PT
+# FFPMU
 
-Flutter app for FFPMU Portugal church services.
+Multi-country Flutter app for FFPMU church services.
 
 The app shows:
 
 - A Sunday service guide flow.
 - The yearly motto.
-- A global app language preference.
-- The Family Pledge in Portuguese, Korean, and English.
+- Country selection with independent content and administration.
+- An interface language defined by the selected country.
+- The Family Pledge in the country's main language, Korean, and English.
 - Church songs with lyrics, categories, optional audio, and verse timing.
-- Offerings/tithes payment details with a QR that opens a public IBAN copy page.
+- Country-specific offerings/tithes methods with optional QR codes.
 
 ## Content
 
 - Yearly motto: `lib/content/motto.dart`
 - Family Pledge: `lib/content/family_promise.dart`
-- Offerings/tithes account details: `lib/content/offering.dart`
+- Default Portugal payment details: `lib/content/offering.dart`
 - Songs and audio timing: `lib/songs/songs.dart`
 - Audio files: `assets/`
 
-Fill the real bank account values in `lib/content/offering.dart` before using
-the offerings page publicly.
+Country-specific songs, Promise content, payment methods, and weekly videos
+are stored under `countries/{countryCode}` in Firestore.
 
 ## Development
 
@@ -29,6 +30,16 @@ flutter pub get
 flutter analyze
 flutter test
 ```
+
+## Documentation
+
+- [Add a new country](docs/new_country_setup.md)
+- [Import songs from XLSX or PPTX](docs/song_import.md)
+- [Operational CRM](docs/operational_crm.md)
+- [Holy Grounds MVP](docs/holy_grounds.md)
+- [P0: operação de domingo e prontidão do país](docs/p0_product_cycle.md)
+- [Weekly video automation](docs/weekly_video_automation.md)
+- [Firestore schema](docs/firestore_schema.md)
 
 ## Notes
 

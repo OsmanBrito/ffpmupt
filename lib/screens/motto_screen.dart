@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class MottoScreen extends StatelessWidget {
-  const MottoScreen({Key? key}) : super(key: key);
+  const MottoScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -13,9 +13,7 @@ class MottoScreen extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(strings.motto),
-      ),
+      appBar: AppBar(title: Text(strings.motto)),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(

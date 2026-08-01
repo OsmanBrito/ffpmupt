@@ -1,153 +1,108 @@
 import 'dart:async';
 
 import 'package:ffpmupt/content/family_promise.dart';
+import 'package:ffpmupt/models/country.dart';
+import 'package:ffpmupt/models/family_promise.dart';
+import 'package:ffpmupt/services/family_promise_repository.dart';
+import 'package:ffpmupt/services/pledge_speaker.dart';
 import 'package:ffpmupt/settings/app_language.dart';
 import 'package:ffpmupt/settings/app_strings.dart';
 import 'package:ffpmupt/settings/local_store.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart';
-
-const _pledgeHistoryKey = 'family_promise_history_v1';
 
 class FamilyPromiseScreen extends StatefulWidget {
-  const FamilyPromiseScreen({Key? key}) : super(key: key);
+  const FamilyPromiseScreen({super.key, required this.country});
+
+  final CountryModel country;
 
   @override
   State<FamilyPromiseScreen> createState() => _FamilyPromiseScreenState();
 }
 
 class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
-  final FlutterTts _flutterTts = FlutterTts();
+  final PledgeSpeaker _speaker = PledgeSpeaker();
+  late final FamilyPromiseRepository _repository;
+  StreamSubscription<List<FamilyPromiseDocument>>? _promiseSubscription;
+  late List<FamilyPromiseDocument> _promises;
+  late String _currentLanguageCode;
   int _currentIndex = 0;
   List<int> _history = [];
   bool _isSpeaking = false;
-  bool _hasConfiguredKoreanVoice = false;
-  FamilyPromiseLanguage _currentLanguage = FamilyPromiseLanguage.korean;
+
+  String get _historyKey => 'family_promise_history_${widget.country.code}_v1';
+
+  FamilyPromiseDocument get _currentPromise {
+    return _promises.firstWhere(
+      (promise) => promise.languageCode == _currentLanguageCode,
+      orElse: () => _promises.first,
+    );
+  }
 
   @override
   void initState() {
     super.initState();
-    _configureTts();
-    unawaited(_configureKoreanVoice());
-    _loadHistory();
+    _repository = FamilyPromiseRepository(
+      countryCode: widget.country.code,
+      defaultLanguage: widget.country.defaultLanguage,
+    );
+    _promises = _repository.bundledDefaults;
+    _currentLanguageCode = _initialLanguage(_promises);
+    _promiseSubscription = _repository.watchPublicPromises().listen(
+      _handlePromises,
+    );
+    _configureSpeaker();
+    unawaited(_loadHistory());
   }
 
   @override
   void dispose() {
-    _flutterTts.stop();
+    _promiseSubscription?.cancel();
+    _speaker.dispose();
     super.dispose();
   }
 
-  void _configureTts() {
-    _flutterTts.setCompletionHandler(() {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _isSpeaking = false;
-      });
-    });
-    _flutterTts.setCancelHandler(() {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _isSpeaking = false;
-      });
-    });
-    _flutterTts.setErrorHandler((message) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _isSpeaking = false;
-      });
-    });
+  String _initialLanguage(List<FamilyPromiseDocument> promises) {
+    final mainLanguage = widget.country.defaultLanguage;
+    return promises.any((promise) => promise.languageCode == mainLanguage)
+        ? mainLanguage
+        : promises.first.languageCode;
   }
 
-  Future<void> _configureKoreanVoice() async {
-    try {
-      await _flutterTts.setLanguage(koreanFamilyPromiseTtsLocale);
-      await _flutterTts.setSpeechRate(0.42);
-      await _flutterTts.setPitch(1);
-    } catch (_) {
+  void _handlePromises(List<FamilyPromiseDocument> promises) {
+    if (!mounted || promises.isEmpty) {
       return;
     }
-
-    if (_hasConfiguredKoreanVoice) {
-      return;
-    }
-
-    final dynamic voices;
-    try {
-      voices = await _flutterTts.getVoices;
-    } catch (_) {
-      _hasConfiguredKoreanVoice = true;
-      return;
-    }
-
-    if (voices is! List) {
-      _hasConfiguredKoreanVoice = true;
-      return;
-    }
-
-    for (final voice in voices) {
-      if (voice is! Map) {
-        continue;
-      }
-
-      final rawLocale = voice['locale']?.toString();
-      final name = voice['name']?.toString();
-      if (rawLocale == null || name == null) {
-        continue;
-      }
-
-      final locale = rawLocale.replaceAll('_', '-').toLowerCase();
-      if (locale != koreanFamilyPromiseTtsLocale.toLowerCase()) {
-        continue;
-      }
-
-      try {
-        await _flutterTts.setVoice({'name': name, 'locale': rawLocale});
-      } catch (_) {
-        _hasConfiguredKoreanVoice = true;
-        return;
-      }
-
-      _hasConfiguredKoreanVoice = true;
-      return;
-    }
-
-    _hasConfiguredKoreanVoice = true;
-  }
-
-  void _nextItem() {
     setState(() {
-      final items = familyPromise[_currentLanguage]!;
-      if (_currentIndex < items.length - 1) {
-        _currentIndex = _currentIndex + 1;
+      _promises = promises;
+      if (!promises.any(
+        (promise) => promise.languageCode == _currentLanguageCode,
+      )) {
+        _currentLanguageCode = _initialLanguage(promises);
       }
+      _currentIndex = _currentIndex.clamp(0, _currentPromise.verses.length - 1);
+    });
+  }
+
+  void _configureSpeaker() {
+    _speaker.onFinished = () {
+      if (mounted) {
+        setState(() => _isSpeaking = false);
+      }
+    };
+    unawaited(_speaker.configure());
+  }
+
+  void _changeLanguage(String languageCode) {
+    setState(() {
+      _currentLanguageCode = languageCode;
+      _currentIndex = 0;
     });
     unawaited(_stopSpeech());
   }
 
-  void _previousItem() {
-    setState(() {
-      if (_currentIndex > 0) {
-        _currentIndex = _currentIndex - 1;
-      }
-    });
-    unawaited(_stopSpeech());
-  }
-
-  void _changeLanguage(FamilyPromiseLanguage language) {
-    setState(() {
-      _currentLanguage = language;
-    });
+  void _showItem(int index) {
+    setState(() => _currentIndex = index);
     unawaited(_stopSpeech());
   }
 
@@ -155,112 +110,76 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
     if (!_isSpeaking) {
       return;
     }
-
-    await _flutterTts.stop();
-    if (!mounted) {
-      return;
+    await _speaker.stop();
+    if (mounted) {
+      setState(() => _isSpeaking = false);
     }
-
-    setState(() {
-      _isSpeaking = false;
-    });
   }
 
   Future<void> _toggleSpeech() async {
-    if (_currentLanguage != FamilyPromiseLanguage.korean) {
+    if (_currentLanguageCode != 'ko') {
       return;
     }
-
     if (_isSpeaking) {
-      await _flutterTts.stop();
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _isSpeaking = false;
-      });
+      await _stopSpeech();
       return;
     }
-
-    await _configureKoreanVoice();
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _isSpeaking = true;
-    });
-
-    await _flutterTts.speak(koreanFamilyPromiseSpeech[_currentIndex]);
+    setState(() => _isSpeaking = true);
+    final speechIndex = _currentIndex.clamp(
+      0,
+      koreanFamilyPromiseSpeech.length - 1,
+    );
+    await _speaker.speak(koreanFamilyPromiseSpeech[speechIndex]);
   }
 
   Future<void> _loadHistory() async {
-    final storedHistory =
-        await LocalStore.getStringList(_pledgeHistoryKey) ?? [];
-
-    if (!mounted) {
-      return;
+    final stored = await LocalStore.getStringList(_historyKey) ?? [];
+    if (mounted) {
+      setState(() {
+        _history = stored.map(int.tryParse).whereType<int>().toList();
+      });
     }
-
-    setState(() {
-      _history = storedHistory
-          .map(int.tryParse)
-          .whereType<int>()
-          .where((index) => index >= 0)
-          .toList();
-    });
   }
 
   Future<void> _markCurrentAsUsed() async {
-    final updatedHistory = [
+    final updated = [
       _currentIndex,
       ..._history.where((index) => index != _currentIndex),
     ].take(8).toList();
-
     await LocalStore.setStringList(
-      _pledgeHistoryKey,
-      updatedHistory.map((index) => index.toString()).toList(),
+      _historyKey,
+      updated.map((index) => index.toString()).toList(),
     );
-
-    if (!mounted) {
-      return;
+    if (mounted) {
+      setState(() => _history = updated);
     }
-
-    setState(() {
-      _history = updatedHistory;
-    });
   }
 
-  void _showHistoryItem(int index) {
-    final items = familyPromise[_currentLanguage]!;
-    if (index >= items.length) {
-      return;
+  Future<void> _resetHistory() async {
+    await LocalStore.setStringList(_historyKey, []);
+    if (mounted) {
+      setState(() => _history = []);
     }
-
-    setState(() {
-      _currentIndex = index;
-    });
-    unawaited(_stopSpeech());
   }
 
-  Color _colorByLanguage(FamilyPromiseLanguage language) {
-    switch (language) {
-      case FamilyPromiseLanguage.portuguese:
-        return const Color(0xff2f6b4f);
-      case FamilyPromiseLanguage.korean:
-        return const Color(0xff306f8f);
-      case FamilyPromiseLanguage.english:
-        return const Color(0xff8c3543);
-    }
+  Color _colorFor(String languageCode) {
+    return switch (languageCode) {
+      'ko' => const Color(0xff306f8f),
+      'en' => const Color(0xff8c3543),
+      _ => const Color(0xff2f6b4f),
+    };
+  }
+
+  String _languageLabel(String languageCode) {
+    return appLanguageLabel(appLanguageFromCode(languageCode));
   }
 
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(AppLanguageScope.watch(context).language);
-    final items = familyPromise[_currentLanguage]!;
-    final color = _colorByLanguage(_currentLanguage);
+    final promise = _currentPromise;
+    final items = promise.verses;
+    final color = _colorFor(promise.languageCode);
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
@@ -283,12 +202,21 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      for (final language in FamilyPromiseLanguage.values)
-                        _PromiseLanguageButton(
-                          label: _promiseLanguageLabel(language),
-                          selected: _currentLanguage == language,
-                          color: _colorByLanguage(language),
-                          onPressed: () => _changeLanguage(language),
+                      for (final item in _promises)
+                        ElevatedButton.icon(
+                          onPressed: () => _changeLanguage(item.languageCode),
+                          icon: const Icon(Icons.translate),
+                          label: Text(_languageLabel(item.languageCode)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                promise.languageCode == item.languageCode
+                                ? _colorFor(item.languageCode)
+                                : Colors.white,
+                            foregroundColor:
+                                promise.languageCode == item.languageCode
+                                ? Colors.white
+                                : _colorFor(item.languageCode),
+                          ),
                         ),
                     ],
                   ),
@@ -303,12 +231,7 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
                           label: Text('${index + 1}'),
                           selected: _currentIndex == index,
                           selectedColor: color.withValues(alpha: 0.18),
-                          onSelected: (_) {
-                            setState(() {
-                              _currentIndex = index;
-                            });
-                            unawaited(_stopSpeech());
-                          },
+                          onSelected: (_) => _showItem(index),
                         ),
                     ],
                   ),
@@ -320,13 +243,14 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
                       runSpacing: 8,
                       children: [
                         for (final index in _history)
-                          ActionChip(
-                            avatar: const Icon(Icons.history, size: 18),
-                            label: Text(
-                              '${strings.promiseHistoryLabel} ${index + 1}',
+                          if (index < items.length)
+                            ActionChip(
+                              avatar: const Icon(Icons.history, size: 18),
+                              label: Text(
+                                '${strings.promiseHistoryLabel} ${index + 1}',
+                              ),
+                              onPressed: () => _showItem(index),
                             ),
-                            onPressed: () => _showHistoryItem(index),
-                          ),
                       ],
                     ),
                   ],
@@ -340,12 +264,11 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
                       child: Column(
                         children: [
                           Text(
-                            familyPromiseTitle(_currentLanguage),
+                            promise.title,
                             textAlign: TextAlign.center,
                             style: textTheme.headlineMedium?.copyWith(
                               fontWeight: FontWeight.w800,
                               fontSize: kIsWeb ? 40 : null,
-                              color: const Color(0xff1f2724),
                             ),
                           ),
                           const SizedBox(height: 12),
@@ -356,50 +279,56 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 20),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               IconButton.filledTonal(
                                 onPressed: _currentIndex == 0
                                     ? null
-                                    : _previousItem,
+                                    : () => _showItem(_currentIndex - 1),
                                 icon: const Icon(Icons.arrow_back),
                               ),
                               const SizedBox(width: 16),
                               IconButton.filledTonal(
                                 onPressed: _currentIndex == items.length - 1
                                     ? null
-                                    : _nextItem,
+                                    : () => _showItem(_currentIndex + 1),
                                 icon: const Icon(Icons.arrow_forward),
                               ),
                             ],
                           ),
                           const SizedBox(height: 16),
-                          ElevatedButton.icon(
-                            onPressed: _markCurrentAsUsed,
-                            icon: const Icon(Icons.history),
-                            label: Text(strings.markAsUsed),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: color,
-                              foregroundColor: Colors.white,
-                            ),
+                          Wrap(
+                            alignment: WrapAlignment.center,
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: [
+                              ElevatedButton.icon(
+                                onPressed: _markCurrentAsUsed,
+                                icon: const Icon(Icons.history),
+                                label: Text(strings.markAsUsed),
+                              ),
+                              if (_history.isNotEmpty)
+                                ElevatedButton.icon(
+                                  onPressed: _resetHistory,
+                                  icon: const Icon(Icons.delete_outline),
+                                  label: Text(strings.resetHistory),
+                                ),
+                              if (promise.languageCode == 'ko')
+                                ElevatedButton.icon(
+                                  onPressed: _toggleSpeech,
+                                  icon: Icon(
+                                    _isSpeaking ? Icons.stop : Icons.play_arrow,
+                                  ),
+                                  label: Text(
+                                    _isSpeaking
+                                        ? strings.stopReading
+                                        : strings.readAloud,
+                                  ),
+                                ),
+                            ],
                           ),
-                          if (_currentLanguage ==
-                              FamilyPromiseLanguage.korean) ...[
-                            const SizedBox(height: 12),
-                            ElevatedButton.icon(
-                              onPressed: _toggleSpeech,
-                              icon: Icon(
-                                _isSpeaking ? Icons.stop : Icons.play_arrow,
-                              ),
-                              label: Text(
-                                _isSpeaking
-                                    ? strings.stopReading
-                                    : strings.readAloud,
-                              ),
-                            ),
-                          ],
                           const SizedBox(height: 28),
                           Text(
                             items[_currentIndex],
@@ -419,45 +348,6 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-String _promiseLanguageLabel(FamilyPromiseLanguage language) {
-  switch (language) {
-    case FamilyPromiseLanguage.portuguese:
-      return 'Português';
-    case FamilyPromiseLanguage.korean:
-      return 'Coreano';
-    case FamilyPromiseLanguage.english:
-      return 'English';
-  }
-}
-
-class _PromiseLanguageButton extends StatelessWidget {
-  const _PromiseLanguageButton({
-    required this.label,
-    required this.selected,
-    required this.color,
-    required this.onPressed,
-  });
-
-  final String label;
-  final bool selected;
-  final Color color;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return ElevatedButton.icon(
-      onPressed: onPressed,
-      icon: const Icon(Icons.translate),
-      label: Text(label),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: selected ? color : Colors.white,
-        foregroundColor: selected ? Colors.white : color,
-        side: BorderSide(color: color.withValues(alpha: 0.4)),
       ),
     );
   }

@@ -42,6 +42,13 @@ dependencies:
   just_audio: ^0.10.5
   qr_flutter: ^4.1.0
   shared_preferences: ^2.5.3
+  cloud_firestore: ^6.6.0
+  firebase_auth: ^6.5.4
+  file_picker: ^11.0.2
+  archive: ^3.6.1
+  xml: ^6.6.1
+  url_launcher: ^6.3.2
+  http: ^1.6.0
 
 dev_dependencies:
   flutter_test:

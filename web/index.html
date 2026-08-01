@@ -18,7 +18,7 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="FFPMU Sunday service guide and country content hub.">
 
   <!-- iOS meta tags & icons -->
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -29,13 +29,68 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>ffpmupt</title>
+  <title>FFPMU</title>
   <link rel="manifest" href="manifest.json">
 
   <script>
     if (window.location.pathname === '/ofertas' && !window.location.hash) {
       window.location.replace('/#/ofertas');
     }
+  </script>
+  <script>
+    let offlineWorkerReady;
+    let lastAudioCacheProgress;
+    let pendingAudioUrls = [];
+    const audioCacheListeners = new Set();
+
+    function sendAudioCacheRequest() {
+      if (!offlineWorkerReady || pendingAudioUrls.length === 0) return;
+      offlineWorkerReady.then((registration) => {
+        registration.active?.postMessage({
+          type: 'CACHE_AUDIO',
+          urls: pendingAudioUrls,
+        });
+      });
+    }
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data?.type !== 'AUDIO_CACHE_PROGRESS') return;
+        lastAudioCacheProgress = event.data;
+        audioCacheListeners.forEach((listener) => listener(event.data));
+      });
+
+      offlineWorkerReady = navigator.serviceWorker
+        .register('offline_service_worker.js')
+        .then(() => navigator.serviceWorker.ready);
+
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        offlineWorkerReady = navigator.serviceWorker.ready;
+        sendAudioCacheRequest();
+      });
+
+      if (navigator.storage?.persist) {
+        navigator.storage.persist();
+      }
+    }
+
+    window.ffpmuCacheAudio = function(urls) {
+      pendingAudioUrls = [...new Set(urls)];
+      sendAudioCacheRequest();
+    };
+
+    window.ffpmuListenAudioCache = function(listener) {
+      audioCacheListeners.add(listener);
+      if (lastAudioCacheProgress) listener(lastAudioCacheProgress);
+    };
+
+    window.ffpmuToggleFullscreen = function() {
+      if (document.fullscreenElement) {
+        document.exitFullscreen?.();
+      } else {
+        document.documentElement.requestFullscreen?.();
+      }
+    };
   </script>
   <script src="flutter_bootstrap.js" async></script>
 </head>

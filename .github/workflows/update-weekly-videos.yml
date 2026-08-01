@@ -1,0 +1,29 @@
+name: Update weekly videos
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 18 * * 5'
+    - cron: '30 17 * * 6'
+    - cron: '30 7 * * 0'
+
+jobs:
+  update-weekly-videos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Update Firestore weekly videos
+        run: node scripts/update_weekly_videos.mjs
+        env:
+          FIREBASE_PROJECT_ID: ffpmupt-402e1
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          COUNTRY_CODES: ${{ vars.WEEKLY_VIDEO_COUNTRY_CODES }}
