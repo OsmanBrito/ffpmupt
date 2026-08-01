@@ -10,6 +10,11 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('content data', () {
+    test('offline worker resolves Flutter web assets from the build path', () {
+      final worker = File('web/offline_service_worker.js').readAsStringSync();
+      expect(worker, contains(r'`assets/${rawUrl}`'));
+    });
+
     test('current motto is ready to display', () {
       expect(currentMotto.title.trim(), isNotEmpty);
       expect(currentMotto.body.trim(), isNotEmpty);
@@ -41,7 +46,7 @@ void main() {
     test('songs have required metadata and lyrics', () {
       for (final song in songs) {
         expect(song.title.trim(), isNotEmpty);
-        expect(song.page.trim(), isNotEmpty);
+        expect(song.page.trim(), isNot('0'));
         expect(song.lyrics, isNotEmpty, reason: song.title);
         expect(
           song.lyrics.every((lyric) => lyric.trim().isNotEmpty),

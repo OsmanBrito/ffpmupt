@@ -17,8 +17,9 @@ enum AppLanguage {
 String appLanguageLabel(AppLanguage language) {
   switch (language) {
     case AppLanguage.portuguese:
-    case AppLanguage.brazilian:
       return 'Português';
+    case AppLanguage.brazilian:
+      return 'Português (Brasil)';
     case AppLanguage.korean:
       return '한국어';
     case AppLanguage.english:
@@ -37,7 +38,7 @@ String appLanguageLabel(AppLanguage language) {
 AppLanguage appLanguageFromCode(String code) {
   return switch (code.toLowerCase()) {
     'pt' => AppLanguage.portuguese,
-    'pt-br' => AppLanguage.portuguese,
+    'pt-br' => AppLanguage.brazilian,
     'ko' => AppLanguage.korean,
     'es' => AppLanguage.spanish,
     'de' => AppLanguage.german,
@@ -105,10 +106,15 @@ class AppLanguageScope extends InheritedNotifier<AppLanguageController> {
   }) : super(notifier: controller);
 
   static AppLanguageController watch(BuildContext context) {
-    final scope = context
-        .dependOnInheritedWidgetOfExactType<AppLanguageScope>();
+    final scope = maybeWatch(context);
     assert(scope != null, 'AppLanguageScope not found in context');
-    return scope!.notifier!;
+    return scope!;
+  }
+
+  static AppLanguageController? maybeWatch(BuildContext context) {
+    return context
+        .dependOnInheritedWidgetOfExactType<AppLanguageScope>()
+        ?.notifier;
   }
 
   static AppLanguageController read(BuildContext context) {

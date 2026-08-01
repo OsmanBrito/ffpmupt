@@ -4,6 +4,9 @@ import 'package:ffpmupt/models/country.dart';
 import 'package:ffpmupt/models/family_promise.dart';
 import 'package:ffpmupt/services/family_promise_repository.dart';
 import 'package:ffpmupt/settings/app_language.dart';
+import 'package:ffpmupt/settings/admin_copy.dart';
+import 'package:ffpmupt/settings/app_strings.dart';
+import 'package:ffpmupt/settings/p0_strings.dart';
 import 'package:flutter/material.dart';
 
 class FamilyPromiseAdminScreen extends StatefulWidget {
@@ -96,8 +99,10 @@ class _FamilyPromiseAdminScreenState extends State<FamilyPromiseAdminScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(AppLanguageScope.watch(context).language);
+    final p0 = P0Strings.of(AppLanguageScope.watch(context).language);
     return Scaffold(
-      appBar: AppBar(title: const Text('Gestão da Promessa')),
+      appBar: AppBar(title: Text(strings.familyPromise)),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -106,9 +111,7 @@ class _FamilyPromiseAdminScreenState extends State<FamilyPromiseAdminScreen> {
               stream: _repository.watchAdminPromises(),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
-                  return const Center(
-                    child: Text('Não foi possível carregar a Promessa.'),
-                  );
+                  return Center(child: Text(p0[P0Text.loadFailed]));
                 }
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
@@ -129,7 +132,9 @@ class _FamilyPromiseAdminScreenState extends State<FamilyPromiseAdminScreen> {
                                 ),
                               )
                             : const Icon(Icons.download_outlined),
-                        label: const Text('Preparar idiomas padrão'),
+                        label: Text(
+                          '${p0[P0Text.prepare]} · ${strings.defaultLanguage}',
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -148,7 +153,7 @@ class _FamilyPromiseAdminScreenState extends State<FamilyPromiseAdminScreen> {
                           subtitle: Text(
                             _isConfigured(promise)
                                 ? promise.title
-                                : 'Ainda não configurada',
+                                : adminText(context, 'Ainda não configurada'),
                           ),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -166,7 +171,7 @@ class _FamilyPromiseAdminScreenState extends State<FamilyPromiseAdminScreen> {
                                       ),
                               ),
                               IconButton(
-                                tooltip: 'Editar',
+                                tooltip: adminText(context, 'Editar'),
                                 onPressed: () => _edit(promise),
                                 icon: const Icon(Icons.edit_outlined),
                               ),
@@ -240,7 +245,11 @@ class _FamilyPromiseEditorScreenState extends State<FamilyPromiseEditorScreen> {
         .toList();
     if (title.isEmpty || verses.any((verse) => verse.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Preencha o título e os oito pontos.')),
+        SnackBar(
+          content: Text(
+            adminText(context, 'Preencha o título e os oito pontos.'),
+          ),
+        ),
       );
       return;
     }
@@ -261,12 +270,13 @@ class _FamilyPromiseEditorScreenState extends State<FamilyPromiseEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(AppLanguageScope.watch(context).language);
     return Scaffold(
       appBar: AppBar(
         title: Text(_languageLabel(widget.promise.languageCode)),
         actions: [
           IconButton(
-            tooltip: 'Guardar',
+            tooltip: adminText(context, 'Guardar'),
             onPressed: _isSaving ? null : _save,
             icon: const Icon(Icons.save_outlined),
           ),
@@ -282,15 +292,15 @@ class _FamilyPromiseEditorScreenState extends State<FamilyPromiseEditorScreen> {
               children: [
                 TextField(
                   controller: _titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Título',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: adminText(context, 'Título'),
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 10),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Idioma visível'),
+                  title: Text(adminText(context, 'Idioma visível')),
                   value: _enabled,
                   onChanged: (value) => setState(() => _enabled = value),
                 ),
@@ -303,7 +313,8 @@ class _FamilyPromiseEditorScreenState extends State<FamilyPromiseEditorScreen> {
                       minLines: 3,
                       maxLines: 8,
                       decoration: InputDecoration(
-                        labelText: 'Ponto ${index + 1}',
+                        labelText:
+                            '${adminText(context, 'Ponto')} ${index + 1}',
                         border: const OutlineInputBorder(),
                       ),
                     ),
@@ -311,7 +322,7 @@ class _FamilyPromiseEditorScreenState extends State<FamilyPromiseEditorScreen> {
                 FilledButton.icon(
                   onPressed: _isSaving ? null : _save,
                   icon: const Icon(Icons.save_outlined),
-                  label: const Text('Guardar Promessa'),
+                  label: Text(strings.save),
                 ),
               ],
             ),

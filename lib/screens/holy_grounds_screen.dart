@@ -4,6 +4,7 @@ import 'package:ffpmupt/services/country_repository.dart';
 import 'package:ffpmupt/services/holy_ground_repository.dart';
 import 'package:ffpmupt/settings/app_language.dart';
 import 'package:ffpmupt/settings/country_scope.dart';
+import 'package:ffpmupt/settings/p0_strings.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -44,6 +45,7 @@ class _HolyGroundsScreenState extends State<HolyGroundsScreen> {
   Widget build(BuildContext context) {
     final language = AppLanguageScope.watch(context).language;
     final strings = _HolyGroundStrings.of(language);
+    final p0 = P0Strings.of(language);
     final currentCountry = CountryScope.watch(context).country?.code;
     final countryNames = {
       for (final country in _countries) country.code: country.name,
@@ -59,14 +61,28 @@ class _HolyGroundsScreenState extends State<HolyGroundsScreen> {
               stream: _repository.watchAll(),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
-                  return Center(child: Text(strings.loadError));
+                  return _DirectoryState(
+                    icon: Icons.cloud_off_outlined,
+                    title: strings.loadError,
+                    description: p0[P0Text.loadFailed],
+                    actionLabel: p0[P0Text.tryAgain],
+                    onAction: () => setState(() {}),
+                  );
                 }
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
+                final allGrounds = snapshot.data!;
+                if (allGrounds.isEmpty) {
+                  return _DirectoryState(
+                    icon: Icons.landscape_outlined,
+                    title: p0[P0Text.emptyHolyGroundsTitle],
+                    description: p0[P0Text.emptyHolyGroundsDescription],
+                  );
+                }
                 final normalizedQuery = _query.trim().toLowerCase();
                 final grounds =
-                    snapshot.data!
+                    allGrounds
                         .where(
                           (ground) =>
                               (_countryFilter == null ||
@@ -168,7 +184,18 @@ class _HolyGroundsScreenState extends State<HolyGroundsScreen> {
                     ),
                     Expanded(
                       child: grounds.isEmpty
-                          ? Center(child: Text(strings.empty))
+                          ? _DirectoryState(
+                              icon: Icons.search_off_outlined,
+                              title: strings.empty,
+                              description:
+                                  p0[P0Text.emptyHolyGroundsDescription],
+                              actionLabel: p0[P0Text.retry],
+                              onAction: () => setState(() {
+                                _query = '';
+                                _countryFilter = null;
+                                _searchController.clear();
+                              }),
+                            )
                           : ListView.separated(
                               padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
                               itemCount: grounds.length,
@@ -203,6 +230,53 @@ class _HolyGroundsScreenState extends State<HolyGroundsScreen> {
               },
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DirectoryState extends StatelessWidget {
+  const _DirectoryState({
+    required this.icon,
+    required this.title,
+    required this.description,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  final IconData icon;
+  final String title;
+  final String description;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 48, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(height: 14),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 6),
+            Text(description, textAlign: TextAlign.center),
+            if (actionLabel != null && onAction != null) ...[
+              const SizedBox(height: 16),
+              FilledButton.tonalIcon(
+                onPressed: onAction,
+                icon: const Icon(Icons.refresh),
+                label: Text(actionLabel!),
+              ),
+            ],
+          ],
         ),
       ),
     );

@@ -1,5 +1,6 @@
 import 'package:ffpmupt/models/operational_crm.dart';
 import 'package:ffpmupt/services/operational_crm_repository.dart';
+import 'package:ffpmupt/settings/admin_copy.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -70,8 +71,11 @@ class _AdminInviteScreenState extends State<AdminInviteScreen> {
       if (mounted) {
         setState(() {
           _message = error.code == 'permission-denied'
-              ? 'Esta conta não corresponde ao email do convite.'
-              : 'Não foi possível abrir o convite.';
+              ? adminText(
+                  context,
+                  'Esta conta não corresponde ao email do convite.',
+                )
+              : adminText(context, 'Não foi possível abrir o convite.');
         });
       }
     } on Object catch (error) {
@@ -90,13 +94,16 @@ class _AdminInviteScreenState extends State<AdminInviteScreen> {
     final password = _passwordController.text;
     if (email.isEmpty || password.length < 8) {
       setState(
-        () => _message = 'Informe um email e uma senha com 8 caracteres.',
+        () => _message = adminText(
+          context,
+          'Informe um email e uma senha com 8 caracteres.',
+        ),
       );
       return;
     }
     if (_mode == _InviteAuthMode.createAccount &&
         password != _confirmPasswordController.text) {
-      setState(() => _message = 'As senhas não coincidem.');
+      setState(() => _message = adminText(context, 'As senhas não coincidem.'));
       return;
     }
 
@@ -125,7 +132,7 @@ class _AdminInviteScreenState extends State<AdminInviteScreen> {
       await _loadInvite();
     } on FirebaseAuthException catch (error) {
       if (mounted) {
-        setState(() => _message = _authErrorMessage(error));
+        setState(() => _message = _authErrorMessage(context, error));
       }
     } finally {
       if (mounted) {
@@ -142,11 +149,13 @@ class _AdminInviteScreenState extends State<AdminInviteScreen> {
     try {
       await FirebaseAuth.instance.currentUser?.sendEmailVerification();
       if (mounted) {
-        setState(() => _message = 'Email de confirmação enviado.');
+        setState(
+          () => _message = adminText(context, 'Email de confirmação enviado.'),
+        );
       }
     } on FirebaseAuthException catch (error) {
       if (mounted) {
-        setState(() => _message = _authErrorMessage(error));
+        setState(() => _message = _authErrorMessage(context, error));
       }
     } finally {
       if (mounted) {
@@ -158,12 +167,19 @@ class _AdminInviteScreenState extends State<AdminInviteScreen> {
   Future<void> _resetPassword() async {
     final email = _emailController.text.trim().toLowerCase();
     if (email.isEmpty) {
-      setState(() => _message = 'Informe o email primeiro.');
+      setState(
+        () => _message = adminText(context, 'Informe o email primeiro.'),
+      );
       return;
     }
     await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
     if (mounted) {
-      setState(() => _message = 'Email para redefinir a senha enviado.');
+      setState(
+        () => _message = adminText(
+          context,
+          'Email para redefinir a senha enviado.',
+        ),
+      );
     }
   }
 
@@ -207,7 +223,9 @@ class _AdminInviteScreenState extends State<AdminInviteScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Convite de administrador')),
+      appBar: AppBar(
+        title: Text(adminText(context, 'Convite de administrador')),
+      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -248,7 +266,7 @@ class _AdminInviteScreenState extends State<AdminInviteScreen> {
         const Icon(Icons.mark_email_read_outlined, size: 52),
         const SizedBox(height: 14),
         Text(
-          'Você foi convidado para administrar um país',
+          adminText(context, 'Você foi convidado para administrar um país'),
           textAlign: TextAlign.center,
           style: Theme.of(
             context,
@@ -256,16 +274,16 @@ class _AdminInviteScreenState extends State<AdminInviteScreen> {
         ),
         const SizedBox(height: 20),
         SegmentedButton<_InviteAuthMode>(
-          segments: const [
+          segments: [
             ButtonSegment(
               value: _InviteAuthMode.createAccount,
-              label: Text('Criar conta'),
-              icon: Icon(Icons.person_add_alt_1),
+              label: Text(adminText(context, 'Criar conta')),
+              icon: const Icon(Icons.person_add_alt_1),
             ),
             ButtonSegment(
               value: _InviteAuthMode.signIn,
-              label: Text('Já tenho conta'),
-              icon: Icon(Icons.login),
+              label: Text(adminText(context, 'Já tenho conta')),
+              icon: const Icon(Icons.login),
             ),
           ],
           selected: {_mode},
@@ -280,20 +298,20 @@ class _AdminInviteScreenState extends State<AdminInviteScreen> {
         TextField(
           controller: _emailController,
           keyboardType: TextInputType.emailAddress,
-          decoration: const InputDecoration(
-            labelText: 'Email que recebeu o convite',
-            prefixIcon: Icon(Icons.email_outlined),
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: adminText(context, 'Email que recebeu o convite'),
+            prefixIcon: const Icon(Icons.email_outlined),
+            border: const OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 12),
         TextField(
           controller: _passwordController,
           obscureText: true,
-          decoration: const InputDecoration(
-            labelText: 'Senha',
-            prefixIcon: Icon(Icons.password),
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: adminText(context, 'Senha'),
+            prefixIcon: const Icon(Icons.password),
+            border: const OutlineInputBorder(),
           ),
         ),
         if (_mode == _InviteAuthMode.createAccount) ...[
@@ -302,10 +320,10 @@ class _AdminInviteScreenState extends State<AdminInviteScreen> {
             controller: _confirmPasswordController,
             obscureText: true,
             onSubmitted: (_) => _authenticate(),
-            decoration: const InputDecoration(
-              labelText: 'Confirmar senha',
-              prefixIcon: Icon(Icons.password),
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: adminText(context, 'Confirmar senha'),
+              prefixIcon: const Icon(Icons.password),
+              border: const OutlineInputBorder(),
             ),
           ),
         ],
@@ -327,13 +345,16 @@ class _AdminInviteScreenState extends State<AdminInviteScreen> {
                       : Icons.login,
                 ),
           label: Text(
-            _mode == _InviteAuthMode.createAccount ? 'Criar conta' : 'Entrar',
+            adminText(
+              context,
+              _mode == _InviteAuthMode.createAccount ? 'Criar conta' : 'Entrar',
+            ),
           ),
         ),
         if (_mode == _InviteAuthMode.signIn)
           TextButton(
             onPressed: _isBusy ? null : _resetPassword,
-            child: const Text('Esqueci minha senha'),
+            child: Text(adminText(context, 'Esqueci minha senha')),
           ),
       ],
     );
@@ -346,7 +367,7 @@ class _AdminInviteScreenState extends State<AdminInviteScreen> {
         const Icon(Icons.outgoing_mail, size: 52),
         const SizedBox(height: 14),
         Text(
-          'Confirme seu email',
+          adminText(context, 'Confirme seu email'),
           textAlign: TextAlign.center,
           style: Theme.of(
             context,
@@ -354,7 +375,8 @@ class _AdminInviteScreenState extends State<AdminInviteScreen> {
         ),
         const SizedBox(height: 10),
         Text(
-          'Enviamos uma confirmação para ${user.email}. Abra o email e depois volte aqui.',
+          '${adminText(context, 'Enviamos uma confirmação para')} '
+          '${user.email}. ${adminText(context, 'Abra o email e depois volte aqui.')}',
           textAlign: TextAlign.center,
         ),
         if (_message != null) ...[
@@ -365,13 +387,16 @@ class _AdminInviteScreenState extends State<AdminInviteScreen> {
         FilledButton.icon(
           onPressed: _isBusy ? null : _loadInvite,
           icon: const Icon(Icons.refresh),
-          label: const Text('Já confirmei'),
+          label: Text(adminText(context, 'Já confirmei')),
         ),
         TextButton(
           onPressed: _isBusy ? null : _sendVerification,
-          child: const Text('Reenviar confirmação'),
+          child: Text(adminText(context, 'Reenviar confirmação')),
         ),
-        TextButton(onPressed: _signOut, child: const Text('Usar outra conta')),
+        TextButton(
+          onPressed: _signOut,
+          child: Text(adminText(context, 'Usar outra conta')),
+        ),
       ],
     );
   }
@@ -384,7 +409,7 @@ class _AdminInviteScreenState extends State<AdminInviteScreen> {
         const Icon(Icons.admin_panel_settings_outlined, size: 52),
         const SizedBox(height: 14),
         Text(
-          'Confirmar acesso administrativo',
+          adminText(context, 'Confirmar acesso administrativo'),
           textAlign: TextAlign.center,
           style: Theme.of(
             context,
@@ -394,10 +419,13 @@ class _AdminInviteScreenState extends State<AdminInviteScreen> {
         if (_isBusy && invite == null)
           const Center(child: CircularProgressIndicator()),
         if (invite != null) ...[
-          _InviteLine(label: 'Nome', value: invite.displayName),
+          _InviteLine(
+            label: adminText(context, 'Nome'),
+            value: invite.displayName,
+          ),
           _InviteLine(label: 'Email', value: invite.email),
           _InviteLine(
-            label: 'Países',
+            label: adminText(context, 'Países'),
             value: invite.countryCodes
                 .map((code) => code.toUpperCase())
                 .join(', '),
@@ -406,14 +434,17 @@ class _AdminInviteScreenState extends State<AdminInviteScreen> {
           FilledButton.icon(
             onPressed: _isBusy || !invite.isPending ? null : _accept,
             icon: const Icon(Icons.check),
-            label: const Text('Aceitar convite'),
+            label: Text(adminText(context, 'Aceitar convite')),
           ),
         ],
         if (_message != null) ...[
           const SizedBox(height: 12),
           Text(_message!, textAlign: TextAlign.center),
         ],
-        TextButton(onPressed: _signOut, child: const Text('Usar outra conta')),
+        TextButton(
+          onPressed: _signOut,
+          child: Text(adminText(context, 'Usar outra conta')),
+        ),
       ],
     );
   }
@@ -462,36 +493,45 @@ class _AcceptedInvite extends StatelessWidget {
         ),
         const SizedBox(height: 14),
         Text(
-          'Acesso confirmado',
+          adminText(context, 'Acesso confirmado'),
           textAlign: TextAlign.center,
           style: Theme.of(
             context,
           ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 10),
-        const Text(
-          'Agora você pode selecionar o país e entrar na administração.',
+        Text(
+          adminText(
+            context,
+            'Agora você pode selecionar o país e entrar na administração.',
+          ),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 20),
         FilledButton.icon(
           onPressed: onContinue,
           icon: const Icon(Icons.home_outlined),
-          label: const Text('Continuar'),
+          label: Text(adminText(context, 'Continuar')),
         ),
       ],
     );
   }
 }
 
-String _authErrorMessage(FirebaseAuthException error) {
+String _authErrorMessage(BuildContext context, FirebaseAuthException error) {
   return switch (error.code) {
-    'email-already-in-use' =>
+    'email-already-in-use' => adminText(
+      context,
       'Este email já possui conta. Escolha “Já tenho conta”.',
-    'invalid-credential' || 'wrong-password' => 'Email ou senha incorretos.',
-    'invalid-email' => 'Email inválido.',
-    'weak-password' => 'Escolha uma senha mais forte.',
-    'too-many-requests' => 'Muitas tentativas. Aguarde e tente novamente.',
-    _ => error.message ?? 'Não foi possível autenticar.',
+    ),
+    'invalid-credential' ||
+    'wrong-password' => adminText(context, 'Email ou senha incorretos.'),
+    'invalid-email' => adminText(context, 'Email inválido.'),
+    'weak-password' => adminText(context, 'Escolha uma senha mais forte.'),
+    'too-many-requests' => adminText(
+      context,
+      'Muitas tentativas. Aguarde e tente novamente.',
+    ),
+    _ => error.message ?? adminText(context, 'Não foi possível autenticar.'),
   };
 }

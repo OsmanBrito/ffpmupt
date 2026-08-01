@@ -27,7 +27,7 @@ class SongsModel {
 final List<SongsModel> songs = [
   SongsModel(
     'NOVO HINO DA CHEON IL GUK',
-    '0',
+    '',
     [
       'O puro amor irá florir com novas de esperança,\nNovo mundo de liberdade, terra e céu rejubilam\nReino de paz traz esperança, prosperidade e amor\n Brilhando eternamente na Cheon II Guk, na terra de Deus.\n',
       'Brilha o lírio à luz do Céu, esplendor divinal\nNuma vida de bondade puro amor nos ilumina\nProsperando no amor de Deus, felizes para sempre\nBrilhando eternamente na Cheon II Guk, na terra de Deus.\n',

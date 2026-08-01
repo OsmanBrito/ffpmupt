@@ -4,6 +4,9 @@ import 'dart:typed_data';
 import 'package:ffpmupt/models/holy_ground.dart';
 import 'package:ffpmupt/services/holy_ground_image_upload_service.dart';
 import 'package:ffpmupt/services/holy_ground_repository.dart';
+import 'package:ffpmupt/settings/app_language.dart';
+import 'package:ffpmupt/settings/admin_copy.dart';
+import 'package:ffpmupt/settings/p0_strings.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
@@ -44,12 +47,13 @@ class _HolyGroundsAdminScreenState extends State<HolyGroundsAdminScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final p0 = P0Strings.of(AppLanguageScope.watch(context).language);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Gestão de Holy Grounds'),
+        title: Text(p0[P0Text.holyGrounds]),
         actions: [
           IconButton(
-            tooltip: 'Adicionar Holy Ground',
+            tooltip: adminText(context, 'Adicionar Holy Ground'),
             onPressed: () => _openEditor(),
             icon: const Icon(Icons.add_location_alt_outlined),
           ),
@@ -64,9 +68,7 @@ class _HolyGroundsAdminScreenState extends State<HolyGroundsAdminScreen> {
               stream: _repository.watchAdmin(widget.countryCode),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
-                  return const Center(
-                    child: Text('Não foi possível carregar os Holy Grounds.'),
-                  );
+                  return Center(child: Text(p0[P0Text.loadFailed]));
                 }
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
@@ -81,22 +83,22 @@ class _HolyGroundsAdminScreenState extends State<HolyGroundsAdminScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              '${grounds.length} locais cadastrados',
+                              '${grounds.length} · ${p0[P0Text.holyGrounds]}',
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                           ),
                           FilledButton.icon(
                             onPressed: () => _openEditor(),
                             icon: const Icon(Icons.add),
-                            label: const Text('Novo local'),
+                            label: Text(adminText(context, 'Novo local')),
                           ),
                         ],
                       ),
                     ),
                     Expanded(
                       child: grounds.isEmpty
-                          ? const Center(
-                              child: Text('Nenhum Holy Ground cadastrado.'),
+                          ? Center(
+                              child: Text(p0[P0Text.emptyHolyGroundsTitle]),
                             )
                           : ListView.separated(
                               padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
@@ -138,7 +140,7 @@ class _HolyGroundsAdminScreenState extends State<HolyGroundsAdminScreen> {
                                           ),
                                         ),
                                         IconButton(
-                                          tooltip: 'Editar',
+                                          tooltip: adminText(context, 'Editar'),
                                           onPressed: () => _openEditor(ground),
                                           icon: const Icon(Icons.edit_outlined),
                                         ),
@@ -254,16 +256,36 @@ class _HolyGroundEditorScreenState extends State<HolyGroundEditorScreen> {
   }
 
   String? _required(String? value) {
-    return value == null || value.trim().isEmpty ? 'Campo obrigatório' : null;
+    return value == null || value.trim().isEmpty
+        ? adminText(context, 'Campo obrigatório')
+        : null;
   }
 
   String? _coordinate(String? value) {
     if (value == null || value.trim().isEmpty) {
       return null;
     }
-    return double.tryParse(value.trim().replaceAll(',', '.')) == null
-        ? 'Coordenada inválida'
+    return _parseCoordinate(value) == null
+        ? adminText(context, 'Coordenada inválida')
         : null;
+  }
+
+  double? _parseCoordinate(String value) {
+    final normalized = value
+        .trim()
+        .toUpperCase()
+        .replaceAll(',', '.')
+        .replaceAll(RegExp(r'[^0-9.\-NSEW]'), '');
+    final isNegativeDirection =
+        normalized.contains('S') || normalized.contains('W');
+    final numeric = normalized
+        .replaceAll(RegExp(r'[NSEW]'), '')
+        .replaceAll(RegExp(r'\.+$'), '');
+    final parsed = double.tryParse(numeric);
+    if (parsed == null) {
+      return null;
+    }
+    return isNegativeDirection ? -parsed.abs() : parsed;
   }
 
   Future<void> _pickImage() async {
@@ -279,15 +301,17 @@ class _HolyGroundEditorScreenState extends State<HolyGroundEditorScreen> {
     final file = result.files.single;
     final extension = (file.extension ?? '').toLowerCase();
     if (!_allowedImageExtensions.contains(extension)) {
-      _showMessage('Use uma imagem JPG, PNG ou WebP.');
+      _showMessage(adminText(context, 'Use uma imagem JPG, PNG ou WebP.'));
       return;
     }
     if (file.size > _maxImageBytes) {
-      _showMessage('A fotografia deve ter no máximo 5 MB.');
+      _showMessage(adminText(context, 'A fotografia deve ter no máximo 5 MB.'));
       return;
     }
     if (file.bytes == null || file.bytes!.isEmpty) {
-      _showMessage('Não foi possível ler a fotografia selecionada.');
+      _showMessage(
+        adminText(context, 'Não foi possível ler a fotografia selecionada.'),
+      );
       return;
     }
 
@@ -315,15 +339,33 @@ class _HolyGroundEditorScreenState extends State<HolyGroundEditorScreen> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-    final latitude = double.tryParse(
-      _latitude.text.trim().replaceAll(',', '.'),
-    );
-    final longitude = double.tryParse(
-      _longitude.text.trim().replaceAll(',', '.'),
-    );
+    final latitude = _parseCoordinate(_latitude.text);
+    final longitude = _parseCoordinate(_longitude.text);
     if ((latitude == null) != (longitude == null)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Preencha latitude e longitude juntas.')),
+        SnackBar(
+          content: Text(
+            adminText(context, 'Preencha latitude e longitude juntas.'),
+          ),
+        ),
+      );
+      return;
+    }
+    if ((latitude != null && (latitude < -90 || latitude > 90)) ||
+        (longitude != null && (longitude < -180 || longitude > 180))) {
+      _showMessage(
+        adminText(context, 'Confira os limites da latitude e longitude.'),
+      );
+      return;
+    }
+    if (_enabled &&
+        _selectedImageBytes == null &&
+        _imageUrl.text.trim().isEmpty) {
+      _showMessage(
+        adminText(
+          context,
+          'Selecione uma fotografia antes de publicar o local.',
+        ),
       );
       return;
     }
@@ -331,8 +373,8 @@ class _HolyGroundEditorScreenState extends State<HolyGroundEditorScreen> {
     setState(() {
       _isSaving = true;
       _saveStatus = _selectedImageBytes == null
-          ? 'Guardando dados...'
-          : 'Enviando fotografia...';
+          ? adminText(context, 'Guardando dados...')
+          : adminText(context, 'Enviando fotografia...');
     });
     try {
       var imageUrl = _imageUrl.text.trim();
@@ -350,7 +392,7 @@ class _HolyGroundEditorScreenState extends State<HolyGroundEditorScreen> {
           _imageUrl.text = imageUrl;
           _selectedImageBytes = null;
           _selectedImageName = null;
-          _saveStatus = 'Guardando dados...';
+          _saveStatus = adminText(context, 'Guardando dados...');
         });
       }
 
@@ -396,11 +438,14 @@ class _HolyGroundEditorScreenState extends State<HolyGroundEditorScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.ground == null ? 'Novo Holy Ground' : 'Editar Holy Ground',
+          adminText(
+            context,
+            widget.ground == null ? 'Novo Holy Ground' : 'Editar Holy Ground',
+          ),
         ),
         actions: [
           IconButton(
-            tooltip: 'Guardar',
+            tooltip: adminText(context, 'Guardar'),
             onPressed: _isSaving ? null : _save,
             icon: const Icon(Icons.save_outlined),
           ),
@@ -417,23 +462,23 @@ class _HolyGroundEditorScreenState extends State<HolyGroundEditorScreen> {
                 padding: const EdgeInsets.all(20),
                 children: [
                   Text(
-                    'Identificação',
+                    adminText(context, 'Identificação'),
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 12),
                   _Field(
                     controller: _name,
-                    label: 'Nome',
+                    label: adminText(context, 'Nome'),
                     validator: _required,
                   ),
                   _Field(
                     controller: _city,
-                    label: 'Cidade',
+                    label: adminText(context, 'Cidade'),
                     validator: _required,
                   ),
                   _Field(
                     controller: _address,
-                    label: 'Endereço completo',
+                    label: adminText(context, 'Endereço completo'),
                     validator: _required,
                   ),
                   Row(
@@ -441,7 +486,7 @@ class _HolyGroundEditorScreenState extends State<HolyGroundEditorScreen> {
                       Expanded(
                         child: _Field(
                           controller: _latitude,
-                          label: 'Latitude (opcional)',
+                          label: adminText(context, 'Latitude (opcional)'),
                           validator: _coordinate,
                         ),
                       ),
@@ -449,7 +494,7 @@ class _HolyGroundEditorScreenState extends State<HolyGroundEditorScreen> {
                       Expanded(
                         child: _Field(
                           controller: _longitude,
-                          label: 'Longitude (opcional)',
+                          label: adminText(context, 'Longitude (opcional)'),
                           validator: _coordinate,
                         ),
                       ),
@@ -469,55 +514,66 @@ class _HolyGroundEditorScreenState extends State<HolyGroundEditorScreen> {
                   ),
                   const Divider(height: 34),
                   Text(
-                    'Conteúdo',
+                    adminText(context, 'Conteúdo'),
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 12),
                   _Field(
                     controller: _summary,
-                    label: 'Resumo',
+                    label: adminText(context, 'Resumo'),
                     validator: _required,
                     minLines: 2,
                     maxLines: 5,
                   ),
                   _Field(
                     controller: _history,
-                    label: 'História',
+                    label: adminText(context, 'História'),
                     minLines: 4,
                     maxLines: 12,
                   ),
                   _Field(
                     controller: _visitInstructions,
-                    label: 'Instruções de visita',
+                    label: adminText(context, 'Instruções de visita'),
                     minLines: 3,
                     maxLines: 8,
                   ),
                   const Divider(height: 34),
                   Text(
-                    'Contato e publicação',
+                    adminText(context, 'Contato e publicação'),
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 12),
-                  _Field(controller: _contactName, label: 'Responsável'),
-                  _Field(controller: _contactEmail, label: 'Email de contato'),
+                  _Field(
+                    controller: _contactName,
+                    label: adminText(context, 'Responsável'),
+                  ),
+                  _Field(
+                    controller: _contactEmail,
+                    label: adminText(context, 'Email de contato'),
+                  ),
                   Row(
                     children: [
                       Expanded(
                         child: _Field(
                           controller: _languageCode,
-                          label: 'Idioma',
+                          label: adminText(context, 'Idioma'),
                           validator: _required,
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: _Field(controller: _sortOrder, label: 'Ordem'),
+                        child: _Field(
+                          controller: _sortOrder,
+                          label: adminText(context, 'Ordem'),
+                        ),
                       ),
                     ],
                   ),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Local visível no diretório'),
+                    title: Text(
+                      adminText(context, 'Local visível no diretório'),
+                    ),
                     value: _enabled,
                     onChanged: (value) => setState(() => _enabled = value),
                   ),
@@ -530,7 +586,9 @@ class _HolyGroundEditorScreenState extends State<HolyGroundEditorScreen> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.save_outlined),
-                    label: Text(_saveStatus ?? 'Guardar Holy Ground'),
+                    label: Text(
+                      _saveStatus ?? adminText(context, 'Guardar Holy Ground'),
+                    ),
                   ),
                 ],
               ),
@@ -588,7 +646,7 @@ class _ImagePickerPanel extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Fotografia',
+                adminText(context, 'Fotografia'),
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 10),
@@ -613,21 +671,21 @@ class _ImagePickerPanel extends StatelessWidget {
                     icon: const Icon(Icons.upload_file_outlined),
                     label: Text(
                       selectedBytes == null && currentUrl.isEmpty
-                          ? 'Selecionar fotografia'
-                          : 'Trocar fotografia',
+                          ? adminText(context, 'Selecionar fotografia')
+                          : adminText(context, 'Trocar fotografia'),
                     ),
                   ),
                   if (onRemove != null)
                     TextButton.icon(
                       onPressed: isEnabled ? onRemove : null,
                       icon: const Icon(Icons.delete_outline),
-                      label: const Text('Remover'),
+                      label: Text(adminText(context, 'Remover')),
                     ),
                 ],
               ),
               const SizedBox(height: 4),
               Text(
-                'JPG, PNG ou WebP, até 5 MB.',
+                adminText(context, 'JPG, PNG ou WebP, até 5 MB.'),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],

@@ -3,6 +3,10 @@ import 'dart:async';
 import 'package:ffpmupt/models/song.dart';
 import 'package:ffpmupt/services/song_import_service.dart';
 import 'package:ffpmupt/services/song_repository.dart';
+import 'package:ffpmupt/settings/app_language.dart';
+import 'package:ffpmupt/settings/admin_copy.dart';
+import 'package:ffpmupt/settings/app_strings.dart';
+import 'package:ffpmupt/settings/p0_strings.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -163,12 +167,12 @@ class _SongsAdminScreenState extends State<SongsAdminScreen> {
         await showDialog<void>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Nenhuma música reconhecida'),
+            title: Text(adminText(context, 'Nenhuma música reconhecida')),
             content: Text(errors.join('\n')),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Fechar'),
+                child: Text(adminText(context, 'Fechar')),
               ),
             ],
           ),
@@ -212,12 +216,14 @@ class _SongsAdminScreenState extends State<SongsAdminScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(AppLanguageScope.watch(context).language);
+    final p0 = P0Strings.of(AppLanguageScope.watch(context).language);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Gestão de músicas'),
+        title: Text(strings.songs),
         actions: [
           IconButton(
-            tooltip: 'Nova música',
+            tooltip: adminText(context, 'Nova música'),
             onPressed: () => _openEditor(),
             icon: const Icon(Icons.add),
           ),
@@ -232,9 +238,7 @@ class _SongsAdminScreenState extends State<SongsAdminScreen> {
               stream: _repository.watchAdminSongs(),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
-                  return const Center(
-                    child: Text('Não foi possível carregar as músicas.'),
-                  );
+                  return Center(child: Text(p0[P0Text.loadFailed]));
                 }
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
@@ -260,10 +264,10 @@ class _SongsAdminScreenState extends State<SongsAdminScreen> {
                             controller: _searchController,
                             onChanged: (value) =>
                                 setState(() => _query = value),
-                            decoration: const InputDecoration(
-                              labelText: 'Pesquisar música ou página',
-                              prefixIcon: Icon(Icons.search),
-                              border: OutlineInputBorder(),
+                            decoration: InputDecoration(
+                              labelText: strings.searchSongHint,
+                              prefixIcon: const Icon(Icons.search),
+                              border: const OutlineInputBorder(),
                             ),
                           ),
                           const SizedBox(height: 12),
@@ -276,7 +280,9 @@ class _SongsAdminScreenState extends State<SongsAdminScreen> {
                                 OutlinedButton.icon(
                                   onPressed: _downloadTemplate,
                                   icon: const Icon(Icons.download_outlined),
-                                  label: const Text('Modelo XLSX'),
+                                  label: Text(
+                                    adminText(context, 'Modelo XLSX'),
+                                  ),
                                 ),
                                 FilledButton.tonalIcon(
                                   onPressed: _isImporting
@@ -290,7 +296,9 @@ class _SongsAdminScreenState extends State<SongsAdminScreen> {
                                           ),
                                         )
                                       : const Icon(Icons.cloud_upload_outlined),
-                                  label: const Text('Catálogo padrão'),
+                                  label: Text(
+                                    adminText(context, 'Catálogo padrão'),
+                                  ),
                                 ),
                                 FilledButton.icon(
                                   onPressed: _isReadingFiles
@@ -304,7 +312,9 @@ class _SongsAdminScreenState extends State<SongsAdminScreen> {
                                           ),
                                         )
                                       : const Icon(Icons.upload_file),
-                                  label: const Text('Importar XLSX/PPTX'),
+                                  label: Text(
+                                    adminText(context, 'Importar XLSX/PPTX'),
+                                  ),
                                 ),
                               ],
                             ),
@@ -320,16 +330,14 @@ class _SongsAdminScreenState extends State<SongsAdminScreen> {
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          '${songs.length} músicas',
+                          '${songs.length} ${strings.songCountSuffix}',
                           style: Theme.of(context).textTheme.titleSmall,
                         ),
                       ),
                     ),
                     Expanded(
                       child: songs.isEmpty
-                          ? const Center(
-                              child: Text('Nenhuma música encontrada.'),
-                            )
+                          ? Center(child: Text(strings.noSongsFound))
                           : ListView.separated(
                               padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
                               itemCount: songs.length,
@@ -349,7 +357,7 @@ class _SongsAdminScreenState extends State<SongsAdminScreen> {
                                       ),
                                     ),
                                     subtitle: Text(
-                                      '${_categoryLabel(song.category)} · ${song.languageCode.toUpperCase()}',
+                                      '${_categoryLabel(context, song.category)} · ${song.languageCode.toUpperCase()}',
                                     ),
                                     trailing: Row(
                                       mainAxisSize: MainAxisSize.min,
@@ -364,7 +372,7 @@ class _SongsAdminScreenState extends State<SongsAdminScreen> {
                                           ),
                                         ),
                                         IconButton(
-                                          tooltip: 'Editar',
+                                          tooltip: adminText(context, 'Editar'),
                                           onPressed: () => _openEditor(song),
                                           icon: const Icon(Icons.edit_outlined),
                                         ),
@@ -384,7 +392,7 @@ class _SongsAdminScreenState extends State<SongsAdminScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        tooltip: 'Nova música',
+        tooltip: adminText(context, 'Nova música'),
         onPressed: () => _openEditor(),
         child: const Icon(Icons.add),
       ),
@@ -433,7 +441,7 @@ class _SongImportPreviewScreenState extends State<SongImportPreviewScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Rever música'),
+          title: Text(adminText(context, 'Rever música')),
           content: SizedBox(
             width: 520,
             child: SingleChildScrollView(
@@ -442,39 +450,39 @@ class _SongImportPreviewScreenState extends State<SongImportPreviewScreen> {
                 children: [
                   TextField(
                     controller: title,
-                    decoration: const InputDecoration(
-                      labelText: 'Título',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: adminText(context, 'Título'),
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: page,
-                    decoration: const InputDecoration(
-                      labelText: 'Página',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: adminText(context, 'Página'),
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: language,
-                    decoration: const InputDecoration(
-                      labelText: 'Idioma',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: adminText(context, 'Idioma'),
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<SongCategory>(
                     initialValue: category,
-                    decoration: const InputDecoration(
-                      labelText: 'Categoria',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: adminText(context, 'Categoria'),
+                      border: const OutlineInputBorder(),
                     ),
                     items: SongCategory.values
                         .map(
                           (value) => DropdownMenuItem(
                             value: value,
-                            child: Text(_categoryLabel(value)),
+                            child: Text(_categoryLabel(context, value)),
                           ),
                         )
                         .toList(),
@@ -498,7 +506,7 @@ class _SongImportPreviewScreenState extends State<SongImportPreviewScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancelar'),
+              child: Text(adminText(context, 'Cancelar')),
             ),
             FilledButton(
               onPressed: () {
@@ -514,7 +522,7 @@ class _SongImportPreviewScreenState extends State<SongImportPreviewScreen> {
                   ),
                 );
               },
-              child: const Text('Aplicar'),
+              child: Text(adminText(context, 'Aplicar')),
             ),
           ],
         ),
@@ -555,7 +563,7 @@ class _SongImportPreviewScreenState extends State<SongImportPreviewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Rever importação')),
+      appBar: AppBar(title: Text(adminText(context, 'Rever importação'))),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -596,19 +604,19 @@ class _SongImportPreviewScreenState extends State<SongImportPreviewScreen> {
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
                       subtitle: Text(
-                        '${_categoryLabel(_songs[index].category)} · ${_songs[index].languageCode.toUpperCase()} · ${_songs[index].lyrics.length} blocos',
+                        '${_categoryLabel(context, _songs[index].category)} · ${_songs[index].languageCode.toUpperCase()} · ${_songs[index].lyrics.length} blocos',
                       ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            tooltip: 'Remover',
+                            tooltip: adminText(context, 'Remover'),
                             onPressed: () =>
                                 setState(() => _songs.removeAt(index)),
                             icon: const Icon(Icons.delete_outline),
                           ),
                           IconButton(
-                            tooltip: 'Editar',
+                            tooltip: adminText(context, 'Editar'),
                             onPressed: () => _editSong(index),
                             icon: const Icon(Icons.edit_outlined),
                           ),
@@ -625,7 +633,7 @@ class _SongImportPreviewScreenState extends State<SongImportPreviewScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.cloud_upload_outlined),
-                  label: const Text('Confirmar importação'),
+                  label: Text(adminText(context, 'Confirmar importação')),
                 ),
               ],
             ),
@@ -732,6 +740,22 @@ class _SongEditorScreenState extends State<SongEditorScreen> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
+    for (final audio in _audioDrafts.where((draft) => draft.enabled)) {
+      final uri = Uri.tryParse(audio.url.text.trim());
+      final validLocation =
+          audio.url.text.trim().startsWith('assets/') ||
+          (uri != null && uri.scheme == 'https' && uri.host.isNotEmpty);
+      if (audio.label.text.trim().isEmpty || !validLocation) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Cada áudio ativo precisa de nome e link HTTPS válido.',
+            ),
+          ),
+        );
+        return;
+      }
+    }
 
     setState(() => _isSaving = true);
     try {
@@ -776,6 +800,13 @@ class _SongEditorScreenState extends State<SongEditorScreen> {
     return value == null || value.trim().isEmpty ? 'Campo obrigatório' : null;
   }
 
+  String? _pageValidator(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return null;
+    }
+    return value.trim() == '0' ? 'Use uma página válida ou deixe vazio' : null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -783,7 +814,7 @@ class _SongEditorScreenState extends State<SongEditorScreen> {
         title: Text(widget.song == null ? 'Nova música' : 'Editar música'),
         actions: [
           IconButton(
-            tooltip: 'Guardar',
+            tooltip: adminText(context, 'Guardar'),
             onPressed: _isSaving ? null : _save,
             icon: const Icon(Icons.save_outlined),
           ),
@@ -813,9 +844,9 @@ class _SongEditorScreenState extends State<SongEditorScreen> {
                         child: TextFormField(
                           controller: _titleController,
                           validator: _required,
-                          decoration: const InputDecoration(
-                            labelText: 'Título',
-                            border: OutlineInputBorder(),
+                          decoration: InputDecoration(
+                            labelText: adminText(context, 'Título'),
+                            border: const OutlineInputBorder(),
                           ),
                         ),
                       ),
@@ -823,10 +854,10 @@ class _SongEditorScreenState extends State<SongEditorScreen> {
                         width: 140,
                         child: TextFormField(
                           controller: _pageController,
-                          validator: _required,
-                          decoration: const InputDecoration(
-                            labelText: 'Página',
-                            border: OutlineInputBorder(),
+                          validator: _pageValidator,
+                          decoration: InputDecoration(
+                            labelText: adminText(context, 'Página'),
+                            border: const OutlineInputBorder(),
                           ),
                         ),
                       ),
@@ -835,9 +866,9 @@ class _SongEditorScreenState extends State<SongEditorScreen> {
                         child: TextFormField(
                           controller: _languageController,
                           validator: _required,
-                          decoration: const InputDecoration(
-                            labelText: 'Idioma',
-                            border: OutlineInputBorder(),
+                          decoration: InputDecoration(
+                            labelText: adminText(context, 'Idioma'),
+                            border: const OutlineInputBorder(),
                           ),
                         ),
                       ),
@@ -846,9 +877,9 @@ class _SongEditorScreenState extends State<SongEditorScreen> {
                         child: TextFormField(
                           controller: _sortOrderController,
                           keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Ordem',
-                            border: OutlineInputBorder(),
+                          decoration: InputDecoration(
+                            labelText: adminText(context, 'Ordem'),
+                            border: const OutlineInputBorder(),
                           ),
                         ),
                       ),
@@ -856,15 +887,17 @@ class _SongEditorScreenState extends State<SongEditorScreen> {
                         width: 240,
                         child: DropdownButtonFormField<SongCategory>(
                           initialValue: _category,
-                          decoration: const InputDecoration(
-                            labelText: 'Categoria',
-                            border: OutlineInputBorder(),
+                          decoration: InputDecoration(
+                            labelText: adminText(context, 'Categoria'),
+                            border: const OutlineInputBorder(),
                           ),
                           items: SongCategory.values
                               .map(
                                 (category) => DropdownMenuItem(
                                   value: category,
-                                  child: Text(_categoryLabel(category)),
+                                  child: Text(
+                                    _categoryLabel(context, category),
+                                  ),
                                 ),
                               )
                               .toList(),
@@ -880,7 +913,7 @@ class _SongEditorScreenState extends State<SongEditorScreen> {
                   const SizedBox(height: 12),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Música ativa'),
+                    title: Text(adminText(context, 'Música ativa')),
                     value: _enabled,
                     onChanged: (value) => setState(() => _enabled = value),
                   ),
@@ -894,7 +927,7 @@ class _SongEditorScreenState extends State<SongEditorScreen> {
                         ),
                       ),
                       IconButton.filledTonal(
-                        tooltip: 'Adicionar verso',
+                        tooltip: adminText(context, 'Adicionar verso'),
                         onPressed: _addVerse,
                         icon: const Icon(Icons.add),
                       ),
@@ -910,10 +943,11 @@ class _SongEditorScreenState extends State<SongEditorScreen> {
                         minLines: 3,
                         maxLines: 8,
                         decoration: InputDecoration(
-                          labelText: 'Verso ${index + 1}',
+                          labelText:
+                              '${adminText(context, 'Verso')} ${index + 1}',
                           border: const OutlineInputBorder(),
                           suffixIcon: IconButton(
-                            tooltip: 'Remover verso',
+                            tooltip: adminText(context, 'Remover verso'),
                             onPressed: _verseControllers.length == 1
                                 ? null
                                 : () => _removeVerse(index),
@@ -929,18 +963,18 @@ class _SongEditorScreenState extends State<SongEditorScreen> {
                   ),
                   const SizedBox(height: 8),
                   SegmentedButton<ChorusMode>(
-                    segments: const [
+                    segments: [
                       ButtonSegment(
                         value: ChorusMode.none,
-                        label: Text('Nenhum'),
+                        label: Text(adminText(context, 'Nenhum')),
                       ),
                       ButtonSegment(
                         value: ChorusMode.first,
-                        label: Text('Versos ímpares'),
+                        label: Text(adminText(context, 'Versos ímpares')),
                       ),
                       ButtonSegment(
                         value: ChorusMode.second,
-                        label: Text('Versos pares'),
+                        label: Text(adminText(context, 'Versos pares')),
                       ),
                     ],
                     selected: {_chorusMode},
@@ -957,7 +991,7 @@ class _SongEditorScreenState extends State<SongEditorScreen> {
                         ),
                       ),
                       IconButton.filledTonal(
-                        tooltip: 'Adicionar áudio',
+                        tooltip: adminText(context, 'Adicionar áudio'),
                         onPressed: _addAudio,
                         icon: const Icon(Icons.add),
                       ),
@@ -980,7 +1014,7 @@ class _SongEditorScreenState extends State<SongEditorScreen> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.save_outlined),
-                    label: const Text('Guardar música'),
+                    label: Text(adminText(context, 'Guardar música')),
                   ),
                 ],
               ),
@@ -1090,7 +1124,7 @@ class _AudioEditorState extends State<_AudioEditor> {
                   ),
                 ),
                 IconButton(
-                  tooltip: 'Remover áudio',
+                  tooltip: adminText(context, 'Remover áudio'),
                   onPressed: widget.onRemove,
                   icon: const Icon(Icons.delete_outline),
                 ),
@@ -1099,9 +1133,9 @@ class _AudioEditorState extends State<_AudioEditor> {
             const SizedBox(height: 8),
             TextFormField(
               controller: widget.draft.label,
-              decoration: const InputDecoration(
-                labelText: 'Nome',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: adminText(context, 'Nome'),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
@@ -1110,9 +1144,9 @@ class _AudioEditorState extends State<_AudioEditor> {
               validator: (value) => value == null || value.trim().isEmpty
                   ? 'Campo obrigatório'
                   : null,
-              decoration: const InputDecoration(
-                labelText: 'Caminho local ou URL',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: adminText(context, 'Caminho local ou URL'),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
@@ -1121,9 +1155,12 @@ class _AudioEditorState extends State<_AudioEditor> {
                 Expanded(
                   child: TextFormField(
                     controller: widget.draft.starts,
-                    decoration: const InputDecoration(
-                      labelText: 'Inícios dos versos (segundos)',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: adminText(
+                        context,
+                        'Inícios dos versos (segundos)',
+                      ),
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                 ),
@@ -1131,9 +1168,12 @@ class _AudioEditorState extends State<_AudioEditor> {
                 Expanded(
                   child: TextFormField(
                     controller: widget.draft.changes,
-                    decoration: const InputDecoration(
-                      labelText: 'Mudanças de verso (segundos)',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: adminText(
+                        context,
+                        'Mudanças de verso (segundos)',
+                      ),
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                 ),
@@ -1141,7 +1181,7 @@ class _AudioEditorState extends State<_AudioEditor> {
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Áudio ativo'),
+              title: Text(adminText(context, 'Áudio ativo')),
               value: widget.draft.enabled,
               onChanged: (value) {
                 setState(() => widget.draft.enabled = value);
@@ -1162,12 +1202,12 @@ List<int> _parseSeconds(String value) {
       .toList();
 }
 
-String _categoryLabel(SongCategory category) {
+String _categoryLabel(BuildContext context, SongCategory category) {
   return switch (category) {
-    SongCategory.holy => 'Cânticos Sagrados',
-    SongCategory.fellowship => 'Convívio',
-    SongCategory.english => 'Inglês',
-    SongCategory.worship => 'Adoração',
-    SongCategory.international => 'Internacional',
+    SongCategory.holy => adminText(context, 'Cânticos Sagrados'),
+    SongCategory.fellowship => adminText(context, 'Convívio'),
+    SongCategory.english => adminText(context, 'Inglês'),
+    SongCategory.worship => adminText(context, 'Adoração'),
+    SongCategory.international => adminText(context, 'Internacional'),
   };
 }

@@ -3,6 +3,7 @@ import 'package:ffpmupt/models/operational_crm.dart';
 import 'package:ffpmupt/screens/admin/country_admin_screen.dart';
 import 'package:ffpmupt/services/country_repository.dart';
 import 'package:ffpmupt/services/operational_crm_repository.dart';
+import 'package:ffpmupt/settings/admin_copy.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -63,7 +64,9 @@ class _OperationalCrmScreenState extends State<OperationalCrmScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          saved ? 'País criado.' : 'Não foi possível criar o país.',
+          saved
+              ? adminText(context, 'País criado.')
+              : adminText(context, 'Não foi possível criar o país.'),
         ),
       ),
     );
@@ -86,15 +89,15 @@ class _OperationalCrmScreenState extends State<OperationalCrmScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('CRM operacional'),
+        title: Text(adminText(context, 'CRM operacional')),
         actions: [
           IconButton(
-            tooltip: 'Atualizar',
+            tooltip: adminText(context, 'Atualizar'),
             onPressed: _isLoading ? null : _load,
             icon: const Icon(Icons.refresh),
           ),
           IconButton(
-            tooltip: 'Adicionar país',
+            tooltip: adminText(context, 'Adicionar país'),
             onPressed: _createCountry,
             icon: const Icon(Icons.add),
           ),
@@ -115,7 +118,7 @@ class _OperationalCrmScreenState extends State<OperationalCrmScreen> {
                       padding: const EdgeInsets.all(20),
                       children: [
                         Text(
-                          'Visão geral',
+                          adminText(context, 'Visão geral'),
                           style: Theme.of(context).textTheme.headlineSmall
                               ?.copyWith(fontWeight: FontWeight.w800),
                         ),
@@ -125,22 +128,22 @@ class _OperationalCrmScreenState extends State<OperationalCrmScreen> {
                           runSpacing: 10,
                           children: [
                             _Metric(
-                              label: 'Países',
+                              label: adminText(context, 'Países'),
                               value: '${_countries.length}',
                               icon: Icons.public,
                             ),
                             _Metric(
-                              label: 'Prontos',
+                              label: adminText(context, 'Prontos'),
                               value: '$ready',
                               icon: Icons.verified_outlined,
                             ),
                             _Metric(
-                              label: 'Igrejas',
+                              label: adminText(context, 'Igrejas'),
                               value: '$churches',
                               icon: Icons.church_outlined,
                             ),
                             _Metric(
-                              label: 'Admins',
+                              label: adminText(context, 'Admins'),
                               value: '$admins',
                               icon: Icons.admin_panel_settings_outlined,
                             ),
@@ -151,23 +154,23 @@ class _OperationalCrmScreenState extends State<OperationalCrmScreen> {
                           children: [
                             Expanded(
                               child: Text(
-                                'Países',
+                                adminText(context, 'Países'),
                                 style: Theme.of(context).textTheme.titleLarge,
                               ),
                             ),
                             FilledButton.icon(
                               onPressed: _createCountry,
                               icon: const Icon(Icons.add),
-                              label: const Text('Novo país'),
+                              label: Text(adminText(context, 'Novo país')),
                             ),
                           ],
                         ),
                         const SizedBox(height: 12),
                         if (_countries.isEmpty)
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 32),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 32),
                             child: Text(
-                              'Nenhum país encontrado.',
+                              adminText(context, 'Nenhum país encontrado.'),
                               textAlign: TextAlign.center,
                             ),
                           ),
@@ -211,7 +214,7 @@ class CountryOperationsScreen extends StatelessWidget {
         title: Text(summary.country.name),
         actions: [
           IconButton(
-            tooltip: 'Configurações do país',
+            tooltip: adminText(context, 'Configurações do país'),
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) =>
@@ -252,16 +255,20 @@ class _CountryReadiness extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final checks = [
-      ('País ativo', summary.country.enabled),
-      ('Administrador associado', summary.adminCount > 0),
-      ('Igreja local cadastrada', summary.churchCount > 0),
+      (adminText(context, 'País ativo'), summary.country.enabled),
+      (adminText(context, 'Administrador associado'), summary.adminCount > 0),
+      (adminText(context, 'Igreja local cadastrada'), summary.churchCount > 0),
       (
-        'Promessa nos idiomas necessários',
+        adminText(context, 'Promessa nos idiomas necessários'),
         summary.promiseLanguageCount >= summary.expectedPromiseLanguages,
       ),
-      ('Catálogo remoto preparado', summary.songCount > 0),
-      ('Pagamentos configurados', summary.hasPayments),
-      ('Vídeos configurados', summary.hasWeeklyVideos),
+      (adminText(context, 'Catálogo remoto preparado'), summary.songCount > 0),
+      (adminText(context, 'Pagamentos configurados'), summary.hasPayments),
+      (adminText(context, 'Vídeos configurados'), summary.hasWeeklyVideos),
+      (
+        adminText(context, 'Holy Grounds publicados'),
+        summary.holyGroundCount > 0,
+      ),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -270,7 +277,7 @@ class _CountryReadiness extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                'Prontidão do país',
+                adminText(context, 'Prontidão do país'),
                 style: Theme.of(context).textTheme.titleLarge,
               ),
             ),
@@ -321,12 +328,12 @@ class _ChurchSection extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Igrejas locais',
+                    adminText(context, 'Igrejas locais'),
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
                 IconButton.filledTonal(
-                  tooltip: 'Adicionar igreja',
+                  tooltip: adminText(context, 'Adicionar igreja'),
                   onPressed: () => _openChurchEditor(
                     context,
                     repository: repository,
@@ -338,13 +345,15 @@ class _ChurchSection extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             if (snapshot.hasError)
-              const Text('Não foi possível carregar as igrejas.'),
+              Text(adminText(context, 'Não foi possível carregar as igrejas.')),
             if (!snapshot.hasData)
               const Center(child: CircularProgressIndicator()),
             if (snapshot.hasData && churches.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 18),
-                child: Text('Nenhuma igreja local cadastrada.'),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                child: Text(
+                  adminText(context, 'Nenhuma igreja local cadastrada.'),
+                ),
               ),
             for (final church in churches)
               Card(
@@ -367,7 +376,7 @@ class _ChurchSection extends StatelessWidget {
                     ].where((value) => value.isNotEmpty).join(' · '),
                   ),
                   trailing: IconButton(
-                    tooltip: 'Editar igreja',
+                    tooltip: adminText(context, 'Editar igreja'),
                     onPressed: () => _openChurchEditor(
                       context,
                       repository: repository,
@@ -416,12 +425,12 @@ class _AdminSection extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Administradores',
+                    adminText(context, 'Administradores'),
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
                 IconButton.filledTonal(
-                  tooltip: 'Convidar administrador',
+                  tooltip: adminText(context, 'Convidar administrador'),
                   onPressed: () => _openInviteCreator(
                     context,
                     repository: repository,
@@ -433,18 +442,28 @@ class _AdminSection extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Envie um link. O administrador cria e confirma a própria conta.',
+              adminText(
+                context,
+                'Envie um link. O administrador cria e confirma a própria conta.',
+              ),
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 10),
             if (snapshot.hasError)
-              const Text('Não foi possível carregar os administradores.'),
+              Text(
+                adminText(
+                  context,
+                  'Não foi possível carregar os administradores.',
+                ),
+              ),
             if (!snapshot.hasData)
               const Center(child: CircularProgressIndicator()),
             if (snapshot.hasData && admins.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 18),
-                child: Text('Nenhum administrador associado.'),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                child: Text(
+                  adminText(context, 'Nenhum administrador associado.'),
+                ),
               ),
             for (final admin in admins)
               Card(
@@ -469,7 +488,7 @@ class _AdminSection extends StatelessWidget {
                       ? Text(admin.email)
                       : Text(admin.uid),
                   trailing: IconButton(
-                    tooltip: 'Editar acesso',
+                    tooltip: adminText(context, 'Editar acesso'),
                     onPressed: () => _openAdminEditor(
                       context,
                       repository: repository,
@@ -566,7 +585,7 @@ class _CountryCard extends StatelessWidget {
                         ),
                         Text(
                           summary.isReady
-                              ? 'Pronto'
+                              ? adminText(context, 'Pronto')
                               : '${summary.completedSteps}/${summary.totalSteps}',
                         ),
                       ],
@@ -578,7 +597,9 @@ class _CountryCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '${summary.churchCount} igrejas · ${summary.adminCount} admins · ${summary.songCount} músicas',
+                      '${summary.churchCount} ${adminText(context, 'igrejas')} · '
+                      '${summary.adminCount} admins · '
+                      '${summary.songCount} ${adminText(context, 'músicas')}',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
@@ -610,14 +631,14 @@ class _ErrorState extends StatelessWidget {
           children: [
             const Icon(Icons.error_outline, size: 42),
             const SizedBox(height: 12),
-            const Text('Não foi possível carregar o CRM.'),
+            Text(adminText(context, 'Não foi possível carregar o CRM.')),
             const SizedBox(height: 6),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh),
-              label: const Text('Tentar novamente'),
+              label: Text(adminText(context, 'Tentar novamente')),
             ),
           ],
         ),
@@ -650,7 +671,7 @@ class _CountryDialogState extends State<_CountryDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Novo país'),
+      title: Text(adminText(context, 'Novo país')),
       content: SizedBox(
         width: 520,
         child: SingleChildScrollView(
@@ -659,26 +680,26 @@ class _CountryDialogState extends State<_CountryDialog> {
             children: [
               TextField(
                 controller: _code,
-                decoration: const InputDecoration(
-                  labelText: 'Código do país',
+                decoration: InputDecoration(
+                  labelText: adminText(context, 'Código do país'),
                   hintText: 'Ex.: br, es, de',
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _name,
-                decoration: const InputDecoration(
-                  labelText: 'Nome',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: adminText(context, 'Nome'),
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 initialValue: _language,
-                decoration: const InputDecoration(
-                  labelText: 'Idioma principal',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: adminText(context, 'Idioma principal'),
+                  border: const OutlineInputBorder(),
                 ),
                 items: const [
                   DropdownMenuItem(value: 'pt', child: Text('Português')),
@@ -698,9 +719,9 @@ class _CountryDialogState extends State<_CountryDialog> {
               const SizedBox(height: 12),
               TextField(
                 controller: _timezone,
-                decoration: const InputDecoration(
-                  labelText: 'Fuso horário IANA',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: adminText(context, 'Fuso horário IANA'),
+                  border: const OutlineInputBorder(),
                 ),
               ),
             ],
@@ -710,7 +731,7 @@ class _CountryDialogState extends State<_CountryDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
+          child: Text(adminText(context, 'Cancelar')),
         ),
         FilledButton(
           onPressed: () {
@@ -730,7 +751,7 @@ class _CountryDialogState extends State<_CountryDialog> {
               ),
             );
           },
-          child: const Text('Criar'),
+          child: Text(adminText(context, 'Criar')),
         ),
       ],
     );
@@ -756,25 +777,42 @@ Future<void> _openChurchEditor(
     context: context,
     builder: (context) => StatefulBuilder(
       builder: (context, setDialogState) => AlertDialog(
-        title: Text(church == null ? 'Nova igreja' : 'Editar igreja'),
+        title: Text(
+          adminText(context, church == null ? 'Nova igreja' : 'Editar igreja'),
+        ),
         content: SizedBox(
           width: 560,
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _DialogField(controller: name, label: 'Nome da igreja'),
-                _DialogField(controller: city, label: 'Cidade'),
-                _DialogField(controller: address, label: 'Endereço'),
-                _DialogField(controller: timezone, label: 'Fuso horário'),
-                _DialogField(controller: contactName, label: 'Responsável'),
+                _DialogField(
+                  controller: name,
+                  label: adminText(context, 'Nome da igreja'),
+                ),
+                _DialogField(
+                  controller: city,
+                  label: adminText(context, 'Cidade'),
+                ),
+                _DialogField(
+                  controller: address,
+                  label: adminText(context, 'Endereço'),
+                ),
+                _DialogField(
+                  controller: timezone,
+                  label: adminText(context, 'Fuso horário'),
+                ),
+                _DialogField(
+                  controller: contactName,
+                  label: adminText(context, 'Responsável'),
+                ),
                 _DialogField(
                   controller: contactEmail,
-                  label: 'Email do responsável',
+                  label: adminText(context, 'Email do responsável'),
                 ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Igreja ativa'),
+                  title: Text(adminText(context, 'Igreja ativa')),
                   value: enabled,
                   onChanged: (value) => setDialogState(() => enabled = value),
                 ),
@@ -785,7 +823,7 @@ Future<void> _openChurchEditor(
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
+            child: Text(adminText(context, 'Cancelar')),
           ),
           FilledButton(
             onPressed: () {
@@ -805,7 +843,7 @@ Future<void> _openChurchEditor(
                 ),
               );
             },
-            child: const Text('Guardar'),
+            child: Text(adminText(context, 'Guardar')),
           ),
         ],
       ),
@@ -825,7 +863,11 @@ Future<void> _openChurchEditor(
   } on Object catch (error) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Não foi possível guardar: $error')),
+        SnackBar(
+          content: Text(
+            '${adminText(context, 'Não foi possível guardar')}: $error',
+          ),
+        ),
       );
     }
   }
@@ -844,7 +886,7 @@ Future<void> _openAdminEditor(
     context: context,
     builder: (context) => StatefulBuilder(
       builder: (context, setDialogState) => AlertDialog(
-        title: Text('Editar administrador'),
+        title: Text(adminText(context, 'Editar administrador')),
         content: SizedBox(
           width: 560,
           child: SingleChildScrollView(
@@ -853,9 +895,9 @@ Future<void> _openAdminEditor(
               children: [
                 TextField(
                   controller: name,
-                  decoration: const InputDecoration(
-                    labelText: 'Nome',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: adminText(context, 'Nome'),
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -869,7 +911,7 @@ Future<void> _openAdminEditor(
                 ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Administrador ativo'),
+                  title: Text(adminText(context, 'Administrador ativo')),
                   value: enabled,
                   onChanged: (value) => setDialogState(() => enabled = value),
                 ),
@@ -889,11 +931,11 @@ Future<void> _openAdminEditor(
               );
             },
             icon: const Icon(Icons.link_off),
-            label: const Text('Remover deste país'),
+            label: Text(adminText(context, 'Remover deste país')),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
+            child: Text(adminText(context, 'Cancelar')),
           ),
           FilledButton(
             onPressed: () {
@@ -911,7 +953,7 @@ Future<void> _openAdminEditor(
                 ),
               );
             },
-            child: const Text('Guardar'),
+            child: Text(adminText(context, 'Guardar')),
           ),
         ],
       ),
@@ -927,7 +969,11 @@ Future<void> _openAdminEditor(
   } on Object catch (error) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Não foi possível guardar: $error')),
+        SnackBar(
+          content: Text(
+            '${adminText(context, 'Não foi possível guardar')}: $error',
+          ),
+        ),
       );
     }
   }
@@ -954,7 +1000,7 @@ class _PendingInvites extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Convites pendentes',
+              adminText(context, 'Convites pendentes'),
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
@@ -969,12 +1015,12 @@ class _PendingInvites extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        tooltip: 'Copiar link',
+                        tooltip: adminText(context, 'Copiar link'),
                         onPressed: () => _copyInviteLink(context, invite.id),
                         icon: const Icon(Icons.link),
                       ),
                       IconButton(
-                        tooltip: 'Cancelar convite',
+                        tooltip: adminText(context, 'Cancelar convite'),
                         onPressed: () => repository.cancelInvite(invite.id),
                         icon: const Icon(Icons.close),
                       ),
@@ -999,7 +1045,7 @@ Future<void> _openInviteCreator(
   final data = await showDialog<(String, String)>(
     context: context,
     builder: (context) => AlertDialog(
-      title: const Text('Convidar administrador'),
+      title: Text(adminText(context, 'Convidar administrador')),
       content: SizedBox(
         width: 520,
         child: Column(
@@ -1007,9 +1053,9 @@ Future<void> _openInviteCreator(
           children: [
             TextField(
               controller: name,
-              decoration: const InputDecoration(
-                labelText: 'Nome',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: adminText(context, 'Nome'),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
@@ -1027,7 +1073,7 @@ Future<void> _openInviteCreator(
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
+          child: Text(adminText(context, 'Cancelar')),
         ),
         FilledButton.icon(
           onPressed: () {
@@ -1038,7 +1084,7 @@ Future<void> _openInviteCreator(
             Navigator.of(context).pop((name.text.trim(), normalizedEmail));
           },
           icon: const Icon(Icons.link),
-          label: const Text('Criar convite'),
+          label: Text(adminText(context, 'Criar convite')),
         ),
       ],
     ),
@@ -1063,14 +1109,17 @@ Future<void> _openInviteCreator(
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Convite criado'),
+        title: Text(adminText(context, 'Convite criado')),
         content: SizedBox(
           width: 560,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Envie este link para ${invite.email}:'),
+              Text(
+                '${adminText(context, 'Envie este link para')} '
+                '${invite.email}:',
+              ),
               const SizedBox(height: 12),
               SelectableText(link),
             ],
@@ -1079,20 +1128,20 @@ Future<void> _openInviteCreator(
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Fechar'),
+            child: Text(adminText(context, 'Fechar')),
           ),
           FilledButton.icon(
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: link));
               if (context.mounted) {
                 Navigator.of(context).pop();
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('Link copiado.')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(adminText(context, 'Link copiado.'))),
+                );
               }
             },
             icon: const Icon(Icons.copy),
-            label: const Text('Copiar link'),
+            label: Text(adminText(context, 'Copiar link')),
           ),
         ],
       ),
@@ -1100,7 +1149,11 @@ Future<void> _openInviteCreator(
   } on Object catch (error) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Não foi possível criar o convite: $error')),
+        SnackBar(
+          content: Text(
+            '${adminText(context, 'Não foi possível criar o convite')}: $error',
+          ),
+        ),
       );
     }
   }
@@ -1109,9 +1162,9 @@ Future<void> _openInviteCreator(
 Future<void> _copyInviteLink(BuildContext context, String inviteId) async {
   await Clipboard.setData(ClipboardData(text: _inviteLink(inviteId)));
   if (context.mounted) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Link copiado.')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(adminText(context, 'Link copiado.'))),
+    );
   }
 }
 

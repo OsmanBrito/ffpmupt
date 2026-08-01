@@ -38,7 +38,7 @@ void main() {
     expect(decoded?.countryCodes, ['br', 'pt']);
   });
 
-  test('country readiness reflects seven operational requirements', () {
+  test('country readiness reflects eight operational requirements', () {
     const summary = CountryOperationalSummary(
       country: CountryModel(
         code: 'br',
@@ -53,10 +53,11 @@ void main() {
       songCount: 62,
       hasPayments: true,
       hasWeeklyVideos: true,
+      holyGroundCount: 1,
     );
 
     expect(summary.expectedPromiseLanguages, 3);
-    expect(summary.completedSteps, 7);
+    expect(summary.completedSteps, 8);
     expect(summary.progress, 1);
     expect(summary.isReady, isTrue);
   });

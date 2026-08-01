@@ -1,5 +1,8 @@
 import 'package:ffpmupt/models/payment_settings.dart';
 import 'package:ffpmupt/services/payment_settings_repository.dart';
+import 'package:ffpmupt/settings/app_language.dart';
+import 'package:ffpmupt/settings/admin_copy.dart';
+import 'package:ffpmupt/settings/app_strings.dart';
 import 'package:flutter/material.dart';
 
 class PaymentSettingsAdminScreen extends StatefulWidget {
@@ -70,7 +73,38 @@ class _PaymentSettingsAdminScreenState
     if (_titleController.text.trim().isEmpty ||
         _methods.any((method) => method.label.text.trim().isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Preencha o título de todos os métodos.')),
+        SnackBar(
+          content: Text(
+            adminText(context, 'Preencha o título de todos os métodos.'),
+          ),
+        ),
+      );
+      return;
+    }
+    final invalidActiveMethod = _methods
+        .where((method) => method.enabled)
+        .any(
+          (method) =>
+              !method.details.any(
+                (detail) =>
+                    detail.label.text.trim().isNotEmpty &&
+                    detail.value.text.trim().isNotEmpty,
+              ) &&
+              method.paymentUrl.text.trim().isEmpty &&
+              method.qrContent.text.trim().isEmpty,
+        );
+    if (_enabled &&
+        (_methods.where((method) => method.enabled).isEmpty ||
+            invalidActiveMethod)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            adminText(
+              context,
+              'Cada método ativo precisa de dados, link ou QR Code.',
+            ),
+          ),
+        ),
       );
       return;
     }
@@ -90,7 +124,9 @@ class _PaymentSettingsAdminScreenState
       await _repository.save(settings);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Dados de pagamento guardados.')),
+          SnackBar(
+            content: Text(adminText(context, 'Dados de pagamento guardados.')),
+          ),
         );
       }
     } on Object catch (error) {
@@ -108,12 +144,13 @@ class _PaymentSettingsAdminScreenState
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(AppLanguageScope.watch(context).language);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pagamentos e dízimos'),
+        title: Text(strings.offerings),
         actions: [
           IconButton(
-            tooltip: 'Guardar',
+            tooltip: adminText(context, 'Guardar'),
             onPressed: _isLoading || _isSaving ? null : _save,
             icon: const Icon(Icons.save_outlined),
           ),
@@ -130,15 +167,15 @@ class _PaymentSettingsAdminScreenState
                     padding: const EdgeInsets.all(20),
                     children: [
                       Text(
-                        'Página de ofertas',
+                        adminText(context, 'Página de ofertas'),
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _titleController,
-                        decoration: const InputDecoration(
-                          labelText: 'Título',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: adminText(context, 'Título'),
+                          border: const OutlineInputBorder(),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -146,9 +183,9 @@ class _PaymentSettingsAdminScreenState
                         controller: _subtitleController,
                         minLines: 2,
                         maxLines: 4,
-                        decoration: const InputDecoration(
-                          labelText: 'Texto introdutório',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: adminText(context, 'Texto introdutório'),
+                          border: const OutlineInputBorder(),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -156,14 +193,19 @@ class _PaymentSettingsAdminScreenState
                         controller: _noteController,
                         minLines: 2,
                         maxLines: 4,
-                        decoration: const InputDecoration(
-                          labelText: 'Nota final (opcional)',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: adminText(
+                            context,
+                            'Nota final (opcional)',
+                          ),
+                          border: const OutlineInputBorder(),
                         ),
                       ),
                       SwitchListTile(
                         contentPadding: EdgeInsets.zero,
-                        title: const Text('Página de pagamentos ativa'),
+                        title: Text(
+                          adminText(context, 'Página de pagamentos ativa'),
+                        ),
                         value: _enabled,
                         onChanged: (value) => setState(() => _enabled = value),
                       ),
@@ -172,12 +214,12 @@ class _PaymentSettingsAdminScreenState
                         children: [
                           Expanded(
                             child: Text(
-                              'Métodos de pagamento',
+                              adminText(context, 'Métodos de pagamento'),
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                           ),
                           IconButton.filledTonal(
-                            tooltip: 'Adicionar método',
+                            tooltip: adminText(context, 'Adicionar método'),
                             onPressed: _addMethod,
                             icon: const Icon(Icons.add),
                           ),
@@ -185,10 +227,13 @@ class _PaymentSettingsAdminScreenState
                       ),
                       const SizedBox(height: 12),
                       if (_methods.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 24),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 24),
                           child: Text(
-                            'Adicione IBAN, PIX, MB Way, link de pagamento ou outro método.',
+                            adminText(
+                              context,
+                              'Adicione IBAN, PIX, MB Way, link de pagamento ou outro método.',
+                            ),
                             textAlign: TextAlign.center,
                           ),
                         ),
@@ -210,7 +255,7 @@ class _PaymentSettingsAdminScreenState
                                 ),
                               )
                             : const Icon(Icons.save_outlined),
-                        label: const Text('Guardar pagamentos'),
+                        label: Text(strings.save),
                       ),
                     ],
                   ),
@@ -367,12 +412,12 @@ class _PaymentMethodEditorState extends State<_PaymentMethodEditor> {
         leading: Icon(_methodIcon(widget.draft.type)),
         title: Text(
           widget.draft.label.text.trim().isEmpty
-              ? 'Novo método'
+              ? adminText(context, 'Novo método')
               : widget.draft.label.text,
           style: const TextStyle(fontWeight: FontWeight.w700),
         ),
         trailing: IconButton(
-          tooltip: 'Remover método',
+          tooltip: adminText(context, 'Remover método'),
           onPressed: widget.onRemove,
           icon: const Icon(Icons.delete_outline),
         ),
@@ -383,15 +428,15 @@ class _PaymentMethodEditorState extends State<_PaymentMethodEditor> {
               children: [
                 DropdownButtonFormField<PaymentMethodType>(
                   initialValue: widget.draft.type,
-                  decoration: const InputDecoration(
-                    labelText: 'Tipo',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: adminText(context, 'Tipo'),
+                    border: const OutlineInputBorder(),
                   ),
                   items: PaymentMethodType.values
                       .map(
                         (type) => DropdownMenuItem(
                           value: type,
-                          child: Text(_methodTypeLabel(type)),
+                          child: Text(_methodTypeLabel(context, type)),
                         ),
                       )
                       .toList(),
@@ -405,10 +450,13 @@ class _PaymentMethodEditorState extends State<_PaymentMethodEditor> {
                 TextField(
                   controller: widget.draft.label,
                   onChanged: (_) => setState(() {}),
-                  decoration: const InputDecoration(
-                    labelText: 'Nome do método',
-                    hintText: 'Ex.: Transferência bancária ou PIX',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: adminText(context, 'Nome do método'),
+                    hintText: adminText(
+                      context,
+                      'Ex.: Transferência bancária ou PIX',
+                    ),
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -416,9 +464,9 @@ class _PaymentMethodEditorState extends State<_PaymentMethodEditor> {
                   controller: widget.draft.description,
                   minLines: 2,
                   maxLines: 4,
-                  decoration: const InputDecoration(
-                    labelText: 'Instruções (opcional)',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: adminText(context, 'Instruções (opcional)'),
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 18),
@@ -426,12 +474,12 @@ class _PaymentMethodEditorState extends State<_PaymentMethodEditor> {
                   children: [
                     Expanded(
                       child: Text(
-                        'Dados exibidos',
+                        adminText(context, 'Dados exibidos'),
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                     ),
                     IconButton.filledTonal(
-                      tooltip: 'Adicionar dado',
+                      tooltip: adminText(context, 'Adicionar dado'),
                       onPressed: _addDetail,
                       icon: const Icon(Icons.add),
                     ),
@@ -452,10 +500,13 @@ class _PaymentMethodEditorState extends State<_PaymentMethodEditor> {
                           flex: 2,
                           child: TextField(
                             controller: widget.draft.details[index].label,
-                            decoration: const InputDecoration(
-                              labelText: 'Rótulo',
-                              hintText: 'IBAN, Chave PIX, Nome...',
-                              border: OutlineInputBorder(),
+                            decoration: InputDecoration(
+                              labelText: adminText(context, 'Rótulo'),
+                              hintText: adminText(
+                                context,
+                                'IBAN, Chave PIX, Nome...',
+                              ),
+                              border: const OutlineInputBorder(),
                             ),
                           ),
                         ),
@@ -464,14 +515,14 @@ class _PaymentMethodEditorState extends State<_PaymentMethodEditor> {
                           flex: 4,
                           child: TextField(
                             controller: widget.draft.details[index].value,
-                            decoration: const InputDecoration(
-                              labelText: 'Valor',
-                              border: OutlineInputBorder(),
+                            decoration: InputDecoration(
+                              labelText: adminText(context, 'Valor'),
+                              border: const OutlineInputBorder(),
                             ),
                           ),
                         ),
                         IconButton(
-                          tooltip: 'Remover dado',
+                          tooltip: adminText(context, 'Remover dado'),
                           onPressed: () => _removeDetail(index),
                           icon: const Icon(Icons.remove_circle_outline),
                         ),
@@ -482,9 +533,12 @@ class _PaymentMethodEditorState extends State<_PaymentMethodEditor> {
                 TextField(
                   controller: widget.draft.paymentUrl,
                   keyboardType: TextInputType.url,
-                  decoration: const InputDecoration(
-                    labelText: 'Link de pagamento (opcional)',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: adminText(
+                      context,
+                      'Link de pagamento (opcional)',
+                    ),
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -492,16 +546,21 @@ class _PaymentMethodEditorState extends State<_PaymentMethodEditor> {
                   controller: widget.draft.qrContent,
                   minLines: 3,
                   maxLines: 7,
-                  decoration: const InputDecoration(
-                    labelText: 'Conteúdo do QR Code (opcional)',
-                    helperText:
-                        'Cole o link ou payload completo fornecido pelo banco.',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: adminText(
+                      context,
+                      'Conteúdo do QR Code (opcional)',
+                    ),
+                    helperText: adminText(
+                      context,
+                      'Cole o link ou payload completo fornecido pelo banco.',
+                    ),
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Método ativo'),
+                  title: Text(adminText(context, 'Método ativo')),
                   value: widget.draft.enabled,
                   onChanged: (value) {
                     setState(() => widget.draft.enabled = value);
@@ -516,13 +575,16 @@ class _PaymentMethodEditorState extends State<_PaymentMethodEditor> {
   }
 }
 
-String _methodTypeLabel(PaymentMethodType type) {
+String _methodTypeLabel(BuildContext context, PaymentMethodType type) {
   return switch (type) {
-    PaymentMethodType.bankTransfer => 'Transferência bancária',
+    PaymentMethodType.bankTransfer => adminText(
+      context,
+      'Transferência bancária',
+    ),
     PaymentMethodType.pix => 'PIX',
     PaymentMethodType.mbWay => 'MB Way',
-    PaymentMethodType.paymentLink => 'Link de pagamento',
-    PaymentMethodType.other => 'Outro',
+    PaymentMethodType.paymentLink => adminText(context, 'Link de pagamento'),
+    PaymentMethodType.other => adminText(context, 'Outro'),
   };
 }
 

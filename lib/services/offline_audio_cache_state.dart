@@ -6,6 +6,7 @@ class OfflineAudioCacheProgress {
     required this.completed,
     required this.total,
     required this.failed,
+    this.updatedAt,
   });
 
   static const idle = OfflineAudioCacheProgress(
@@ -19,6 +20,7 @@ class OfflineAudioCacheProgress {
   final int completed;
   final int total;
   final int failed;
+  final DateTime? updatedAt;
 
   double? get fraction {
     if (total <= 0) {

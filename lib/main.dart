@@ -11,10 +11,12 @@ import 'package:ffpmupt/screens/list_of_songs_screen.dart';
 import 'package:ffpmupt/screens/motto_screen.dart';
 import 'package:ffpmupt/screens/offering_screen.dart';
 import 'package:ffpmupt/screens/public_offering_screen.dart';
+import 'package:ffpmupt/screens/sunday_mode_screen.dart';
 import 'package:ffpmupt/screens/videos_screen.dart';
 import 'package:ffpmupt/settings/app_language.dart';
 import 'package:ffpmupt/settings/app_strings.dart';
 import 'package:ffpmupt/settings/country_scope.dart';
+import 'package:ffpmupt/settings/p0_strings.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ffpmupt/services/offline_audio_cache.dart';
@@ -191,12 +193,37 @@ class Home extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final strings = AppStrings.of(AppLanguageScope.watch(context).language);
+    final p0 = P0Strings.of(AppLanguageScope.watch(context).language);
     final country = CountryScope.watch(context).country!;
 
     return Scaffold(
       appBar: AppBar(
         title: Text('FFPMU ${country.code.toUpperCase()}'),
         actions: [
+          PopupMenuButton<AppLanguage>(
+            tooltip: strings.appLanguage,
+            icon: const Icon(Icons.translate),
+            onSelected: (language) =>
+                unawaited(AppLanguageScope.read(context).setLanguage(language)),
+            itemBuilder: (context) => [
+              for (final language in AppLanguage.values)
+                PopupMenuItem(
+                  value: language,
+                  child: Row(
+                    children: [
+                      if (language == AppLanguageScope.read(context).language)
+                        const Padding(
+                          padding: EdgeInsets.only(right: 8),
+                          child: Icon(Icons.check, size: 18),
+                        )
+                      else
+                        const SizedBox(width: 26),
+                      Text(appLanguageLabel(language)),
+                    ],
+                  ),
+                ),
+            ],
+          ),
           IconButton(
             tooltip: strings.changeCountry,
             onPressed: () =>
@@ -215,96 +242,116 @@ class Home extends StatelessWidget {
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 920),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _HomeHeader(country: country),
-                  const SizedBox(height: 24),
-                  Expanded(
-                    child: _SundayGuideGrid(
-                      cards: [
-                        _HomeActionCard(
-                          step: '1',
-                          icon: Icons.library_music,
-                          title: strings.songs,
-                          subtitle: strings.songsSubtitle,
-                          color: const Color(0xff7a5428),
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  ListOfSongsScreen(countryCode: country.code),
-                            ),
-                          ),
-                        ),
-                        _HomeActionCard(
-                          step: '2',
-                          icon: Icons.church_rounded,
-                          title: strings.familyPromise,
-                          subtitle: strings.familyPromiseSubtitle,
-                          color: const Color(0xff7d2f3a),
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  FamilyPromiseScreen(country: country),
-                            ),
-                          ),
-                        ),
-                        _HomeActionCard(
-                          step: '3',
-                          icon: Icons.auto_stories,
-                          title: strings.motto,
-                          subtitle: strings.mottoSubtitle,
-                          color: colorScheme.primary,
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) => const MottoScreen(),
-                            ),
-                          ),
-                        ),
-                        _HomeActionCard(
-                          step: '4',
-                          icon: Icons.volunteer_activism,
-                          title: strings.offerings,
-                          subtitle: strings.offeringsSubtitle,
-                          color: const Color(0xff2f6b4f),
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  OfferingScreen(countryCode: country.code),
-                            ),
-                          ),
-                        ),
-                        _HomeActionCard(
-                          step: '5',
-                          icon: Icons.ondemand_video,
-                          title: strings.weeklyVideos,
-                          subtitle: strings.weeklyVideosSubtitle,
-                          color: const Color(0xff2f577d),
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  VideosScreen(countryCode: country.code),
-                            ),
-                          ),
-                        ),
-                        _HomeActionCard(
-                          step: '6',
-                          icon: Icons.landscape_outlined,
-                          title: 'Holy Grounds',
-                          subtitle: _holyGroundsSubtitle(
-                            AppLanguageScope.watch(context).language,
-                          ),
-                          color: const Color(0xff536b3f),
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) => const HolyGroundsScreen(),
-                            ),
-                          ),
-                        ),
-                      ],
+                  const SizedBox(height: 18),
+                  FilledButton.icon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            SundayModeScreen(country: country),
+                      ),
                     ),
+                    icon: const Icon(Icons.play_circle_outline),
+                    label: Text(p0[P0Text.startSunday]),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                  ),
+                  const SizedBox(height: 26),
+                  _SectionHeader(title: p0[P0Text.sundayActions]),
+                  const SizedBox(height: 12),
+                  _SundayGuideGrid(
+                    cards: [
+                      _HomeActionCard(
+                        step: '1',
+                        icon: Icons.library_music,
+                        title: strings.songs,
+                        subtitle: strings.songsSubtitle,
+                        color: const Color(0xff7a5428),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                ListOfSongsScreen(countryCode: country.code),
+                          ),
+                        ),
+                      ),
+                      _HomeActionCard(
+                        step: '2',
+                        icon: Icons.church_rounded,
+                        title: strings.familyPromise,
+                        subtitle: strings.familyPromiseSubtitle,
+                        color: const Color(0xff7d2f3a),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                FamilyPromiseScreen(country: country),
+                          ),
+                        ),
+                      ),
+                      _HomeActionCard(
+                        step: '3',
+                        icon: Icons.auto_stories,
+                        title: strings.motto,
+                        subtitle: strings.mottoSubtitle,
+                        color: colorScheme.primary,
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const MottoScreen(),
+                          ),
+                        ),
+                      ),
+                      _HomeActionCard(
+                        step: '4',
+                        icon: Icons.volunteer_activism,
+                        title: strings.offerings,
+                        subtitle: strings.offeringsSubtitle,
+                        color: const Color(0xff2f6b4f),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                OfferingScreen(countryCode: country.code),
+                          ),
+                        ),
+                      ),
+                      _HomeActionCard(
+                        step: '5',
+                        icon: Icons.ondemand_video,
+                        title: strings.weeklyVideos,
+                        subtitle: strings.weeklyVideosSubtitle,
+                        color: const Color(0xff2f577d),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                VideosScreen(countryCode: country.code),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 28),
+                  _SectionHeader(title: p0[P0Text.resources]),
+                  const SizedBox(height: 12),
+                  _SundayGuideGrid(
+                    cards: [
+                      _HomeActionCard(
+                        icon: Icons.landscape_outlined,
+                        title: 'Holy Grounds',
+                        subtitle: _holyGroundsSubtitle(
+                          AppLanguageScope.watch(context).language,
+                        ),
+                        color: const Color(0xff536b3f),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const HolyGroundsScreen(),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -337,19 +384,34 @@ class _SundayGuideGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 760 ? 2 : 1;
-
-        return GridView.builder(
-          itemCount: cards.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columns,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: columns == 1 ? 2.8 : 2.1,
-          ),
-          itemBuilder: (context, index) => cards[index],
+        final columns = constraints.maxWidth >= 700 ? 2 : 1;
+        final width = columns == 2
+            ? (constraints.maxWidth - 12) / 2
+            : constraints.maxWidth;
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: cards
+              .map((card) => SizedBox(width: width, height: 170, child: card))
+              .toList(),
         );
       },
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: Theme.of(
+        context,
+      ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
     );
   }
 }
@@ -389,7 +451,10 @@ class _HomeHeader extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          strings.homeSubtitle,
+          _countryHomeSubtitle(
+            AppLanguageScope.watch(context).language,
+            country.name,
+          ),
           textAlign: TextAlign.center,
           style: Theme.of(
             context,
@@ -416,6 +481,23 @@ class _HomeHeader extends StatelessWidget {
   }
 }
 
+String _countryHomeSubtitle(AppLanguage language, String countryName) {
+  return switch (language) {
+    AppLanguage.english =>
+      'Texts and songs for the FFPMU community in $countryName',
+    AppLanguage.spanish =>
+      'Textos y canciones para la comunidad FFPMU de $countryName',
+    AppLanguage.german =>
+      'Texte und Lieder für die FFPMU-Gemeinschaft in $countryName',
+    AppLanguage.italian =>
+      'Testi e canti per la comunità FFPMU in $countryName',
+    AppLanguage.french =>
+      'Textes et chants pour la communauté FFPMU de $countryName',
+    AppLanguage.korean => '$countryName FFPMU 공동체를 위한 말씀과 성가',
+    _ => 'Textos e canções para a comunidade FFPMU de $countryName',
+  };
+}
+
 class _OfflineAudioCacheIndicator extends StatelessWidget {
   const _OfflineAudioCacheIndicator();
 
@@ -423,6 +505,7 @@ class _OfflineAudioCacheIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     final cache = OfflineAudioCache();
     final strings = AppStrings.of(AppLanguageScope.watch(context).language);
+    final p0 = P0Strings.of(AppLanguageScope.watch(context).language);
 
     return SizedBox(
       height: 42,
@@ -444,6 +527,10 @@ class _OfflineAudioCacheIndicator extends StatelessWidget {
           final counter = progress.total > 0 && !isReady
               ? ' ${progress.completed}/${progress.total}'
               : '';
+          final checkedAt = progress.updatedAt;
+          final time = checkedAt == null
+              ? ''
+              : ' · ${checkedAt.hour.toString().padLeft(2, '0')}:${checkedAt.minute.toString().padLeft(2, '0')}';
 
           return Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -460,7 +547,7 @@ class _OfflineAudioCacheIndicator extends StatelessWidget {
               const SizedBox(width: 8),
               Flexible(
                 child: Text(
-                  '$label$counter',
+                  '$label$counter$time',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
@@ -480,6 +567,12 @@ class _OfflineAudioCacheIndicator extends StatelessWidget {
                   ),
                 ),
               ],
+              if (isPartial)
+                IconButton(
+                  tooltip: p0[P0Text.retry],
+                  onPressed: cache.retry,
+                  icon: const Icon(Icons.refresh),
+                ),
             ],
           );
         },
@@ -490,7 +583,7 @@ class _OfflineAudioCacheIndicator extends StatelessWidget {
 
 class _HomeActionCard extends StatelessWidget {
   const _HomeActionCard({
-    required this.step,
+    this.step,
     required this.icon,
     required this.title,
     required this.subtitle,
@@ -498,7 +591,7 @@ class _HomeActionCard extends StatelessWidget {
     required this.onTap,
   });
 
-  final String step;
+  final String? step;
   final IconData icon;
   final String title;
   final String subtitle;
@@ -518,23 +611,25 @@ class _HomeActionCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      step,
-                      style: TextStyle(
-                        color: color,
-                        fontWeight: FontWeight.w800,
+                  if (step != null) ...[
+                    Container(
+                      width: 32,
+                      height: 32,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        step!,
+                        style: TextStyle(
+                          color: color,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
+                    const SizedBox(width: 12),
+                  ],
                   Icon(icon, color: color, size: 32),
                 ],
               ),

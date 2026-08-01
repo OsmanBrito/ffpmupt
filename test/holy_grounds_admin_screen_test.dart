@@ -17,4 +17,27 @@ void main() {
     expect(find.text('URL da fotografia (opcional)'), findsNothing);
     expect(find.byIcon(Icons.upload_file_outlined), findsOneWidget);
   });
+
+  testWidgets('accepts coordinates with commas and cardinal directions', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: HolyGroundEditorScreen(countryCode: 'pt', defaultLanguage: 'pt'),
+      ),
+    );
+
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Latitude (opcional)'),
+      '38,73072° N.',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Longitude (opcional)'),
+      '9,15279° W',
+    );
+    await tester.tap(find.byTooltip('Guardar'));
+    await tester.pump();
+
+    expect(find.text('Coordenada inválida'), findsNothing);
+  });
 }

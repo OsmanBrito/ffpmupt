@@ -263,10 +263,25 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
                   Expanded(
                     child: filteredSongs.isEmpty
                         ? Center(
-                            child: Text(
-                              strings.noSongsFound,
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(color: const Color(0xff56635f)),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.search_off_outlined, size: 48),
+                                const SizedBox(height: 12),
+                                Text(
+                                  strings.noSongsFound,
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(
+                                        color: const Color(0xff56635f),
+                                      ),
+                                ),
+                                const SizedBox(height: 14),
+                                FilledButton.tonalIcon(
+                                  onPressed: _showAllSongs,
+                                  icon: const Icon(Icons.refresh),
+                                  label: Text(strings.clearSearch),
+                                ),
+                              ],
                             ),
                           )
                         : ListView.separated(
@@ -303,7 +318,12 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
                                     ),
                                   ),
                                   subtitle: Text(
-                                    '${_labelBy(song.category, strings)} • ${strings.page} ${song.page}',
+                                    [
+                                      _labelBy(song.category, strings),
+                                      if (song.page.trim().isNotEmpty &&
+                                          song.page.trim() != '0')
+                                        '${strings.page} ${song.page}',
+                                    ].join(' • '),
                                   ),
                                   isThreeLine: false,
                                   trailing: const Icon(Icons.chevron_right),
@@ -781,10 +801,12 @@ class _SongScreenState extends State<SongScreen> {
                       backgroundColor: color.withValues(alpha: 0.14),
                       side: BorderSide(color: color.withValues(alpha: 0.2)),
                     ),
-                    Chip(
-                      avatar: const Icon(Icons.description, size: 18),
-                      label: Text('${strings.page} ${widget.song.page}'),
-                    ),
+                    if (widget.song.page.trim().isNotEmpty &&
+                        widget.song.page.trim() != '0')
+                      Chip(
+                        avatar: const Icon(Icons.description, size: 18),
+                        label: Text('${strings.page} ${widget.song.page}'),
+                      ),
                     if (_hasAudio)
                       Chip(
                         avatar: const Icon(Icons.music_note, size: 18),
@@ -865,7 +887,9 @@ class _SongScreenState extends State<SongScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          '${widget.song.title} | ${strings.page} ${widget.song.page}',
+          widget.song.page.trim().isEmpty || widget.song.page.trim() == '0'
+              ? widget.song.title
+              : '${widget.song.title} | ${strings.page} ${widget.song.page}',
         ),
         backgroundColor: _getColorBy(widget.song.category),
         foregroundColor: Colors.white,

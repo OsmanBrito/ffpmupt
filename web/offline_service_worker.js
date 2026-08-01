@@ -1,6 +1,7 @@
-const CACHE_VERSION = 'ffpmupt-offline-v2';
+const CACHE_VERSION = 'ffpmupt-offline-v4';
 const APP_CACHE = `${CACHE_VERSION}-app`;
 const AUDIO_CACHE = `${CACHE_VERSION}-audio`;
+const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 let audioCacheQueue = Promise.resolve();
 
 const APP_SHELL = [
@@ -33,7 +34,8 @@ self.addEventListener('activate', (event) => {
           .filter((name) =>
             name.startsWith('ffpmupt-offline-') &&
             name !== APP_CACHE &&
-            name !== AUDIO_CACHE,
+            name !== AUDIO_CACHE &&
+            name !== IMAGE_CACHE,
           )
           .map((name) => caches.delete(name)),
       ),
@@ -62,6 +64,11 @@ self.addEventListener('fetch', (event) => {
   const isAudio = url.pathname.toLowerCase().endsWith('.mp3');
   if (isAudio) {
     event.respondWith(audioFirst(event.request));
+    return;
+  }
+
+  if (event.request.destination === 'image') {
+    event.respondWith(cacheFirst(event.request, IMAGE_CACHE));
     return;
   }
 
@@ -176,4 +183,15 @@ async function networkFirst(request) {
   } catch (_) {
     return (await cache.match(request)) || (await cache.match('./index.html'));
   }
+}
+
+async function cacheFirst(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+  const response = await fetch(request);
+  if (response.ok || response.type === 'opaque') {
+    await cache.put(request, response.clone());
+  }
+  return response;
 }

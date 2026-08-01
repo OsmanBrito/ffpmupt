@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:ffpmupt/models/country.dart';
 import 'package:ffpmupt/screens/admin/country_admin_screen.dart';
+import 'package:ffpmupt/screens/admin/country_readiness_screen.dart';
 import 'package:ffpmupt/screens/admin/family_promise_admin_screen.dart';
 import 'package:ffpmupt/screens/admin/holy_grounds_admin_screen.dart';
 import 'package:ffpmupt/screens/admin/operational_crm_screen.dart';
@@ -11,6 +12,7 @@ import 'package:ffpmupt/screens/videos_screen.dart';
 import 'package:ffpmupt/services/admin_auth_service.dart';
 import 'package:ffpmupt/settings/app_language.dart';
 import 'package:ffpmupt/settings/app_strings.dart';
+import 'package:ffpmupt/settings/p0_strings.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -158,6 +160,7 @@ class _AdminScreenState extends State<AdminScreen> {
       );
     }
 
+    final p0 = P0Strings.of(AppLanguageScope.watch(context).language);
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -167,20 +170,50 @@ class _AdminScreenState extends State<AdminScreen> {
             context,
           ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
         if (_isSuperAdmin) ...[
+          _AdminSectionTitle(title: p0[P0Text.adminOperations]),
+          const SizedBox(height: 10),
           _AdminActionCard(
             icon: Icons.business_outlined,
-            title: 'CRM operacional',
-            subtitle: 'Gerencie países, igrejas locais e administradores.',
+            title: p0[P0Text.adminOperations],
+            subtitle: p0[P0Text.checklistSubtitle],
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => const OperationalCrmScreen(),
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 24),
         ],
+        _AdminSectionTitle(title: p0[P0Text.adminCountry]),
+        const SizedBox(height: 10),
+        _AdminActionCard(
+          icon: Icons.fact_check_outlined,
+          title: p0[P0Text.checklistTitle],
+          subtitle: p0[P0Text.checklistSubtitle],
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) =>
+                  CountryReadinessScreen(country: widget.country),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _AdminActionCard(
+          icon: Icons.public,
+          title: strings.countrySettings,
+          subtitle: strings.countrySettingsSubtitle,
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) =>
+                  CountryAdminScreen(countryCode: widget.country.code),
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        _AdminSectionTitle(title: p0[P0Text.adminContent]),
+        const SizedBox(height: 10),
         _AdminActionCard(
           icon: Icons.auto_stories_outlined,
           title: strings.familyPromise,
@@ -195,8 +228,8 @@ class _AdminScreenState extends State<AdminScreen> {
         const SizedBox(height: 12),
         _AdminActionCard(
           icon: Icons.landscape_outlined,
-          title: 'Holy Grounds',
-          subtitle: 'Cadastre os locais sagrados deste país.',
+          title: p0[P0Text.holyGrounds],
+          subtitle: p0[P0Text.emptyHolyGroundsDescription],
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => HolyGroundsAdminScreen(
@@ -223,8 +256,8 @@ class _AdminScreenState extends State<AdminScreen> {
         const SizedBox(height: 12),
         _AdminActionCard(
           icon: Icons.payments_outlined,
-          title: 'Pagamentos e dízimos',
-          subtitle: 'Configure os métodos de pagamento deste país.',
+          title: p0[P0Text.payments],
+          subtitle: strings.offeringsSubtitle,
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) =>
@@ -241,18 +274,6 @@ class _AdminScreenState extends State<AdminScreen> {
             MaterialPageRoute(
               builder: (context) =>
                   VideosScreen(countryCode: widget.country.code),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        _AdminActionCard(
-          icon: Icons.public,
-          title: strings.countrySettings,
-          subtitle: strings.countrySettingsSubtitle,
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) =>
-                  CountryAdminScreen(countryCode: widget.country.code),
             ),
           ),
         ),
@@ -332,6 +353,22 @@ class _AdminScreenState extends State<AdminScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _AdminSectionTitle extends StatelessWidget {
+  const _AdminSectionTitle({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: Theme.of(
+        context,
+      ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
     );
   }
 }

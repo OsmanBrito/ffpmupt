@@ -22,6 +22,7 @@ class OfflineAudioCache {
       StreamController<OfflineAudioCacheProgress>.broadcast();
   late final JSFunction _progressListener;
   OfflineAudioCacheProgress _currentProgress = OfflineAudioCacheProgress.idle;
+  Set<String> _lastUrls = const {};
 
   Stream<OfflineAudioCacheProgress> get progress => _progressController.stream;
 
@@ -32,7 +33,14 @@ class OfflineAudioCache {
     if (uniqueUrls.isEmpty) {
       return;
     }
+    _lastUrls = uniqueUrls;
     _cacheAudio(uniqueUrls.map((url) => url.toJS).toList().toJS);
+  }
+
+  void retry() {
+    if (_lastUrls.isNotEmpty) {
+      _cacheAudio(_lastUrls.map((url) => url.toJS).toList().toJS);
+    }
   }
 
   void _handleProgress(JSAny? value) {
@@ -53,6 +61,7 @@ class OfflineAudioCache {
       completed: (data['completed'] as num?)?.toInt() ?? 0,
       total: (data['total'] as num?)?.toInt() ?? 0,
       failed: (data['failed'] as num?)?.toInt() ?? 0,
+      updatedAt: DateTime.now(),
     );
     _currentProgress = progress;
     _progressController.add(progress);

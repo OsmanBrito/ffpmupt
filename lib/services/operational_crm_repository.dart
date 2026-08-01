@@ -51,6 +51,10 @@ class OperationalCrmRepository {
       countryRef.collection('songs').where('enabled', isEqualTo: true).get(),
       countryRef.collection('settings').doc('payments').get(),
       countryRef.collection('settings').doc('weeklyVideos').get(),
+      countryRef
+          .collection('holyGrounds')
+          .where('enabled', isEqualTo: true)
+          .get(),
     ]);
     final churches = results[0] as QuerySnapshot<Map<String, dynamic>>;
     final admins = results[1] as QuerySnapshot<Map<String, dynamic>>;
@@ -58,6 +62,7 @@ class OperationalCrmRepository {
     final songs = results[3] as QuerySnapshot<Map<String, dynamic>>;
     final payments = results[4] as DocumentSnapshot<Map<String, dynamic>>;
     final videos = results[5] as DocumentSnapshot<Map<String, dynamic>>;
+    final holyGrounds = results[6] as QuerySnapshot<Map<String, dynamic>>;
     final paymentMethods = payments.data()?['methods'];
     final videoData = videos.data();
 
@@ -75,6 +80,7 @@ class OperationalCrmRepository {
       hasWeeklyVideos:
           videoData != null &&
           (videoData['youtube'] is Map || videoData['vimeo'] is Map),
+      holyGroundCount: holyGrounds.docs.length,
     );
   }
 

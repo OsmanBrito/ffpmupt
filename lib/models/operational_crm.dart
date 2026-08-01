@@ -221,6 +221,7 @@ class CountryOperationalSummary {
     required this.songCount,
     required this.hasPayments,
     required this.hasWeeklyVideos,
+    required this.holyGroundCount,
   });
 
   final CountryModel country;
@@ -230,6 +231,7 @@ class CountryOperationalSummary {
   final int songCount;
   final bool hasPayments;
   final bool hasWeeklyVideos;
+  final int holyGroundCount;
 
   int get expectedPromiseLanguages {
     return {'en', 'ko'}.contains(country.defaultLanguage) ? 2 : 3;
@@ -244,10 +246,11 @@ class CountryOperationalSummary {
       songCount > 0,
       hasPayments,
       hasWeeklyVideos,
+      holyGroundCount > 0,
     ].where((complete) => complete).length;
   }
 
-  int get totalSteps => 7;
+  int get totalSteps => 8;
 
   double get progress => completedSteps / totalSteps;
 
