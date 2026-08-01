@@ -55,8 +55,11 @@ deve ser removido manualmente no Cloudinary caso não seja mais necessário.
 ## Publicação
 
 Desativar **Local visível no diretório** remove o local da tela pública sem
-apagar os dados. A alteração é sincronizada automaticamente quando o app está
-online.
+apagar os dados e impede a leitura pública direta do documento. A alteração é
+sincronizada automaticamente quando o app está online.
+
+Holy Grounds são conteúdo opcional na prontidão operacional: aparecem na
+checklist do país, mas a ausência de um local não bloqueia o lançamento.
 
 ## Limites do MVP
 

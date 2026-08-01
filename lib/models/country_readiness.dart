@@ -14,11 +14,13 @@ class ReadinessCheck {
     required this.area,
     required this.ready,
     required this.detail,
+    this.required = true,
   });
 
   final ReadinessArea area;
   final bool ready;
   final String detail;
+  final bool required;
 }
 
 class ContentIssue {
@@ -34,8 +36,17 @@ class CountryReadiness {
   final List<ReadinessCheck> checks;
   final List<ContentIssue> issues;
 
-  int get completed => checks.where((check) => check.ready).length;
-  int get total => checks.length;
+  Iterable<ReadinessCheck> get requiredChecks =>
+      checks.where((check) => check.required);
+
+  int get completed => requiredChecks.where((check) => check.ready).length;
+  int get total => requiredChecks.length;
   double get progress => total == 0 ? 0 : completed / total;
-  bool get isReady => checks.isNotEmpty && completed == total && issues.isEmpty;
+  bool get isReady {
+    final requiredAreas = requiredChecks.map((check) => check.area).toSet();
+    final hasBlockingIssues = issues.any(
+      (issue) => requiredAreas.contains(issue.area),
+    );
+    return total > 0 && completed == total && !hasBlockingIssues;
+  }
 }

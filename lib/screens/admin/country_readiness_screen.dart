@@ -151,13 +151,20 @@ class _ReadinessContent extends StatelessWidget {
                 leading: Icon(
                   check.ready
                       ? Icons.check_circle_outline
-                      : Icons.error_outline,
+                      : check.required
+                      ? Icons.error_outline
+                      : Icons.info_outline,
                   color: check.ready
                       ? const Color(0xff2f6b4f)
-                      : Theme.of(context).colorScheme.error,
+                      : check.required
+                      ? Theme.of(context).colorScheme.error
+                      : Theme.of(context).colorScheme.secondary,
                 ),
                 title: Text(
-                  _areaLabel(check.area, text),
+                  [
+                    _areaLabel(check.area, text),
+                    if (!check.required) '(${text[P0Text.optional]})',
+                  ].join(' '),
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 subtitle: check.detail.isEmpty ? null : Text(check.detail),

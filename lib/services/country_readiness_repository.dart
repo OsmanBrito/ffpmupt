@@ -59,8 +59,11 @@ class CountryReadinessRepository {
         .toList();
     final grounds = groundSnapshot.docs
         .map(
-          (document) =>
-              HolyGround.fromMap(id: document.id, map: document.data()),
+          (document) => HolyGround.fromMap(
+            id: document.id,
+            map: document.data(),
+            countryCodeOverride: country.code,
+          ),
         )
         .whereType<HolyGround>()
         .where((ground) => ground.enabled)
@@ -223,6 +226,7 @@ class CountryReadinessRepository {
               grounds.isNotEmpty &&
               issues.every((issue) => issue.area != ReadinessArea.holyGrounds),
           detail: '${grounds.length}',
+          required: false,
         ),
         ReadinessCheck(
           area: ReadinessArea.offline,

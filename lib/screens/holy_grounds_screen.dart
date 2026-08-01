@@ -18,6 +18,7 @@ class HolyGroundsScreen extends StatefulWidget {
 class _HolyGroundsScreenState extends State<HolyGroundsScreen> {
   final _repository = HolyGroundRepository();
   final _searchController = TextEditingController();
+  late Stream<HolyGroundDirectoryState> _directoryStream;
   List<CountryModel> _countries = const [];
   String _query = '';
   String? _countryFilter;
@@ -25,7 +26,12 @@ class _HolyGroundsScreenState extends State<HolyGroundsScreen> {
   @override
   void initState() {
     super.initState();
+    _directoryStream = _repository.watchAll();
     _loadCountries();
+  }
+
+  void _retryDirectory() {
+    setState(() => _directoryStream = _repository.watchAll());
   }
 
   @override
@@ -57,8 +63,8 @@ class _HolyGroundsScreenState extends State<HolyGroundsScreen> {
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1040),
-            child: StreamBuilder<List<HolyGround>>(
-              stream: _repository.watchAll(),
+            child: StreamBuilder<HolyGroundDirectoryState>(
+              stream: _directoryStream,
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return _DirectoryState(
@@ -66,13 +72,23 @@ class _HolyGroundsScreenState extends State<HolyGroundsScreen> {
                     title: strings.loadError,
                     description: p0[P0Text.loadFailed],
                     actionLabel: p0[P0Text.tryAgain],
-                    onAction: () => setState(() {}),
+                    onAction: _retryDirectory,
                   );
                 }
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                final allGrounds = snapshot.data!;
+                final directory = snapshot.data!;
+                final allGrounds = directory.grounds;
+                if (directory.isUnavailable && allGrounds.isEmpty) {
+                  return _DirectoryState(
+                    icon: Icons.cloud_off_outlined,
+                    title: strings.loadError,
+                    description: strings.syncUnavailable,
+                    actionLabel: p0[P0Text.tryAgain],
+                    onAction: _retryDirectory,
+                  );
+                }
                 if (allGrounds.isEmpty) {
                   return _DirectoryState(
                     icon: Icons.landscape_outlined,
@@ -120,6 +136,15 @@ class _HolyGroundsScreenState extends State<HolyGroundsScreen> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    if (!directory.isLive)
+                      _SyncNotice(
+                        message: directory.isUnavailable
+                            ? strings.offlineCopy
+                            : strings.loadingFreshCopy,
+                        onRetry: directory.isUnavailable
+                            ? _retryDirectory
+                            : null,
+                      ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
                       child: LayoutBuilder(
@@ -283,6 +308,42 @@ class _DirectoryState extends StatelessWidget {
   }
 }
 
+class _SyncNotice extends StatelessWidget {
+  const _SyncNotice({required this.message, this.onRetry});
+
+  final String message;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return ColoredBox(
+      color: colorScheme.secondaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        child: Row(
+          children: [
+            Icon(
+              Icons.cloud_off_outlined,
+              color: colorScheme.onSecondaryContainer,
+            ),
+            const SizedBox(width: 10),
+            Expanded(child: Text(message)),
+            if (onRetry != null)
+              IconButton(
+                tooltip: MaterialLocalizations.of(
+                  context,
+                ).refreshIndicatorSemanticLabel,
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class HolyGroundDetailScreen extends StatelessWidget {
   const HolyGroundDetailScreen({
     super.key,
@@ -324,7 +385,10 @@ class HolyGroundDetailScreen extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
               children: [
-                _GroundImage(url: ground.imageUrl, height: 360),
+                _GroundImage(
+                  url: ground.imageUrl,
+                  height: MediaQuery.sizeOf(context).width < 600 ? 230 : 360,
+                ),
                 const SizedBox(height: 22),
                 Text(
                   ground.name,
@@ -418,51 +482,79 @@ class _GroundCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              SizedBox(
-                width: 170,
-                child: _GroundImage(url: ground.imageUrl, height: 112),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final details = _GroundCardDetails(
+              ground: ground,
+              countryName: countryName,
+            );
+            if (constraints.maxWidth < 560) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _GroundImage(url: ground.imageUrl, height: 190),
+                  Padding(padding: const EdgeInsets.all(14), child: details),
+                ],
+              );
+            }
+            return Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 170,
+                    child: _GroundImage(url: ground.imageUrl, height: 112),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(child: details),
+                ],
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      ground.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      [
-                        ground.city,
-                        countryName,
-                      ].where((value) => value.isNotEmpty).join(' · '),
-                    ),
-                    if (ground.summary.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        ground.summary,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Icon(Icons.chevron_right),
-            ],
-          ),
+            );
+          },
         ),
       ),
+    );
+  }
+}
+
+class _GroundCardDetails extends StatelessWidget {
+  const _GroundCardDetails({required this.ground, required this.countryName});
+
+  final HolyGround ground;
+  final String countryName;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                ground.name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              ),
+            ),
+            const Icon(Icons.chevron_right),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          [
+            ground.city,
+            countryName,
+          ].where((value) => value.isNotEmpty).join(' · '),
+        ),
+        if (ground.summary.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(ground.summary, maxLines: 2, overflow: TextOverflow.ellipsis),
+        ],
+      ],
     );
   }
 }
@@ -561,6 +653,9 @@ class _HolyGroundStrings {
     required this.contact,
     required this.sendEmail,
     required this.results,
+    required this.syncUnavailable,
+    required this.offlineCopy,
+    required this.loadingFreshCopy,
   });
 
   final String title;
@@ -576,6 +671,9 @@ class _HolyGroundStrings {
   final String contact;
   final String sendEmail;
   final String Function(int count) results;
+  final String syncUnavailable;
+  final String offlineCopy;
+  final String loadingFreshCopy;
 
   String resultCount(int count) => results(count);
 
@@ -605,6 +703,11 @@ class _HolyGroundStrings {
     contact: 'Contato',
     sendEmail: 'Enviar email',
     results: (count) => '$count locais',
+    syncUnavailable: 'Verifique a ligação e tente novamente.',
+    offlineCopy:
+        'A mostrar a última cópia guardada. Não foi possível sincronizar.',
+    loadingFreshCopy:
+        'A mostrar a última cópia enquanto verificamos atualizações.',
   );
   static final _en = _pt.copyWith(
     search: 'Search by name or city',
@@ -619,6 +722,9 @@ class _HolyGroundStrings {
     contact: 'Contact',
     sendEmail: 'Send email',
     results: (count) => '$count places',
+    syncUnavailable: 'Check your connection and try again.',
+    offlineCopy: 'Showing the last saved copy. Sync is currently unavailable.',
+    loadingFreshCopy: 'Showing the last saved copy while checking for updates.',
   );
   static final _es = _en.copyWith(
     search: 'Buscar por nombre o ciudad',
@@ -632,6 +738,10 @@ class _HolyGroundStrings {
     contact: 'Contacto',
     sendEmail: 'Enviar email',
     results: (count) => '$count lugares',
+    syncUnavailable: 'Comprueba la conexión e inténtalo de nuevo.',
+    offlineCopy: 'Mostrando la última copia guardada. No se pudo sincronizar.',
+    loadingFreshCopy:
+        'Mostrando la última copia mientras buscamos actualizaciones.',
   );
   static final _de = _en.copyWith(
     search: 'Nach Name oder Stadt suchen',
@@ -645,6 +755,11 @@ class _HolyGroundStrings {
     contact: 'Kontakt',
     sendEmail: 'E-Mail senden',
     results: (count) => '$count Orte',
+    syncUnavailable: 'Verbindung prüfen und erneut versuchen.',
+    offlineCopy:
+        'Die zuletzt gespeicherte Kopie wird angezeigt. Synchronisierung nicht möglich.',
+    loadingFreshCopy:
+        'Die letzte Kopie wird angezeigt, während Updates geprüft werden.',
   );
   static final _it = _en.copyWith(
     search: 'Cerca per nome o città',
@@ -658,6 +773,11 @@ class _HolyGroundStrings {
     contact: 'Contatto',
     sendEmail: 'Invia email',
     results: (count) => '$count luoghi',
+    syncUnavailable: 'Controlla la connessione e riprova.',
+    offlineCopy:
+        'Visualizzazione dell’ultima copia salvata. Sincronizzazione non disponibile.',
+    loadingFreshCopy:
+        'Visualizzazione dell’ultima copia mentre cerchiamo aggiornamenti.',
   );
   static final _fr = _en.copyWith(
     search: 'Rechercher par nom ou ville',
@@ -671,6 +791,11 @@ class _HolyGroundStrings {
     contact: 'Contact',
     sendEmail: 'Envoyer un e-mail',
     results: (count) => '$count lieux',
+    syncUnavailable: 'Vérifiez la connexion et réessayez.',
+    offlineCopy:
+        'Affichage de la dernière copie enregistrée. Synchronisation indisponible.',
+    loadingFreshCopy:
+        'Affichage de la dernière copie pendant la recherche de mises à jour.',
   );
   static final _ko = _en.copyWith(
     search: '이름 또는 도시 검색',
@@ -684,6 +809,9 @@ class _HolyGroundStrings {
     contact: '연락처',
     sendEmail: '이메일 보내기',
     results: (count) => '$count곳',
+    syncUnavailable: '연결을 확인한 후 다시 시도하세요.',
+    offlineCopy: '마지막으로 저장된 사본을 표시합니다. 동기화할 수 없습니다.',
+    loadingFreshCopy: '업데이트를 확인하는 동안 마지막 저장 사본을 표시합니다.',
   );
 
   _HolyGroundStrings copyWith({
@@ -700,6 +828,9 @@ class _HolyGroundStrings {
     String? contact,
     String? sendEmail,
     String Function(int count)? results,
+    String? syncUnavailable,
+    String? offlineCopy,
+    String? loadingFreshCopy,
   }) {
     return _HolyGroundStrings(
       title: title ?? this.title,
@@ -715,6 +846,9 @@ class _HolyGroundStrings {
       contact: contact ?? this.contact,
       sendEmail: sendEmail ?? this.sendEmail,
       results: results ?? this.results,
+      syncUnavailable: syncUnavailable ?? this.syncUnavailable,
+      offlineCopy: offlineCopy ?? this.offlineCopy,
+      loadingFreshCopy: loadingFreshCopy ?? this.loadingFreshCopy,
     );
   }
 }

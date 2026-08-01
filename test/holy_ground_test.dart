@@ -46,4 +46,28 @@ void main() {
       contains('Example address'),
     );
   });
+
+  test('legacy documents keep working when optional fields are missing', () {
+    final decoded = HolyGround.fromMap(
+      id: 'legacy',
+      countryCodeOverride: 'pt',
+      map: const {'name': 'Legacy Holy Ground', 'enabled': true},
+    );
+
+    expect(decoded, isNotNull);
+    expect(decoded?.countryCode, 'pt');
+    expect(decoded?.city, isEmpty);
+    expect(decoded?.languageCode, 'en');
+    expect(decoded?.sortOrder, 0);
+  });
+
+  test('document path takes precedence over a mismatched country field', () {
+    final decoded = HolyGround.fromMap(
+      id: ground.id,
+      countryCodeOverride: 'pt',
+      map: {...ground.toMap(), 'countryCode': 'br'},
+    );
+
+    expect(decoded?.countryCode, 'pt');
+  });
 }

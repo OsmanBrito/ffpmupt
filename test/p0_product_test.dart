@@ -52,6 +52,30 @@ void main() {
     expect(withIssue.isReady, isFalse);
   });
 
+  test('optional content does not block country readiness', () {
+    final checks = [
+      for (final area in ReadinessArea.values)
+        ReadinessCheck(
+          area: area,
+          ready: area != ReadinessArea.holyGrounds,
+          detail: '',
+          required: area != ReadinessArea.holyGrounds,
+        ),
+    ];
+    final readiness = CountryReadiness(
+      checks: checks,
+      issues: const [
+        ContentIssue(
+          area: ReadinessArea.holyGrounds,
+          subject: 'Optional place',
+        ),
+      ],
+    );
+
+    expect(readiness.completed, readiness.total);
+    expect(readiness.isReady, isTrue);
+  });
+
   test('P0 product strings cover every supported app language', () {
     for (final language in AppLanguage.values) {
       final strings = P0Strings.of(language);

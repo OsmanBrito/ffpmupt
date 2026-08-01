@@ -40,4 +40,27 @@ void main() {
 
     expect(find.text('Coordenada inválida'), findsNothing);
   });
+
+  testWidgets('editor remains usable on a narrow mobile viewport', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: HolyGroundEditorScreen(countryCode: 'pt', defaultLanguage: 'pt'),
+      ),
+    );
+
+    await tester.drag(find.byType(ListView), const Offset(0, -1200));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView), const Offset(0, -700));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DropdownButtonFormField<String>), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }
