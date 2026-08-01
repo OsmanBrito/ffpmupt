@@ -39,6 +39,31 @@ Path: `countries/{countryCode}/settings/weeklyVideos`
 The document contains `youtube` and `vimeo` maps with title, source URL,
 watch URL, and embed URL.
 
+```json
+{
+  "countryCode": "pt",
+  "youtube": {
+    "title": "HJ Global News Português (01.08.2026)",
+    "sourceName": "YouTube",
+    "sourceUrl": "https://www.youtube.com/@hjpeacetv8814/videos",
+    "watchUrl": "https://www.youtube.com/watch?v=...",
+    "embedUrl": "https://www.youtube-nocookie.com/embed/..."
+  },
+  "vimeo": {
+    "title": "EUME Weekly News 440",
+    "sourceName": "Vimeo",
+    "sourceUrl": "https://vimeo.com/eume",
+    "watchUrl": "https://vimeo.com/...",
+    "embedUrl": "https://player.vimeo.com/video/..."
+  },
+  "updatedAt": "server timestamp or automation timestamp",
+  "updatedBy": "admin uid or weekly-video-automation"
+}
+```
+
+Admins can still edit this document through the app. The optional GitHub Actions
+automation is documented in `docs/weekly_video_automation.md`.
+
 ## Payments and Tithes
 
 Path: `countries/{countryCode}/settings/payments`

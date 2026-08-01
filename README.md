@@ -37,6 +37,8 @@ flutter test
 - [Import songs from XLSX or PPTX](docs/song_import.md)
 - [Operational CRM](docs/operational_crm.md)
 - [Holy Grounds MVP](docs/holy_grounds.md)
+- [P0: operação de domingo e prontidão do país](docs/p0_product_cycle.md)
+- [Weekly video automation](docs/weekly_video_automation.md)
 - [Firestore schema](docs/firestore_schema.md)
 
 ## Notes
