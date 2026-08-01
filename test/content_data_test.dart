@@ -10,6 +10,21 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('content data', () {
+    test('keeps the Vimeo privacy hash saved by the automation', () {
+      final video = WeeklyVideo.fromMap({
+        'title': 'EUME Weekly News 440',
+        'sourceName': 'Vimeo',
+        'sourceUrl': 'https://vimeo.com/eume',
+        'watchUrl': 'https://vimeo.com/1206206314',
+        'embedUrl': 'https://player.vimeo.com/video/1206206314?h=0f8a68b6af',
+      });
+
+      expect(
+        video?.embedUrl,
+        'https://player.vimeo.com/video/1206206314?h=0f8a68b6af',
+      );
+    });
+
     test('offline worker resolves Flutter web assets from the build path', () {
       final worker = File('web/offline_service_worker.js').readAsStringSync();
       expect(worker, contains(r'`assets/${rawUrl}`'));

@@ -36,13 +36,44 @@ class WeeklyVideo {
       return null;
     }
 
-    return weeklyVideoFromUrl(
+    final parsed = weeklyVideoFromUrl(
       sourceName: sourceName,
       sourceUrl: sourceUrl,
       title: title,
       url: watchUrl,
     );
+    if (parsed == null) {
+      return null;
+    }
+
+    final savedEmbedUrl = map['embedUrl'];
+    if (savedEmbedUrl is! String ||
+        !_isTrustedEmbedUrl(savedEmbedUrl, sourceName)) {
+      return parsed;
+    }
+
+    return WeeklyVideo(
+      title: parsed.title,
+      sourceName: parsed.sourceName,
+      sourceUrl: parsed.sourceUrl,
+      watchUrl: parsed.watchUrl,
+      embedUrl: savedEmbedUrl,
+    );
   }
+}
+
+bool _isTrustedEmbedUrl(String value, String sourceName) {
+  final uri = Uri.tryParse(value);
+  if (uri == null || uri.scheme != 'https') {
+    return false;
+  }
+
+  final host = uri.host.toLowerCase();
+  return switch (sourceName) {
+    'YouTube' => host == 'www.youtube-nocookie.com',
+    'Vimeo' => host == 'player.vimeo.com',
+    _ => false,
+  };
 }
 
 WeeklyVideo? weeklyVideoFromUrl({
