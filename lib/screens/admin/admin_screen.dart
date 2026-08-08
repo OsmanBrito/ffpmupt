@@ -13,6 +13,7 @@ import 'package:ffpmupt/screens/videos_screen.dart';
 import 'package:ffpmupt/services/admin_auth_service.dart';
 import 'package:ffpmupt/settings/app_language.dart';
 import 'package:ffpmupt/settings/app_strings.dart';
+import 'package:ffpmupt/settings/admin_copy.dart';
 import 'package:ffpmupt/settings/p0_strings.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -361,6 +362,22 @@ class _AdminScreenState extends State<AdminScreen> {
                       )
                     : const Icon(Icons.login),
                 label: Text(strings.signIn),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                adminText(
+                  context,
+                  'Sem acesso? Peça um convite ao coordenador do FFPMU Connect com o seu país, nome e email.',
+                ),
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 4),
+              TextButton.icon(
+                onPressed: () =>
+                    Navigator.of(context).pushNamed('/request-access'),
+                icon: const Icon(Icons.mark_email_unread_outlined),
+                label: Text(adminText(context, 'Pedir acesso administrativo')),
               ),
             ],
           ),

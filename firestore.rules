@@ -172,6 +172,46 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Public leaders may submit an access request. The Cloud Function sends
+    // the notification; only a superadmin can read or manage the requests.
+    match /accessRequests/{requestId} {
+      allow create: if request.resource.data.keys().hasOnly([
+          'countryCode', 'countryName', 'displayName', 'email', 'role',
+          'message', 'status', 'createdAt'
+        ])
+        && request.resource.data.countryCode is string
+        && request.resource.data.countryCode.size() >= 2
+        && request.resource.data.countryCode.size() <= 3
+        && request.resource.data.countryCode
+          == request.resource.data.countryCode.lower()
+        && get(
+          /databases/$(database)/documents/countries/$(request.resource.data.countryCode)
+        ).data.enabled == true
+        && get(
+          /databases/$(database)/documents/countries/$(request.resource.data.countryCode)
+        ).data.code == request.resource.data.countryCode
+        && request.resource.data.countryName is string
+        && request.resource.data.countryName.size() >= 2
+        && request.resource.data.countryName.size() <= 100
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 2
+        && request.resource.data.displayName.size() <= 100
+        && request.resource.data.email is string
+        && request.resource.data.email.size() >= 5
+        && request.resource.data.email.size() <= 254
+        && request.resource.data.email
+          == request.resource.data.email.lower()
+        && request.resource.data.role is string
+        && ['country_leader', 'country_admin']
+          .hasAny([request.resource.data.role])
+        && request.resource.data.message is string
+        && request.resource.data.message.size() <= 1000
+        && request.resource.data.status == 'new'
+        && request.resource.data.createdAt == request.time;
+      allow get, list, update: if isSuperAdmin();
+      allow delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

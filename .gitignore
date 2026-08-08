@@ -42,3 +42,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Cloud Functions secrets and local configuration
+functions/node_modules/
+functions/.env*
+!functions/.env.example
+functions/.secret.local

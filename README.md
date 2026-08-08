@@ -33,7 +33,6 @@ flutter test
 
 ## Documentation
 
-- [Add a new country](docs/new_country_setup.md)
 - [Import songs from XLSX or PPTX](docs/song_import.md)
 - [Operational CRM](docs/operational_crm.md)
 - [Holy Grounds MVP](docs/holy_grounds.md)

@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:ffpmupt/app_branding.dart';
 import 'package:ffpmupt/firebase_options.dart';
 import 'package:ffpmupt/models/country.dart';
+import 'package:ffpmupt/models/access_request_country.dart';
 import 'package:ffpmupt/screens/admin/admin_screen.dart';
 import 'package:ffpmupt/screens/admin/admin_invite_screen.dart';
 import 'package:ffpmupt/screens/country_selection_screen.dart';
+import 'package:ffpmupt/screens/access_request_screen.dart';
 import 'package:ffpmupt/screens/family_promise_screen.dart';
 import 'package:ffpmupt/screens/holy_grounds_screen.dart';
 import 'package:ffpmupt/screens/list_of_songs_screen.dart';
@@ -150,6 +152,10 @@ class _MyAppState extends State<MyApp> {
           ),
           home: _homeForCountry(),
           routes: {
+            '/request-access': (context) => AccessRequestScreen(
+              countries: europeanAccessRequestCountries,
+              initialCountryCode: _countryController.country?.code,
+            ),
             if (_countryController.country case final country?)
               '/admin': (context) => AdminScreen(country: country),
             '/ofertas': (context) => PublicOfferingScreen(
