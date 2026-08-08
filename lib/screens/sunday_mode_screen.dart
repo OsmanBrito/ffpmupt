@@ -91,7 +91,7 @@ class _SundayModeScreenState extends State<SundayModeScreen> {
       SundayModule.familyPromise => FamilyPromiseScreen(
         country: widget.country,
       ),
-      SundayModule.motto => const MottoScreen(),
+      SundayModule.motto => MottoScreen(countryCode: widget.country.code),
       SundayModule.offerings => OfferingScreen(
         countryCode: widget.country.code,
       ),

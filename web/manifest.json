@@ -1,11 +1,11 @@
 {
-    "name": "ffmpupt",
-    "short_name": "ffmpupt",
+    "name": "FFPMU Connect",
+    "short_name": "FFPMU Connect",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "FFPMU Connect for Sunday services and country content.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

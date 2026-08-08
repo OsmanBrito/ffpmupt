@@ -1,3 +1,4 @@
+import 'package:ffpmupt/app_branding.dart';
 import 'package:ffpmupt/models/country.dart';
 import 'package:flutter/material.dart';
 
@@ -14,7 +15,7 @@ class CountrySelectionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('FFPMU')),
+      appBar: AppBar(title: const Text(appName)),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(

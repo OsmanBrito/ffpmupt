@@ -132,6 +132,13 @@ const _english = <String, String>{
   'Link de pagamento': 'Payment link',
   'Outro': 'Other',
   'Preparar idiomas padrão': 'Prepare default languages',
+  'Lema anual': 'Annual motto',
+  'Este lema aparece na página pública deste país.':
+      'This motto appears on this country’s public page.',
+  'Texto do lema': 'Motto text',
+  'Preencha o título e texto do lema.': 'Enter the motto title and text.',
+  'Lema guardado.': 'Motto saved.',
+  'Não foi possível guardar o lema.': 'Could not save the motto.',
   'Ainda não configurada': 'Not configured yet',
   'Preencha o título e os oito pontos.':
       'Enter the title and all eight points.',

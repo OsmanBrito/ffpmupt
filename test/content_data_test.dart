@@ -4,6 +4,8 @@ import 'package:ffpmupt/content/family_promise.dart';
 import 'package:ffpmupt/content/motto.dart';
 import 'package:ffpmupt/content/offering.dart';
 import 'package:ffpmupt/content/videos.dart';
+import 'package:ffpmupt/models/motto.dart';
+import 'package:ffpmupt/services/motto_repository.dart';
 import 'package:ffpmupt/services/weekly_videos_repository.dart';
 import 'package:ffpmupt/songs/songs.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -33,6 +35,21 @@ void main() {
     test('current motto is ready to display', () {
       expect(currentMotto.title.trim(), isNotEmpty);
       expect(currentMotto.body.trim(), isNotEmpty);
+    });
+
+    test('country motto settings round-trip and have a bundled fallback', () {
+      final settings = MottoSettings(
+        title: '2026 Motto',
+        body: 'A country-specific motto.',
+      );
+      final decoded = MottoSettings.fromMap(settings.toMap());
+      final fallback = MottoSettings.fallback();
+
+      expect(mottoDocumentId, 'motto');
+      expect(decoded?.title, settings.title);
+      expect(decoded?.body, settings.body);
+      expect(fallback.title, currentMotto.title);
+      expect(fallback.body, currentMotto.body);
     });
 
     test('family pledge has content for each language', () {

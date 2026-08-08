@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.pt.giro.ffmpupt">
    <application
-        android:label="ffpmupt"
+        android:label="FFPMU Connect"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
