@@ -15,6 +15,7 @@ import 'package:ffpmupt/settings/app_language.dart';
 import 'package:ffpmupt/settings/app_strings.dart';
 import 'package:ffpmupt/settings/admin_copy.dart';
 import 'package:ffpmupt/settings/p0_strings.dart';
+import 'package:ffpmupt/widgets/language_menu_button.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -38,6 +39,7 @@ class _AdminScreenState extends State<AdminScreen> {
   bool _isChecking = true;
   bool _isSigningIn = false;
   bool _obscurePassword = true;
+  String? _loginMessage;
 
   @override
   void initState() {
@@ -71,14 +73,21 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 
   Future<void> _signIn(AppStrings strings) async {
-    final email = _emailController.text.trim();
+    final email = _emailController.text.trim().toLowerCase();
     final password = _passwordController.text;
     if (email.isEmpty || password.isEmpty) {
+      setState(
+        () => _loginMessage = adminText(
+          context,
+          'Informe o email e a palavra-passe para continuar.',
+        ),
+      );
       return;
     }
 
     setState(() {
       _isSigningIn = true;
+      _loginMessage = null;
     });
 
     try {
@@ -90,16 +99,15 @@ class _AdminScreenState extends State<AdminScreen> {
       if (!access.canManageCountry) {
         await _authService.signOut();
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(strings.adminAccessDenied)));
+          setState(
+            () => _loginMessage =
+                '${strings.adminAccessDenied}: ${widget.country.name}',
+          );
         }
       }
     } on FirebaseAuthException {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(strings.signInFailed)));
+        setState(() => _loginMessage = strings.signInFailed);
       }
     } finally {
       if (mounted) {
@@ -108,6 +116,70 @@ class _AdminScreenState extends State<AdminScreen> {
         });
       }
     }
+  }
+
+  Future<void> _resetPassword() async {
+    final email = _emailController.text.trim().toLowerCase();
+    if (email.isEmpty) {
+      setState(
+        () => _loginMessage = adminText(
+          context,
+          'Informe o email antes de redefinir a palavra-passe.',
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSigningIn = true;
+      _loginMessage = null;
+    });
+    try {
+      await _authService.sendPasswordReset(email);
+      if (mounted) {
+        setState(
+          () => _loginMessage = adminText(
+            context,
+            'Enviámos um email para redefinir a palavra-passe.',
+          ),
+        );
+      }
+    } on FirebaseAuthException catch (error) {
+      if (mounted) {
+        setState(() => _loginMessage = _loginErrorMessage(error));
+      }
+    } on Object {
+      if (mounted) {
+        setState(
+          () => _loginMessage = adminText(
+            context,
+            'Não foi possível enviar o email de recuperação.',
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSigningIn = false);
+      }
+    }
+  }
+
+  String _loginErrorMessage(FirebaseAuthException error) {
+    return switch (error.code) {
+      'invalid-email' => adminText(context, 'O email não é válido.'),
+      'user-not-found' => adminText(
+        context,
+        'Não encontrámos uma conta com este email.',
+      ),
+      'too-many-requests' => adminText(
+        context,
+        'Demasiadas tentativas. Aguarde e tente novamente.',
+      ),
+      _ => adminText(
+        context,
+        'Não foi possível enviar o email de recuperação.',
+      ),
+    };
   }
 
   Future<void> _signOut() async {
@@ -122,6 +194,7 @@ class _AdminScreenState extends State<AdminScreen> {
       appBar: AppBar(
         title: Text(strings.adminArea),
         actions: [
+          const LanguageMenuButton(),
           if (_user != null)
             IconButton(
               tooltip: strings.signOut,
@@ -153,10 +226,36 @@ class _AdminScreenState extends State<AdminScreen> {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Text(
-            strings.adminAccessDenied,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleLarge,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.lock_outline,
+                size: 52,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '${strings.adminAccessDenied}: ${widget.country.name}',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                adminText(
+                  context,
+                  'Peça ao coordenador um convite para este país ou troque de país antes de entrar.',
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 18),
+              OutlinedButton.icon(
+                onPressed: () =>
+                    Navigator.of(context).pushNamed('/request-access'),
+                icon: const Icon(Icons.mark_email_unread_outlined),
+                label: Text(adminText(context, 'Pedir acesso administrativo')),
+              ),
+            ],
           ),
         ),
       );
@@ -317,11 +416,20 @@ class _AdminScreenState extends State<AdminScreen> {
                   fontWeight: FontWeight.w800,
                 ),
               ),
+              const SizedBox(height: 8),
+              Text(
+                '${adminText(context, 'Gerir conteúdo de')} ${widget.country.name}',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: const Color(0xff65716c),
+                ),
+              ),
               const SizedBox(height: 24),
               TextField(
                 controller: _emailController,
                 autofocus: true,
                 keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
                 decoration: InputDecoration(
                   labelText: strings.adminEmail,
                   prefixIcon: const Icon(Icons.email_outlined),
@@ -332,6 +440,7 @@ class _AdminScreenState extends State<AdminScreen> {
               TextField(
                 controller: _passwordController,
                 obscureText: _obscurePassword,
+                textInputAction: TextInputAction.done,
                 onSubmitted: (_) => _signIn(strings),
                 decoration: InputDecoration(
                   labelText: strings.password,
@@ -363,6 +472,17 @@ class _AdminScreenState extends State<AdminScreen> {
                     : const Icon(Icons.login),
                 label: Text(strings.signIn),
               ),
+              if (_loginMessage != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  _loginMessage!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
               const SizedBox(height: 14),
               Text(
                 adminText(
@@ -378,6 +498,10 @@ class _AdminScreenState extends State<AdminScreen> {
                     Navigator.of(context).pushNamed('/request-access'),
                 icon: const Icon(Icons.mark_email_unread_outlined),
                 label: Text(adminText(context, 'Pedir acesso administrativo')),
+              ),
+              TextButton(
+                onPressed: _isSigningIn ? null : _resetPassword,
+                child: Text(adminText(context, 'Esqueci a palavra-passe')),
               ),
             ],
           ),

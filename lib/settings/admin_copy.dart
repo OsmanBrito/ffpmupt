@@ -154,7 +154,28 @@ const _english = <String, String>{
   'Email que recebeu o convite': 'Email that received the invitation',
   'Senha': 'Password',
   'Confirmar senha': 'Confirm password',
+  'Use pelo menos 8 caracteres.': 'Use at least 8 characters.',
+  'Use exatamente o email indicado no convite para concluir o acesso.':
+      'Use the exact email shown in the invitation to complete access.',
+  'Mostrar ou ocultar palavra-passe': 'Show or hide password',
   'Esqueci minha senha': 'I forgot my password',
+  'Esqueci a palavra-passe': 'Forgot password?',
+  'Informe o email e a palavra-passe para continuar.':
+      'Enter your email and password to continue.',
+  'Informe o email antes de redefinir a palavra-passe.':
+      'Enter your email before resetting your password.',
+  'Enviámos um email para redefinir a palavra-passe.':
+      'We sent an email to reset your password.',
+  'O email não é válido.': 'The email address is not valid.',
+  'Não encontrámos uma conta com este email.':
+      'We could not find an account with this email.',
+  'Demasiadas tentativas. Aguarde e tente novamente.':
+      'Too many attempts. Wait and try again.',
+  'Não foi possível enviar o email de recuperação.':
+      'We could not send the recovery email.',
+  'Gerir conteúdo de': 'Manage content for',
+  'Peça ao coordenador um convite para este país ou troque de país antes de entrar.':
+      'Ask the coordinator for an invitation to this country or switch country before signing in.',
   'Confirme seu email': 'Confirm your email',
   'Enviamos uma confirmação para': 'We sent a confirmation to',
   'Abra o email e depois volte aqui.': 'Open the email and then return here.',
@@ -199,6 +220,8 @@ const _english = <String, String>{
   'Esta conta não corresponde ao email do convite.':
       'This account does not match the invitation email.',
   'Não foi possível abrir o convite.': 'The invitation could not be opened.',
+  'Não foi possível confirmar o acesso. Tente novamente ou contacte o coordenador.':
+      'We could not confirm access. Try again or contact the coordinator.',
   'Informe um email e uma senha com 8 caracteres.':
       'Enter an email and a password with at least 8 characters.',
   'As senhas não coincidem.': 'The passwords do not match.',

@@ -63,6 +63,14 @@ class AdminAuthService {
     return credential.user;
   }
 
+  Future<void> sendPasswordReset(String email) async {
+    final auth = _firebaseAuth;
+    if (auth == null) {
+      throw StateError('Firebase authentication is not available.');
+    }
+    await auth.sendPasswordResetEmail(email: email.trim());
+  }
+
   Future<bool> isAdmin(User? user, {required String countryCode}) async {
     final access = await getAccess(user, countryCode: countryCode);
     return access.canManageCountry;

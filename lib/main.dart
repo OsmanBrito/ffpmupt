@@ -24,6 +24,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ffpmupt/services/offline_audio_cache.dart';
 import 'package:ffpmupt/services/song_repository.dart';
+import 'package:ffpmupt/widgets/language_menu_button.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -52,7 +53,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   final AppLanguageController _languageController = AppLanguageController(
-    loadStoredLanguage: false,
+    loadStoredLanguage: true,
   );
   final CountryController _countryController = CountryController();
   StreamSubscription<SongCatalogState>? _offlineSyncSubscription;
@@ -205,32 +206,9 @@ class Home extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('$appShortName · ${country.code.toUpperCase()}'),
+        title: Text('$appShortName · ${country.name}'),
         actions: [
-          PopupMenuButton<AppLanguage>(
-            tooltip: strings.appLanguage,
-            icon: const Icon(Icons.translate),
-            onSelected: (language) =>
-                unawaited(AppLanguageScope.read(context).setLanguage(language)),
-            itemBuilder: (context) => [
-              for (final language in AppLanguage.values)
-                PopupMenuItem(
-                  value: language,
-                  child: Row(
-                    children: [
-                      if (language == AppLanguageScope.read(context).language)
-                        const Padding(
-                          padding: EdgeInsets.only(right: 8),
-                          child: Icon(Icons.check, size: 18),
-                        )
-                      else
-                        const SizedBox(width: 26),
-                      Text(appLanguageLabel(language)),
-                    ],
-                  ),
-                ),
-            ],
-          ),
+          const LanguageMenuButton(),
           IconButton(
             tooltip: strings.changeCountry,
             onPressed: () =>
