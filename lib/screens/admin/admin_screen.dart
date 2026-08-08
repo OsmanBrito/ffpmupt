@@ -5,6 +5,7 @@ import 'package:ffpmupt/screens/admin/country_admin_screen.dart';
 import 'package:ffpmupt/screens/admin/country_readiness_screen.dart';
 import 'package:ffpmupt/screens/admin/family_promise_admin_screen.dart';
 import 'package:ffpmupt/screens/admin/holy_grounds_admin_screen.dart';
+import 'package:ffpmupt/screens/admin/motto_admin_screen.dart';
 import 'package:ffpmupt/screens/admin/operational_crm_screen.dart';
 import 'package:ffpmupt/screens/admin/payment_settings_admin_screen.dart';
 import 'package:ffpmupt/screens/admin/songs_admin_screen.dart';
@@ -222,6 +223,18 @@ class _AdminScreenState extends State<AdminScreen> {
             MaterialPageRoute(
               builder: (context) =>
                   FamilyPromiseAdminScreen(country: widget.country),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _AdminActionCard(
+          icon: Icons.auto_stories,
+          title: strings.motto,
+          subtitle: strings.mottoSubtitle,
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) =>
+                  MottoAdminScreen(countryCode: widget.country.code),
             ),
           ),
         ),

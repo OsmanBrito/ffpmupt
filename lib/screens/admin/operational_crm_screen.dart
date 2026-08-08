@@ -254,20 +254,47 @@ class _CountryReadiness extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final checks = [
-      (adminText(context, 'País ativo'), summary.country.enabled),
-      (adminText(context, 'Administrador associado'), summary.adminCount > 0),
-      (adminText(context, 'Igreja local cadastrada'), summary.churchCount > 0),
+    final checks = <({String label, bool ready, bool required})>[
       (
-        adminText(context, 'Promessa nos idiomas necessários'),
-        summary.promiseLanguageCount >= summary.expectedPromiseLanguages,
+        label: adminText(context, 'País ativo'),
+        ready: summary.country.enabled,
+        required: true,
       ),
-      (adminText(context, 'Catálogo remoto preparado'), summary.songCount > 0),
-      (adminText(context, 'Pagamentos configurados'), summary.hasPayments),
-      (adminText(context, 'Vídeos configurados'), summary.hasWeeklyVideos),
       (
-        adminText(context, 'Holy Grounds publicados'),
-        summary.holyGroundCount > 0,
+        label: adminText(context, 'Administrador associado'),
+        ready: summary.adminCount > 0,
+        required: true,
+      ),
+      (
+        label: adminText(context, 'Igreja local cadastrada'),
+        ready: summary.churchCount > 0,
+        required: true,
+      ),
+      (
+        label: adminText(context, 'Promessa nos idiomas necessários'),
+        ready: summary.promiseLanguageCount >= summary.expectedPromiseLanguages,
+        required: true,
+      ),
+      (
+        label: adminText(context, 'Catálogo remoto preparado'),
+        ready: summary.songCount > 0,
+        required: true,
+      ),
+      (
+        label: adminText(context, 'Pagamentos configurados'),
+        ready: summary.hasPayments,
+        required: true,
+      ),
+      (
+        label: adminText(context, 'Vídeos configurados'),
+        ready: summary.hasWeeklyVideos,
+        required: true,
+      ),
+      (
+        label:
+            '${adminText(context, 'Holy Grounds publicados')} (${adminText(context, 'opcional')})',
+        ready: summary.holyGroundCount > 0,
+        required: false,
       ),
     ];
     return Column(
@@ -294,13 +321,17 @@ class _CountryReadiness extends StatelessWidget {
             for (final check in checks)
               Chip(
                 avatar: Icon(
-                  check.$2 ? Icons.check_circle : Icons.radio_button_unchecked,
+                  check.ready
+                      ? Icons.check_circle
+                      : check.required
+                      ? Icons.radio_button_unchecked
+                      : Icons.info_outline,
                   size: 18,
-                  color: check.$2
+                  color: check.ready
                       ? Theme.of(context).colorScheme.primary
                       : null,
                 ),
-                label: Text(check.$1),
+                label: Text(check.label),
               ),
           ],
         ),

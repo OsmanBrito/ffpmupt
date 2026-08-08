@@ -5,6 +5,23 @@ import 'package:ffpmupt/models/holy_ground.dart';
 import 'package:ffpmupt/settings/local_store.dart';
 import 'package:firebase_core/firebase_core.dart';
 
+enum HolyGroundSyncStatus { cached, live, unavailable }
+
+class HolyGroundDirectoryState {
+  const HolyGroundDirectoryState({
+    required this.grounds,
+    required this.status,
+    this.error,
+  });
+
+  final List<HolyGround> grounds;
+  final HolyGroundSyncStatus status;
+  final Object? error;
+
+  bool get isLive => status == HolyGroundSyncStatus.live;
+  bool get isUnavailable => status == HolyGroundSyncStatus.unavailable;
+}
+
 class HolyGroundRepository {
   HolyGroundRepository({FirebaseFirestore? firestore}) : _firestore = firestore;
 
@@ -34,16 +51,21 @@ class HolyGroundRepository {
         .collection('holyGrounds');
   }
 
-  Stream<List<HolyGround>> watchAll() async* {
+  Stream<HolyGroundDirectoryState> watchAll() async* {
     final cached = await _readCache();
     if (cached.isNotEmpty) {
-      yield cached;
+      yield HolyGroundDirectoryState(
+        grounds: cached,
+        status: HolyGroundSyncStatus.cached,
+      );
     }
     final database = _database;
     if (database == null) {
-      if (cached.isEmpty) {
-        yield const [];
-      }
+      yield HolyGroundDirectoryState(
+        grounds: cached,
+        status: HolyGroundSyncStatus.unavailable,
+        error: StateError('Firebase is not available.'),
+      );
       return;
     }
     try {
@@ -54,12 +76,17 @@ class HolyGroundRepository {
               .snapshots()) {
         final grounds = _decode(snapshot.docs);
         await _writeCache(grounds);
-        yield grounds;
+        yield HolyGroundDirectoryState(
+          grounds: grounds,
+          status: HolyGroundSyncStatus.live,
+        );
       }
-    } on FirebaseException {
-      if (cached.isEmpty) {
-        yield const [];
-      }
+    } on FirebaseException catch (error) {
+      yield HolyGroundDirectoryState(
+        grounds: cached,
+        status: HolyGroundSyncStatus.unavailable,
+        error: error,
+      );
     }
   }
 
@@ -94,8 +121,11 @@ class HolyGroundRepository {
   ) {
     final grounds = documents
         .map(
-          (document) =>
-              HolyGround.fromMap(id: document.id, map: document.data()),
+          (document) => HolyGround.fromMap(
+            id: document.id,
+            map: document.data(),
+            countryCodeOverride: document.reference.parent.parent?.id,
+          ),
         )
         .whereType<HolyGround>()
         .toList();

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:ffpmupt/app_branding.dart';
 import 'package:ffpmupt/firebase_options.dart';
 import 'package:ffpmupt/models/country.dart';
 import 'package:ffpmupt/screens/admin/admin_screen.dart';
@@ -110,7 +111,7 @@ class _MyAppState extends State<MyApp> {
       child: AppLanguageScope(
         controller: _languageController,
         child: MaterialApp(
-          title: 'FFPMU',
+          title: appName,
           debugShowCheckedModeBanner: false,
           theme: ThemeData(
             useMaterial3: true,
@@ -198,7 +199,7 @@ class Home extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('FFPMU ${country.code.toUpperCase()}'),
+        title: Text('$appShortName · ${country.code.toUpperCase()}'),
         actions: [
           PopupMenuButton<AppLanguage>(
             tooltip: strings.appLanguage,
@@ -301,7 +302,8 @@ class Home extends StatelessWidget {
                         color: colorScheme.primary,
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (context) => const MottoScreen(),
+                            builder: (context) =>
+                                MottoScreen(countryCode: country.code),
                           ),
                         ),
                       ),

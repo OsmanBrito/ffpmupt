@@ -54,6 +54,7 @@ enum P0Text {
   adminContent,
   adminCountry,
   adminOperations,
+  optional,
 }
 
 class P0Strings {
@@ -128,10 +129,11 @@ const _portuguese = <P0Text, String>{
   P0Text.tryAgain: 'Tentar novamente',
   P0Text.emptyHolyGroundsTitle: 'Nenhum local publicado ainda',
   P0Text.emptyHolyGroundsDescription:
-      'Os Holy Grounds desta região aparecerão aqui em breve.',
+      'Os Holy Grounds dos países disponíveis aparecerão aqui.',
   P0Text.adminContent: 'Conteúdo',
   P0Text.adminCountry: 'País',
   P0Text.adminOperations: 'Operações',
+  P0Text.optional: 'opcional',
 };
 
 const _english = <P0Text, String>{
@@ -186,10 +188,11 @@ const _english = <P0Text, String>{
   P0Text.tryAgain: 'Try again',
   P0Text.emptyHolyGroundsTitle: 'No places published yet',
   P0Text.emptyHolyGroundsDescription:
-      'Holy Grounds from this region will appear here soon.',
+      'Holy Grounds from the available countries will appear here.',
   P0Text.adminContent: 'Content',
   P0Text.adminCountry: 'Country',
   P0Text.adminOperations: 'Operations',
+  P0Text.optional: 'Optional',
 };
 
 const _spanish = <P0Text, String>{
@@ -244,10 +247,11 @@ const _spanish = <P0Text, String>{
   P0Text.tryAgain: 'Reintentar',
   P0Text.emptyHolyGroundsTitle: 'Aún no hay lugares publicados',
   P0Text.emptyHolyGroundsDescription:
-      'Los Holy Grounds de esta región aparecerán aquí pronto.',
+      'Los Holy Grounds de los países disponibles aparecerán aquí.',
   P0Text.adminContent: 'Contenido',
   P0Text.adminCountry: 'País',
   P0Text.adminOperations: 'Operaciones',
+  P0Text.optional: 'opcional',
 };
 
 const _german = <P0Text, String>{
@@ -303,10 +307,11 @@ const _german = <P0Text, String>{
   P0Text.tryAgain: 'Erneut versuchen',
   P0Text.emptyHolyGroundsTitle: 'Noch keine Orte veröffentlicht',
   P0Text.emptyHolyGroundsDescription:
-      'Holy Grounds dieser Region erscheinen bald hier.',
+      'Holy Grounds der verfügbaren Länder erscheinen hier.',
   P0Text.adminContent: 'Inhalte',
   P0Text.adminCountry: 'Land',
   P0Text.adminOperations: 'Betrieb',
+  P0Text.optional: 'freiwillig',
 };
 
 const _italian = <P0Text, String>{
@@ -361,10 +366,11 @@ const _italian = <P0Text, String>{
   P0Text.tryAgain: 'Riprova',
   P0Text.emptyHolyGroundsTitle: 'Nessun luogo ancora pubblicato',
   P0Text.emptyHolyGroundsDescription:
-      'Gli Holy Grounds di questa regione appariranno presto qui.',
+      'Gli Holy Grounds dei paesi disponibili appariranno qui.',
   P0Text.adminContent: 'Contenuti',
   P0Text.adminCountry: 'Paese',
   P0Text.adminOperations: 'Operazioni',
+  P0Text.optional: 'facoltativo',
 };
 
 const _french = <P0Text, String>{
@@ -419,10 +425,11 @@ const _french = <P0Text, String>{
   P0Text.tryAgain: 'Réessayer',
   P0Text.emptyHolyGroundsTitle: 'Aucun lieu publié pour le moment',
   P0Text.emptyHolyGroundsDescription:
-      'Les Holy Grounds de cette région apparaîtront bientôt ici.',
+      'Les Holy Grounds des pays disponibles apparaîtront ici.',
   P0Text.adminContent: 'Contenu',
   P0Text.adminCountry: 'Pays',
   P0Text.adminOperations: 'Opérations',
+  P0Text.optional: 'facultatif',
 };
 
 const _korean = <P0Text, String>{
@@ -475,8 +482,9 @@ const _korean = <P0Text, String>{
   P0Text.loadFailed: '데이터를 불러올 수 없습니다.',
   P0Text.tryAgain: '다시 시도',
   P0Text.emptyHolyGroundsTitle: '아직 게시된 장소가 없습니다',
-  P0Text.emptyHolyGroundsDescription: '이 지역의 성지가 곧 여기에 표시됩니다.',
+  P0Text.emptyHolyGroundsDescription: '사용 가능한 국가의 성지가 여기에 표시됩니다.',
   P0Text.adminContent: '콘텐츠',
   P0Text.adminCountry: '국가',
   P0Text.adminOperations: '운영',
+  P0Text.optional: '선택 사항',
 };

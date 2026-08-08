@@ -246,11 +246,10 @@ class CountryOperationalSummary {
       songCount > 0,
       hasPayments,
       hasWeeklyVideos,
-      holyGroundCount > 0,
     ].where((complete) => complete).length;
   }
 
-  int get totalSteps => 8;
+  int get totalSteps => 7;
 
   double get progress => completedSteps / totalSteps;
 

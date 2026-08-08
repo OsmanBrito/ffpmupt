@@ -101,6 +101,12 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /countries/{countryCode}/settings/motto {
+      allow read: if true;
+      allow create, update: if isCountryAdmin(countryCode);
+      allow delete: if false;
+    }
+
     match /countries/{countryCode}/settings/songImport {
       allow read: if isCountryAdmin(countryCode);
       allow create, update: if isCountryAdmin(countryCode);
@@ -125,9 +131,18 @@ service cloud.firestore {
     }
 
     match /countries/{countryCode}/holyGrounds/{holyGroundId} {
-      allow read: if true;
-      allow create, update: if isCountryAdmin(countryCode);
+      allow read: if resource.data.enabled == true
+        || isCountryAdmin(countryCode);
+      allow create, update: if isCountryAdmin(countryCode)
+        && request.resource.data.countryCode == countryCode
+        && request.resource.data.enabled is bool;
       allow delete: if false;
+    }
+
+    // Collection-group queries need an explicit recursive match. The public
+    // directory always filters by enabled == true.
+    match /{path=**}/holyGrounds/{holyGroundId} {
+      allow read: if resource.data.enabled == true;
     }
 
     match /adminInvites/{inviteId} {

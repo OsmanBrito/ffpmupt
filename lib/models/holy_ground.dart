@@ -74,33 +74,14 @@ class HolyGround {
   static HolyGround? fromMap({
     required String id,
     required Map<String, Object?> map,
+    String? countryCodeOverride,
   }) {
-    final countryCode = map['countryCode'];
+    final countryCode = countryCodeOverride ?? map['countryCode'];
     final name = map['name'];
-    final city = map['city'];
-    final address = map['address'];
-    final imageUrl = map['imageUrl'];
-    final summary = map['summary'];
-    final history = map['history'];
-    final visitInstructions = map['visitInstructions'];
-    final contactName = map['contactName'];
-    final contactEmail = map['contactEmail'];
-    final languageCode = map['languageCode'];
-    final enabled = map['enabled'];
-    final sortOrder = map['sortOrder'];
     if (countryCode is! String ||
+        countryCode.trim().isEmpty ||
         name is! String ||
-        city is! String ||
-        address is! String ||
-        imageUrl is! String ||
-        summary is! String ||
-        history is! String ||
-        visitInstructions is! String ||
-        contactName is! String ||
-        contactEmail is! String ||
-        languageCode is! String ||
-        enabled is! bool ||
-        sortOrder is! int) {
+        name.trim().isEmpty) {
       return null;
     }
     final latitude = _number(map['latitude']);
@@ -111,23 +92,29 @@ class HolyGround {
     }
     return HolyGround(
       id: id,
-      countryCode: countryCode,
-      name: name,
-      city: city,
-      address: address,
+      countryCode: countryCode.trim().toLowerCase(),
+      name: name.trim(),
+      city: _string(map['city']),
+      address: _string(map['address']),
       latitude: latitude,
       longitude: longitude,
-      imageUrl: imageUrl,
-      summary: summary,
-      history: history,
-      visitInstructions: visitInstructions,
-      contactName: contactName,
-      contactEmail: contactEmail,
-      languageCode: languageCode,
-      enabled: enabled,
-      sortOrder: sortOrder,
+      imageUrl: _string(map['imageUrl']),
+      summary: _string(map['summary']),
+      history: _string(map['history']),
+      visitInstructions: _string(map['visitInstructions']),
+      contactName: _string(map['contactName']),
+      contactEmail: _string(map['contactEmail']),
+      languageCode: _string(map['languageCode'], fallback: 'en').toLowerCase(),
+      enabled: map['enabled'] is bool ? map['enabled']! as bool : false,
+      sortOrder: map['sortOrder'] is num
+          ? (map['sortOrder']! as num).toInt()
+          : 0,
     );
   }
+}
+
+String _string(Object? value, {String fallback = ''}) {
+  return value is String ? value.trim() : fallback;
 }
 
 double? _number(Object? value) {

@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:ffpmupt/models/holy_ground.dart';
@@ -26,11 +25,18 @@ class HolyGroundsAdminScreen extends StatefulWidget {
 
 class _HolyGroundsAdminScreenState extends State<HolyGroundsAdminScreen> {
   late final HolyGroundRepository _repository;
+  late Stream<List<HolyGround>> _groundsStream;
+  final Set<String> _updatingGroundIds = {};
 
   @override
   void initState() {
     super.initState();
     _repository = HolyGroundRepository();
+    _groundsStream = _repository.watchAdmin(widget.countryCode);
+  }
+
+  void _retryLoading() {
+    setState(() => _groundsStream = _repository.watchAdmin(widget.countryCode));
   }
 
   Future<void> _openEditor([HolyGround? ground]) async {
@@ -45,30 +51,70 @@ class _HolyGroundsAdminScreenState extends State<HolyGroundsAdminScreen> {
     );
   }
 
+  Future<void> _setEnabled(HolyGround ground, bool enabled) async {
+    setState(() => _updatingGroundIds.add(ground.id));
+    try {
+      await _repository.setEnabled(ground, enabled);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              adminText(
+                context,
+                enabled
+                    ? 'Local publicado no diretório.'
+                    : 'Local ocultado do diretório.',
+              ),
+            ),
+          ),
+        );
+      }
+    } on Object {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              adminText(context, 'Não foi possível alterar a publicação.'),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _updatingGroundIds.remove(ground.id));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final p0 = P0Strings.of(AppLanguageScope.watch(context).language);
     return Scaffold(
-      appBar: AppBar(
-        title: Text(p0[P0Text.holyGrounds]),
-        actions: [
-          IconButton(
-            tooltip: adminText(context, 'Adicionar Holy Ground'),
-            onPressed: () => _openEditor(),
-            icon: const Icon(Icons.add_location_alt_outlined),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
+      appBar: AppBar(title: Text(p0[P0Text.holyGrounds])),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 920),
             child: StreamBuilder<List<HolyGround>>(
-              stream: _repository.watchAdmin(widget.countryCode),
+              stream: _groundsStream,
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
-                  return Center(child: Text(p0[P0Text.loadFailed]));
+                  return Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.cloud_off_outlined, size: 48),
+                        const SizedBox(height: 12),
+                        Text(p0[P0Text.loadFailed]),
+                        const SizedBox(height: 14),
+                        FilledButton.tonalIcon(
+                          onPressed: _retryLoading,
+                          icon: const Icon(Icons.refresh),
+                          label: Text(p0[P0Text.tryAgain]),
+                        ),
+                      ],
+                    ),
+                  );
                 }
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
@@ -107,11 +153,35 @@ class _HolyGroundsAdminScreenState extends State<HolyGroundsAdminScreen> {
                                   const SizedBox(height: 8),
                               itemBuilder: (context, index) {
                                 final ground = grounds[index];
+                                final isUpdating = _updatingGroundIds.contains(
+                                  ground.id,
+                                );
                                 return Card(
                                   child: ListTile(
-                                    leading: const Icon(
-                                      Icons.landscape_outlined,
-                                      size: 32,
+                                    leading: ClipRRect(
+                                      borderRadius: BorderRadius.circular(4),
+                                      child: SizedBox.square(
+                                        dimension: 52,
+                                        child: ground.imageUrl.isEmpty
+                                            ? const ColoredBox(
+                                                color: Color(0xffe8eeea),
+                                                child: Icon(
+                                                  Icons.landscape_outlined,
+                                                ),
+                                              )
+                                            : Image.network(
+                                                ground.imageUrl,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (_, _, _) =>
+                                                    const ColoredBox(
+                                                      color: Color(0xffe8eeea),
+                                                      child: Icon(
+                                                        Icons
+                                                            .broken_image_outlined,
+                                                      ),
+                                                    ),
+                                              ),
+                                      ),
                                     ),
                                     title: Text(
                                       ground.name,
@@ -123,6 +193,12 @@ class _HolyGroundsAdminScreenState extends State<HolyGroundsAdminScreen> {
                                       [
                                             ground.city,
                                             ground.languageCode.toUpperCase(),
+                                            adminText(
+                                              context,
+                                              ground.enabled
+                                                  ? 'Publicado'
+                                                  : 'Oculto',
+                                            ),
                                           ]
                                           .where((value) => value.isNotEmpty)
                                           .join(' · '),
@@ -130,15 +206,22 @@ class _HolyGroundsAdminScreenState extends State<HolyGroundsAdminScreen> {
                                     trailing: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Switch(
-                                          value: ground.enabled,
-                                          onChanged: (enabled) => unawaited(
-                                            _repository.setEnabled(
-                                              ground,
-                                              enabled,
+                                        if (isUpdating)
+                                          const Padding(
+                                            padding: EdgeInsets.all(12),
+                                            child: SizedBox.square(
+                                              dimension: 22,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                              ),
                                             ),
+                                          )
+                                        else
+                                          Switch(
+                                            value: ground.enabled,
+                                            onChanged: (enabled) =>
+                                                _setEnabled(ground, enabled),
                                           ),
-                                        ),
                                         IconButton(
                                           tooltip: adminText(context, 'Editar'),
                                           onPressed: () => _openEditor(ground),
@@ -268,6 +351,23 @@ class _HolyGroundEditorScreenState extends State<HolyGroundEditorScreen> {
     return _parseCoordinate(value) == null
         ? adminText(context, 'Coordenada inválida')
         : null;
+  }
+
+  String? _email(String? value) {
+    final email = value?.trim() ?? '';
+    if (email.isEmpty) {
+      return null;
+    }
+    return RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)
+        ? null
+        : adminText(context, 'Email inválido');
+  }
+
+  String? _integer(String? value) {
+    final order = value?.trim() ?? '';
+    return order.isEmpty || int.tryParse(order) != null
+        ? null
+        : adminText(context, 'Use um número inteiro');
   }
 
   double? _parseCoordinate(String value) {
@@ -481,24 +581,25 @@ class _HolyGroundEditorScreenState extends State<HolyGroundEditorScreen> {
                     label: adminText(context, 'Endereço completo'),
                     validator: _required,
                   ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _Field(
-                          controller: _latitude,
-                          label: adminText(context, 'Latitude (opcional)'),
-                          validator: _coordinate,
-                        ),
+                  _ResponsiveFieldPair(
+                    left: _Field(
+                      controller: _latitude,
+                      label: adminText(context, 'Latitude (opcional)'),
+                      validator: _coordinate,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                        signed: true,
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _Field(
-                          controller: _longitude,
-                          label: adminText(context, 'Longitude (opcional)'),
-                          validator: _coordinate,
-                        ),
+                    ),
+                    right: _Field(
+                      controller: _longitude,
+                      label: adminText(context, 'Longitude (opcional)'),
+                      validator: _coordinate,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                        signed: true,
                       ),
-                    ],
+                    ),
                   ),
                   _ImagePickerPanel(
                     selectedBytes: _selectedImageBytes,
@@ -550,24 +651,17 @@ class _HolyGroundEditorScreenState extends State<HolyGroundEditorScreen> {
                   _Field(
                     controller: _contactEmail,
                     label: adminText(context, 'Email de contato'),
+                    validator: _email,
+                    keyboardType: TextInputType.emailAddress,
                   ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _Field(
-                          controller: _languageCode,
-                          label: adminText(context, 'Idioma'),
-                          validator: _required,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _Field(
-                          controller: _sortOrder,
-                          label: adminText(context, 'Ordem'),
-                        ),
-                      ),
-                    ],
+                  _ResponsiveFieldPair(
+                    left: _LanguageField(controller: _languageCode),
+                    right: _Field(
+                      controller: _sortOrder,
+                      label: adminText(context, 'Ordem'),
+                      validator: _integer,
+                      keyboardType: TextInputType.number,
+                    ),
                   ),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
@@ -717,6 +811,7 @@ class _Field extends StatelessWidget {
     this.validator,
     this.minLines = 1,
     this.maxLines = 1,
+    this.keyboardType,
   });
 
   final TextEditingController controller;
@@ -724,6 +819,7 @@ class _Field extends StatelessWidget {
   final String? Function(String?)? validator;
   final int minLines;
   final int maxLines;
+  final TextInputType? keyboardType;
 
   @override
   Widget build(BuildContext context) {
@@ -734,10 +830,94 @@ class _Field extends StatelessWidget {
         validator: validator,
         minLines: minLines,
         maxLines: maxLines,
+        keyboardType: keyboardType,
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
         ),
+      ),
+    );
+  }
+}
+
+class _ResponsiveFieldPair extends StatelessWidget {
+  const _ResponsiveFieldPair({required this.left, required this.right});
+
+  final Widget left;
+  final Widget right;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 600) {
+          return Column(children: [left, right]);
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: left),
+            const SizedBox(width: 12),
+            Expanded(child: right),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _LanguageField extends StatefulWidget {
+  const _LanguageField({required this.controller});
+
+  final TextEditingController controller;
+
+  @override
+  State<_LanguageField> createState() => _LanguageFieldState();
+}
+
+class _LanguageFieldState extends State<_LanguageField> {
+  static const _labels = <String, String>{
+    'pt': 'Português',
+    'pt-br': 'Português (Brasil)',
+    'en': 'English',
+    'ko': '한국어',
+    'es': 'Español',
+    'de': 'Deutsch',
+    'it': 'Italiano',
+    'fr': 'Français',
+  };
+
+  late String _value;
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.controller.text.trim().toLowerCase();
+    _value = _labels.containsKey(initial) ? initial : 'en';
+    widget.controller.text = _value;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: DropdownButtonFormField<String>(
+        initialValue: _value,
+        decoration: InputDecoration(
+          labelText: adminText(context, 'Idioma'),
+          border: const OutlineInputBorder(),
+        ),
+        items: [
+          for (final entry in _labels.entries)
+            DropdownMenuItem(value: entry.key, child: Text(entry.value)),
+        ],
+        onChanged: (value) {
+          if (value == null) {
+            return;
+          }
+          setState(() => _value = value);
+          widget.controller.text = value;
+        },
       ),
     );
   }
