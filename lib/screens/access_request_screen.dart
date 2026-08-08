@@ -1,5 +1,6 @@
 import 'package:ffpmupt/models/access_request_country.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class AccessRequestScreen extends StatefulWidget {
@@ -31,14 +32,17 @@ class _AccessRequestScreenState extends State<AccessRequestScreen> {
   String? _countryCode;
   bool _isSubmitting = false;
   bool _submitted = false;
+  bool _copied = false;
   String? _error;
+  String? _preparedEmailText;
 
   @override
   void initState() {
     super.initState();
-    _countryCode = widget.countries.any(
-            (country) => country.code == widget.initialCountryCode,
-          )
+    _countryCode =
+        widget.countries.any(
+          (country) => country.code == widget.initialCountryCode,
+        )
         ? widget.initialCountryCode
         : null;
   }
@@ -73,7 +77,10 @@ class _AccessRequestScreenState extends State<AccessRequestScreen> {
     setState(() {
       _isSubmitting = true;
       _error = null;
+      _copied = false;
+      _preparedEmailText = null;
     });
+    String? preparedEmailText;
     try {
       final requesterEmail = _emailController.text.trim().toLowerCase();
       final message = _messageController.text.trim();
@@ -90,17 +97,18 @@ class _AccessRequestScreenState extends State<AccessRequestScreen> {
         '',
         'Thank you.',
       ].join('\n');
+      final subject =
+          'FFPMU Connect — Administrator access request — ${country.name}';
+      preparedEmailText =
+          'To: ${widget.coordinatorEmail}\nSubject: $subject\n\n$emailBody';
       final mailto = Uri(
         scheme: 'mailto',
         path: widget.coordinatorEmail,
-        queryParameters: {
-          'subject':
-              'FFPMU Connect — Administrator access request — ${country.name}',
-          'body': emailBody,
-        },
+        queryParameters: {'subject': subject, 'body': emailBody},
       );
-      final opened = await (widget.emailLauncher?.call(mailto) ??
-          launchUrl(mailto, mode: LaunchMode.externalApplication));
+      final opened =
+          await (widget.emailLauncher?.call(mailto) ??
+              launchUrl(mailto, mode: LaunchMode.externalApplication));
       if (!opened) {
         throw StateError('No email application is available.');
       }
@@ -109,10 +117,11 @@ class _AccessRequestScreenState extends State<AccessRequestScreen> {
       }
     } on Object catch (_) {
       if (mounted) {
-        setState(
-          () => _error =
-              'We could not open your email application. Please send your request to ${widget.coordinatorEmail}.',
-        );
+        setState(() {
+          _error =
+              'We could not open your email application. Please send your request to ${widget.coordinatorEmail}.';
+          _preparedEmailText = preparedEmailText;
+        });
       }
     } finally {
       if (mounted) {
@@ -262,6 +271,36 @@ class _AccessRequestScreenState extends State<AccessRequestScreen> {
             if (_error != null) ...[
               const SizedBox(height: 10),
               Text(_error!, textAlign: TextAlign.center),
+            ],
+            if (_preparedEmailText case final preparedText?) ...[
+              const SizedBox(height: 12),
+              const Text(
+                'Copy the prepared request below and send it manually if you use webmail or do not have an email app configured:',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: const BoxDecoration(
+                  color: Color(0xffeef4f1),
+                  borderRadius: BorderRadius.all(Radius.circular(8)),
+                ),
+                child: SelectableText(preparedText),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  try {
+                    await Clipboard.setData(ClipboardData(text: preparedText));
+                  } finally {
+                    if (mounted) {
+                      setState(() => _copied = true);
+                    }
+                  }
+                },
+                icon: Icon(_copied ? Icons.check : Icons.copy_outlined),
+                label: Text(_copied ? 'Request copied' : 'Copy request text'),
+              ),
             ],
             const SizedBox(height: 8),
             FilledButton.icon(

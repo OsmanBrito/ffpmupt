@@ -40,9 +40,7 @@ void main() {
     await tester.pumpWidget(
       const MaterialApp(
         home: AccessRequestScreen(
-          countries: [
-            AccessRequestCountry(code: 'pt', name: 'Portugal'),
-          ],
+          countries: [AccessRequestCountry(code: 'pt', name: 'Portugal')],
         ),
       ),
     );
@@ -57,25 +55,28 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  test('European request list includes countries not configured in Firestore', () {
-    expect(
-      europeanAccessRequestCountries.any((country) => country.code == 'es'),
-      isTrue,
-    );
-    expect(
-      europeanAccessRequestCountries.any((country) => country.code == 'pt'),
-      isTrue,
-    );
-  });
+  test(
+    'European request list includes countries not configured in Firestore',
+    () {
+      expect(
+        europeanAccessRequestCountries.any((country) => country.code == 'es'),
+        isTrue,
+      );
+      expect(
+        europeanAccessRequestCountries.any((country) => country.code == 'pt'),
+        isTrue,
+      );
+    },
+  );
 
-  testWidgets('request opens a prepared email without Firebase', (tester) async {
+  testWidgets('request opens a prepared email without Firebase', (
+    tester,
+  ) async {
     Uri? captured;
     await tester.pumpWidget(
       MaterialApp(
         home: AccessRequestScreen(
-          countries: const [
-            AccessRequestCountry(code: 'pt', name: 'Portugal'),
-          ],
+          countries: const [AccessRequestCountry(code: 'pt', name: 'Portugal')],
           initialCountryCode: 'pt',
           emailLauncher: (uri) async {
             captured = uri;
@@ -86,10 +87,7 @@ void main() {
     );
 
     await tester.enterText(find.byType(TextFormField).at(0), 'Ana Leader');
-    await tester.enterText(
-      find.byType(TextFormField).at(1),
-      'ana@example.com',
-    );
+    await tester.enterText(find.byType(TextFormField).at(1), 'ana@example.com');
     final submitButton = find.text('Open email to send request');
     await tester.ensureVisible(submitButton);
     await tester.tap(submitButton);
@@ -99,5 +97,36 @@ void main() {
     expect(captured?.path, 'osman.gimenes@gmail.com');
     expect(captured?.queryParameters['subject'], contains('Portugal'));
     expect(find.text('Email draft prepared'), findsOneWidget);
+  });
+
+  testWidgets('request offers a manual copy fallback when no email app opens', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AccessRequestScreen(
+          countries: const [AccessRequestCountry(code: 'pt', name: 'Portugal')],
+          initialCountryCode: 'pt',
+          emailLauncher: (_) async => false,
+        ),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextFormField).at(0), 'Test Leader');
+    await tester.enterText(
+      find.byType(TextFormField).at(1),
+      'test@example.com',
+    );
+    final submitButton = find.text('Open email to send request');
+    await tester.ensureVisible(submitButton);
+    await tester.tap(submitButton);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('We could not open your email application'),
+      findsOneWidget,
+    );
+    expect(find.text('Copy request text'), findsOneWidget);
+    expect(find.byType(SelectableText), findsOneWidget);
   });
 }

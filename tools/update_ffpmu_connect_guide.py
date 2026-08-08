@@ -133,7 +133,7 @@ pilot_link = next(
 )
 insert_after(
     pilot_link,
-    'Need administrator access? Open Request administrator access on the first screen, select your country, and submit your full name, role (country leader/admin), and the individual email address you will use. The form opens a prepared email; press Send in your email app. You do not need Firebase access or a shared password.',
+    'Need administrator access? Open Request administrator access on the first screen, select your country, and submit your full name, role (country leader/admin), and the individual email address you will use. The form opens a prepared email; press Send in your email app. If no email app opens, copy the prepared request shown on the page and send it manually. You do not need Firebase access or a shared password.',
     'Callout',
 )
 
@@ -218,7 +218,7 @@ request_heading = insert_after(
 )
 request_body = insert_after(
     request_heading,
-    'Open Request administrator access from the first screen, select your country, and submit your full name, role, and individual email. The form opens a prepared email to the coordinator; press Send, then the coordinator reviews it and creates the official invitation. Then follow the steps under “For the invited country administrator”.',
+    'Open Request administrator access from the first screen, select your country, and submit your full name, role, and individual email. The form opens a prepared email to the coordinator; press Send. If no email app opens, copy the prepared request shown on the page and send it manually. Then the coordinator reviews it and creates the official invitation. Then follow the steps under “For the invited country administrator”.',
     body_source.style,
 )
 insert_after(

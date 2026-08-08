@@ -47,6 +47,8 @@ The form opens a prepared email addressed to the coordinator. Press **Send** in
 your email application to complete the request. This free flow does not need
 the Firebase Blaze plan, Cloud Functions, or a mail service. The coordinator
 reviews the email, creates the country invitation, and sends a private link.
+If no email application opens, copy the prepared request shown on the page and
+send it manually to the displayed coordinator email address.
 The leader does not need Firebase access and should not share an administrator
 password. Open the invitation link, create or sign in to the account using the
 invited email, verify the email, and accept the invitation. Invitation links
