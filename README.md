@@ -44,3 +44,10 @@ flutter test
 ## Notes
 
 The song tests validate that required metadata exists, referenced audio files are present, and lyric timing data cannot read beyond the available lyrics.
+
+The public **Request administrator access** page uses a prepared `mailto:`
+message, so it does not require Cloud Functions, Resend, or the Firebase
+Blaze plan. The normal country selector shows only countries that have been
+created and enabled in Firestore; the access-request form includes the
+European country list so leaders can contact the coordinator before their
+country is configured.

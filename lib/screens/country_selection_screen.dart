@@ -1,5 +1,6 @@
 import 'package:ffpmupt/app_branding.dart';
 import 'package:ffpmupt/models/country.dart';
+import 'package:ffpmupt/settings/admin_copy.dart';
 import 'package:flutter/material.dart';
 
 class CountrySelectionScreen extends StatelessWidget {
@@ -78,6 +79,15 @@ class CountrySelectionScreen extends StatelessWidget {
                           ),
                         );
                       },
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton.icon(
+                    onPressed: () =>
+                        Navigator.of(context).pushNamed('/request-access'),
+                    icon: const Icon(Icons.mark_email_unread_outlined),
+                    label: Text(
+                      adminText(context, 'Request administrator access'),
                     ),
                   ),
                 ],

@@ -169,6 +169,33 @@ const _english = <String, String>{
       'You can now select the country and open the administration area.',
   'Continuar': 'Continue',
   'Entrar': 'Sign in',
+  'Pedir acesso administrativo': 'Request administrator access',
+  'Informe os seus dados. Vamos analisar o pedido e enviar um convite por email.':
+      'Enter your details. We will review the request and send an invitation by email.',
+  'País': 'Country',
+  'Escolha um país primeiro.': 'Choose a country first.',
+  'Nenhum país disponível neste momento.':
+      'No countries are available right now.',
+  'Escolha um país.': 'Choose a country.',
+  'Nome completo': 'Full name',
+  'Email para receber o convite': 'Email to receive the invitation',
+  'Função': 'Role',
+  'Líder do país': 'Country leader',
+  'Administrador do país': 'Country administrator',
+  'Mensagem (opcional)': 'Message (optional)',
+  'Informe o seu nome completo.': 'Enter your full name.',
+  'Informe um email válido.': 'Enter a valid email.',
+  'Enviar pedido': 'Send request',
+  'O envio do pedido não dá acesso automaticamente. O coordenador irá rever os dados e enviar um convite separado.':
+      'Submitting the request does not grant access automatically. The coordinator will review it and send a separate invitation.',
+  'Pedido enviado': 'Request sent',
+  'Recebemos o seu pedido. Depois de o rever, vamos enviar um convite para o email indicado.':
+      'We received your request. After reviewing it, we will send an invitation to the email provided.',
+  'Voltar à aplicação': 'Return to the app',
+  'Não foi possível enviar o pedido. Tente novamente mais tarde.':
+      'The request could not be sent. Please try again later.',
+  'Sem acesso? Peça um convite ao coordenador do FFPMU Connect com o seu país, nome e email.':
+      'No access yet? Ask the FFPMU Connect coordinator for an invitation with your country, name, and email.',
   'Esta conta não corresponde ao email do convite.':
       'This account does not match the invitation email.',
   'Não foi possível abrir o convite.': 'The invitation could not be opened.',

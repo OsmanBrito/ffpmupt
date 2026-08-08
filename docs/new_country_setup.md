@@ -33,6 +33,25 @@ can save Promise content. A superadministrator can now complete the country,
 church, and admin setup from **Administration > Operational CRM**. The manual
 Firebase steps below remain useful for recovery and initial bootstrap.
 
+## How a Country Leader Requests Access
+
+Before signing in, open **Request administrator access** on the first screen
+and select the country. The form includes all European countries, including
+countries that have not been configured in the app yet. Submit:
+
+- Country name (and country code, if already known).
+- Full name and role (country leader or country administrator).
+- The individual email address that will be used for the account.
+
+The form opens a prepared email addressed to the coordinator. Press **Send** in
+your email application to complete the request. This free flow does not need
+the Firebase Blaze plan, Cloud Functions, or a mail service. The coordinator
+reviews the email, creates the country invitation, and sends a private link.
+The leader does not need Firebase access and should not share an administrator
+password. Open the invitation link, create or sign in to the account using the
+invited email, verify the email, and accept the invitation. Invitation links
+expire after seven days; ask the coordinator for a new link if necessary.
+
 ## Step 1: Create the Country
 
 1. Open **Firebase Console**.
@@ -67,7 +86,8 @@ Important:
 
 - The document ID and `code` must be identical.
 - `enabled` must be a boolean, not the text `"true"`.
-- Disabled countries do not appear on the country selection screen.
+- Disabled or not-yet-created countries do not appear on the normal country
+  selection screen. They can still be selected on the access-request form.
 
 ## Step 2: Create the Administrator Login
 
