@@ -30,6 +30,24 @@ service cloud.firestore {
           ).data.countryCodes.hasAny([countryCode]));
     }
 
+    function isValidCountryDocument(countryCode) {
+      return request.resource.data.code == countryCode
+        && request.resource.data.code == resource.data.code
+        && request.resource.data.enabled == resource.data.enabled
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 100
+        && request.resource.data.defaultLanguage is string
+        && request.resource.data.defaultLanguage.size() >= 2
+        && request.resource.data.defaultLanguage.size() <= 5
+        && request.resource.data.timezone is string
+        && request.resource.data.timezone.size() >= 1
+        && request.resource.data.timezone.size() <= 100
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name', 'defaultLanguage', 'timezone', 'updatedAt'
+        ]);
+    }
+
     function isInviteEmail(invite) {
       return isSignedIn()
         && request.auth.token.email is string
@@ -85,7 +103,16 @@ service cloud.firestore {
 
     match /countries/{countryCode} {
       allow read: if true;
-      allow create, update: if isCountryAdmin(countryCode);
+      allow create: if isSuperAdmin()
+        && request.resource.data.code == countryCode
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 100
+        && request.resource.data.defaultLanguage is string
+        && request.resource.data.timezone is string
+        && request.resource.data.enabled is bool;
+      allow update: if isSuperAdmin()
+        || (isCountryAdmin(countryCode) && isValidCountryDocument(countryCode));
       allow delete: if false;
     }
 
@@ -172,42 +199,11 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Public leaders may submit an access request. The Cloud Function sends
-    // the notification; only a superadmin can read or manage the requests.
+    // Access requests are intentionally sent through the user's email app.
+    // Keep this collection closed until App Check, rate limiting, and a
+    // retention policy are deployed for an automated request workflow.
     match /accessRequests/{requestId} {
-      allow create: if request.resource.data.keys().hasOnly([
-          'countryCode', 'countryName', 'displayName', 'email', 'role',
-          'message', 'status', 'createdAt'
-        ])
-        && request.resource.data.countryCode is string
-        && request.resource.data.countryCode.size() >= 2
-        && request.resource.data.countryCode.size() <= 3
-        && request.resource.data.countryCode
-          == request.resource.data.countryCode.lower()
-        && get(
-          /databases/$(database)/documents/countries/$(request.resource.data.countryCode)
-        ).data.enabled == true
-        && get(
-          /databases/$(database)/documents/countries/$(request.resource.data.countryCode)
-        ).data.code == request.resource.data.countryCode
-        && request.resource.data.countryName is string
-        && request.resource.data.countryName.size() >= 2
-        && request.resource.data.countryName.size() <= 100
-        && request.resource.data.displayName is string
-        && request.resource.data.displayName.size() >= 2
-        && request.resource.data.displayName.size() <= 100
-        && request.resource.data.email is string
-        && request.resource.data.email.size() >= 5
-        && request.resource.data.email.size() <= 254
-        && request.resource.data.email
-          == request.resource.data.email.lower()
-        && request.resource.data.role is string
-        && ['country_leader', 'country_admin']
-          .hasAny([request.resource.data.role])
-        && request.resource.data.message is string
-        && request.resource.data.message.size() <= 1000
-        && request.resource.data.status == 'new'
-        && request.resource.data.createdAt == request.time;
+      allow create: if false;
       allow get, list, update: if isSuperAdmin();
       allow delete: if false;
     }

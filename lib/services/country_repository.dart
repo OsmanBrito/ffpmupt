@@ -23,22 +23,22 @@ class CountryRepository {
     return _database?.collection('countries').doc(countryCode);
   }
 
-  Future<CountryModel> load(String countryCode) async {
+  Future<CountryModel?> load(String countryCode) async {
     final reference = document(countryCode);
     if (reference == null) {
-      return CountryModel.portugal;
+      return null;
     }
 
     try {
       final snapshot = await reference.get();
       final data = snapshot.data();
       if (data == null) {
-        return CountryModel.portugal;
+        return null;
       }
 
-      return CountryModel.fromMap(data) ?? CountryModel.portugal;
+      return CountryModel.fromMap(data);
     } on FirebaseException {
-      return CountryModel.portugal;
+      return null;
     }
   }
 

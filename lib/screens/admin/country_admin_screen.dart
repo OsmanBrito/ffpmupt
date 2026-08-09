@@ -1,5 +1,6 @@
 import 'package:ffpmupt/models/country.dart';
 import 'package:ffpmupt/services/country_repository.dart';
+import 'package:ffpmupt/settings/admin_copy.dart';
 import 'package:ffpmupt/settings/app_language.dart';
 import 'package:ffpmupt/settings/app_strings.dart';
 import 'package:ffpmupt/settings/country_scope.dart';
@@ -22,6 +23,7 @@ class _CountryAdminScreenState extends State<CountryAdminScreen> {
   bool _enabled = CountryModel.portugal.enabled;
   bool _isLoading = true;
   bool _isSaving = false;
+  String? _loadError;
 
   @override
   void initState() {
@@ -42,12 +44,24 @@ class _CountryAdminScreenState extends State<CountryAdminScreen> {
       return;
     }
 
+    if (country == null) {
+      setState(() {
+        _isLoading = false;
+        _loadError = adminText(
+          context,
+          'Não foi possível carregar as configurações deste país.',
+        );
+      });
+      return;
+    }
+
     setState(() {
       _nameController.text = country.name;
       _timezoneController.text = country.timezone;
       _defaultLanguage = country.defaultLanguage;
       _enabled = country.enabled;
       _isLoading = false;
+      _loadError = null;
     });
   }
 
@@ -103,6 +117,25 @@ class _CountryAdminScreenState extends State<CountryAdminScreen> {
             constraints: const BoxConstraints(maxWidth: 760),
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
+                : _loadError != null
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.cloud_off_outlined, size: 48),
+                        const SizedBox(height: 12),
+                        Text(_loadError!, textAlign: TextAlign.center),
+                        const SizedBox(height: 14),
+                        FilledButton.tonalIcon(
+                          onPressed: _load,
+                          icon: const Icon(Icons.refresh),
+                          label: Text(
+                            adminText(context, 'Tentar novamente'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
                 : ListView(
                     padding: const EdgeInsets.all(20),
                     children: [
@@ -172,11 +205,13 @@ class _CountryAdminScreenState extends State<CountryAdminScreen> {
                         contentPadding: EdgeInsets.zero,
                         title: Text(strings.countryEnabled),
                         value: _enabled,
-                        onChanged: (value) {
-                          setState(() {
-                            _enabled = value;
-                          });
-                        },
+                        subtitle: Text(
+                          adminText(
+                            context,
+                            'Apenas o coordenador pode ativar ou desativar países.',
+                          ),
+                        ),
+                        onChanged: null,
                       ),
                       const SizedBox(height: 18),
                       Align(

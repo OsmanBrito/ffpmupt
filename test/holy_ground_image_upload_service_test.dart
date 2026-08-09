@@ -28,7 +28,7 @@ void main() {
     );
 
     final url = await service.upload(
-      bytes: Uint8List.fromList([1, 2, 3]),
+      bytes: Uint8List.fromList([0xff, 0xd8, 0xff, 0x00]),
       fileName: 'holy-ground.jpg',
     );
 
@@ -55,7 +55,10 @@ void main() {
 
     expect(
       () =>
-          service.upload(bytes: Uint8List.fromList([1]), fileName: 'image.jpg'),
+          service.upload(
+            bytes: Uint8List.fromList([0xff, 0xd8, 0xff, 0x00]),
+            fileName: 'image.jpg',
+          ),
       throwsA(
         isA<HolyGroundImageUploadException>().having(
           (error) => error.message,
@@ -63,6 +66,29 @@ void main() {
           'Unknown upload preset',
         ),
       ),
+    );
+  });
+
+  test('rejects unsupported or oversized image data before upload', () async {
+    final service = HolyGroundImageUploadService(
+      cloudName: 'example-cloud',
+      uploadPreset: 'holy_grounds',
+      send: (_) async => throw StateError('upload should not run'),
+    );
+
+    expect(
+      () => service.upload(
+        bytes: Uint8List.fromList([1, 2, 3]),
+        fileName: 'image.jpg',
+      ),
+      throwsA(isA<HolyGroundImageUploadException>()),
+    );
+    expect(
+      () => service.upload(
+        bytes: Uint8List(HolyGroundImageUploadService.maxImageBytes + 1),
+        fileName: 'image.jpg',
+      ),
+      throwsA(isA<HolyGroundImageUploadException>()),
     );
   });
 }

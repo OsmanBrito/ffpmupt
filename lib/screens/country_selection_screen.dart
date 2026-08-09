@@ -36,7 +36,11 @@ class _CountrySelectionScreenState extends State<CountrySelectionScreen> {
     final copy = OnboardingCopy.of(language);
     final query = _query.trim().toLowerCase();
     final visibleCountries = widget.countries
-        .where((country) => country.name.toLowerCase().contains(query))
+        .where(
+          (country) =>
+              country.name.toLowerCase().contains(query) ||
+              country.code.toLowerCase().contains(query),
+        )
         .toList();
 
     return Scaffold(

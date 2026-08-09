@@ -263,8 +263,9 @@ class HolyGroundEditorScreen extends StatefulWidget {
 }
 
 class _HolyGroundEditorScreenState extends State<HolyGroundEditorScreen> {
-  static const _maxImageBytes = 5 * 1024 * 1024;
-  static const _allowedImageExtensions = {'jpg', 'jpeg', 'png', 'webp'};
+  static const _maxImageBytes = HolyGroundImageUploadService.maxImageBytes;
+  static const _allowedImageExtensions =
+      HolyGroundImageUploadService.allowedExtensions;
 
   final _formKey = GlobalKey<FormState>();
   final _repository = HolyGroundRepository();
@@ -468,6 +469,18 @@ class _HolyGroundEditorScreenState extends State<HolyGroundEditorScreen> {
         ),
       );
       return;
+    }
+    final existingImageUrl = _imageUrl.text.trim();
+    if (_selectedImageBytes == null && existingImageUrl.isNotEmpty) {
+      final imageUri = Uri.tryParse(existingImageUrl);
+      if (imageUri == null ||
+          imageUri.scheme != 'https' ||
+          imageUri.host.isEmpty) {
+        _showMessage(
+          adminText(context, 'A fotografia deve usar uma URL HTTPS válida.'),
+        );
+        return;
+      }
     }
 
     setState(() {

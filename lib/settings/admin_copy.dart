@@ -51,6 +51,8 @@ const _english = <String, String>{
       'Check the latitude and longitude limits.',
   'Selecione uma fotografia antes de publicar o local.':
       'Select a photo before publishing the place.',
+  'A fotografia deve usar uma URL HTTPS válida.':
+      'The photo must use a valid HTTPS URL.',
   'Guardando dados...': 'Saving data...',
   'Enviando fotografia...': 'Uploading photo...',
   'Publicado': 'Published',
@@ -249,6 +251,10 @@ const _english = <String, String>{
   'Nenhum país encontrado.': 'No countries found.',
   'Configurações do país': 'Country settings',
   'País ativo': 'Country active',
+  'Não foi possível carregar as configurações deste país.':
+      'Could not load this country\'s settings.',
+  'Apenas o coordenador pode ativar ou desativar países.':
+      'Only the coordinator can enable or disable countries.',
   'Administrador associado': 'Administrator assigned',
   'Igreja local cadastrada': 'Local church registered',
   'Promessa nos idiomas necessários': 'Promise in the required languages',

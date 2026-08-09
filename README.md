@@ -23,6 +23,19 @@ The app shows:
 Country-specific songs, Promise content, payment methods, and weekly videos
 are stored under `countries/{countryCode}` in Firestore.
 
+## Access requests and security
+
+The public administrator-access form intentionally opens a prepared email and
+does not write personal data to Firestore. The optional Cloud Functions/Resend
+implementation under `functions/` is disabled by the Firestore rules until
+App Check, rate limiting, and a retention policy are in place.
+
+Country administrators can edit their country's content settings, but only a
+superadmin can create a country or change whether it is enabled. Holy Ground
+images are checked for type and size in the client before being sent to the
+configured Cloudinary upload preset; the preset must also enforce equivalent
+limits in Cloudinary.
+
 ## Development
 
 ```sh
