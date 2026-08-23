@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:ffpmupt/models/country.dart';
 import 'package:ffpmupt/screens/admin/country_admin_screen.dart';
+import 'package:ffpmupt/screens/admin/community_notices_admin_screen.dart';
 import 'package:ffpmupt/screens/admin/country_readiness_screen.dart';
 import 'package:ffpmupt/screens/admin/family_promise_admin_screen.dart';
 import 'package:ffpmupt/screens/admin/holy_grounds_admin_screen.dart';
@@ -10,6 +11,7 @@ import 'package:ffpmupt/screens/admin/operational_crm_screen.dart';
 import 'package:ffpmupt/screens/admin/payment_settings_admin_screen.dart';
 import 'package:ffpmupt/screens/admin/songs_admin_screen.dart';
 import 'package:ffpmupt/screens/videos_screen.dart';
+import 'package:ffpmupt/screens/community_notices_screen.dart';
 import 'package:ffpmupt/services/admin_auth_service.dart';
 import 'package:ffpmupt/settings/app_language.dart';
 import 'package:ffpmupt/settings/app_strings.dart';
@@ -307,14 +309,34 @@ class _AdminScreenState extends State<AdminScreen> {
           subtitle: strings.countrySettingsSubtitle,
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) =>
-                  CountryAdminScreen(countryCode: widget.country.code),
+              builder: (context) => CountryAdminScreen(
+                countryCode: widget.country.code,
+                isSuperAdmin: _isSuperAdmin,
+              ),
             ),
           ),
         ),
         const SizedBox(height: 24),
         _AdminSectionTitle(title: p0[P0Text.adminContent]),
         const SizedBox(height: 10),
+        _AdminActionCard(
+          icon: Icons.campaign_outlined,
+          title: CommunityNoticeCopy.of(
+            AppLanguageScope.watch(context).language,
+          ).title,
+          subtitle: CommunityNoticeCopy.of(
+            AppLanguageScope.watch(context).language,
+          ).subtitle,
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => CommunityNoticesAdminScreen(
+                countryCode: widget.country.code,
+                defaultLanguage: widget.country.defaultLanguage,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
         _AdminActionCard(
           icon: Icons.auto_stories_outlined,
           title: strings.familyPromise,

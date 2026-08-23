@@ -54,11 +54,10 @@ void main() {
     );
 
     expect(
-      () =>
-          service.upload(
-            bytes: Uint8List.fromList([0xff, 0xd8, 0xff, 0x00]),
-            fileName: 'image.jpg',
-          ),
+      () => service.upload(
+        bytes: Uint8List.fromList([0xff, 0xd8, 0xff, 0x00]),
+        fileName: 'image.jpg',
+      ),
       throwsA(
         isA<HolyGroundImageUploadException>().having(
           (error) => error.message,

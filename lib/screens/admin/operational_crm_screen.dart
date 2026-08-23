@@ -217,8 +217,10 @@ class CountryOperationsScreen extends StatelessWidget {
             tooltip: adminText(context, 'Configurações do país'),
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) =>
-                    CountryAdminScreen(countryCode: summary.country.code),
+                builder: (context) => CountryAdminScreen(
+                  countryCode: summary.country.code,
+                  isSuperAdmin: true,
+                ),
               ),
             ),
             icon: const Icon(Icons.settings_outlined),

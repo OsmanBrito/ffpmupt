@@ -33,7 +33,7 @@ class MottoRepository {
 
   Stream<MottoSettings> watch() async* {
     final cached = await _readCache();
-    var current = cached ?? MottoSettings.fallback();
+    var current = cached ?? MottoSettings.fallback(countryCode: countryCode);
     yield current;
 
     final document = _document;
@@ -57,7 +57,8 @@ class MottoRepository {
   }
 
   Future<MottoSettings> loadForAdmin() async {
-    final fallback = await _readCache() ?? MottoSettings.fallback();
+    final fallback =
+        await _readCache() ?? MottoSettings.fallback(countryCode: countryCode);
     final document = _document;
     if (document == null) {
       return fallback;

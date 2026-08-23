@@ -56,13 +56,11 @@ class CountryRepository {
                 .whereType<CountryModel>()
                 .toList()
               ..sort((left, right) => left.name.compareTo(right.name));
-        if (countries.isNotEmpty) {
-          await LocalStore.setString(
-            _countriesCacheKey,
-            jsonEncode(countries.map((country) => country.toMap()).toList()),
-          );
-          return countries;
-        }
+        await LocalStore.setString(
+          _countriesCacheKey,
+          jsonEncode(countries.map((country) => country.toMap()).toList()),
+        );
+        return countries;
       } on FirebaseException {
         // Fall through to the last local copy.
       }
@@ -82,16 +80,17 @@ class CountryRepository {
               .whereType<CountryModel>()
               .where((country) => country.enabled)
               .toList();
-          if (countries.isNotEmpty) {
-            return countries;
-          }
+          return countries;
         }
       } on FormatException {
         // Use the bundled country below.
       }
     }
 
-    return const [CountryModel.portugal];
+    // Never substitute another country's data when configuration is
+    // unavailable. An empty list lets the UI explain that no country is
+    // currently available instead of silently selecting Portugal.
+    return const [];
   }
 
   Future<bool> save(CountryModel country) async {

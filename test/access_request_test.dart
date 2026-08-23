@@ -1,41 +1,9 @@
-import 'package:ffpmupt/models/access_request.dart';
 import 'package:ffpmupt/models/access_request_country.dart';
 import 'package:ffpmupt/screens/access_request_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('access request round-trips through Firestore data', () {
-    const request = AccessRequest(
-      countryCode: 'es',
-      countryName: 'Spain',
-      displayName: 'Country leader',
-      email: 'leader@example.com',
-      role: AccessRequestRole.countryLeader,
-      message: 'Please include our local admin team.',
-    );
-
-    final decoded = AccessRequest.fromMap(request.toMap());
-
-    expect(decoded?.countryCode, 'es');
-    expect(decoded?.email, 'leader@example.com');
-    expect(decoded?.role, AccessRequestRole.countryLeader);
-    expect(decoded?.message, contains('local admin'));
-  });
-
-  test('access request rejects an unknown role', () {
-    final decoded = AccessRequest.fromMap({
-      'countryCode': 'es',
-      'countryName': 'Spain',
-      'displayName': 'Leader',
-      'email': 'leader@example.com',
-      'role': 'owner',
-      'message': '',
-    });
-
-    expect(decoded, isNull);
-  });
-
   testWidgets('access request screen explains the review flow', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(

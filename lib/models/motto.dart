@@ -6,9 +6,14 @@ class MottoSettings {
   final String title;
   final String body;
 
-  factory MottoSettings.fallback() {
-    return MottoSettings(title: currentMotto.title, body: currentMotto.body);
+  factory MottoSettings.fallback({required String countryCode}) {
+    if (countryCode.toLowerCase() == 'pt') {
+      return MottoSettings(title: currentMotto.title, body: currentMotto.body);
+    }
+    return const MottoSettings(title: '', body: '');
   }
+
+  bool get isConfigured => title.trim().isNotEmpty && body.trim().isNotEmpty;
 
   Map<String, Object?> toMap() => {'title': title, 'body': body};
 

@@ -11,12 +11,14 @@ The app shows:
 - The Family Pledge in the country's main language, Korean, and English.
 - Church songs with lyrics, categories, optional audio, and verse timing.
 - Country-specific offerings/tithes methods with optional QR codes.
+- Country-specific notices and news for events, special days, workshops, and
+  weekly homework.
 
 ## Content
 
 - Yearly motto: `lib/content/motto.dart`
 - Family Pledge: `lib/content/family_promise.dart`
-- Default Portugal payment details: `lib/content/offering.dart`
+- Payment configuration defaults and QR helpers: `lib/content/offering.dart`
 - Songs and audio timing: `lib/songs/songs.dart`
 - Audio files: `assets/`
 
@@ -25,10 +27,8 @@ are stored under `countries/{countryCode}` in Firestore.
 
 ## Access requests and security
 
-The public administrator-access form intentionally opens a prepared email and
-does not write personal data to Firestore. The optional Cloud Functions/Resend
-implementation under `functions/` is disabled by the Firestore rules until
-App Check, rate limiting, and a retention policy are in place.
+The public administrator-access form intentionally opens a prepared `mailto:`
+message and does not write personal data to Firestore.
 
 Country administrators can edit their country's content settings, but only a
 superadmin can create a country or change whether it is enabled. Holy Ground
@@ -42,6 +42,10 @@ limits in Cloudinary.
 flutter pub get
 flutter analyze
 flutter test
+# Web smoke test (requires Chrome)
+flutter drive -d chrome \
+  --driver=test_driver/integration_test.dart \
+  --target=integration_test/web_smoke_test.dart
 ```
 
 ## Documentation

@@ -283,3 +283,30 @@ Path: `countries/{countryCode}/holyGrounds/{holyGroundId}`
 Enabled Holy Grounds are publicly readable through a collection-group query.
 Only an administrator authorized for `countryCode` can create or update them.
 Disabled documents remain stored but are omitted from the public directory.
+
+## Notices and News
+
+Path: `countries/{countryCode}/notices/{noticeId}`
+
+```json
+{
+  "countryCode": "pt",
+  "title": "Workshop para líderes",
+  "body": "Informações e preparação para esta semana.",
+  "category": "workshop",
+  "date": "2026-09-12",
+  "location": "Lisboa",
+  "linkUrl": "https://...",
+  "languageCode": "pt",
+  "enabled": true,
+  "pinned": false,
+  "sortOrder": 0,
+  "createdAt": "server timestamp",
+  "updatedAt": "server timestamp"
+}
+```
+
+Categories are `general`, `event`, `specialDay`, `workshop`, and
+`weeklyHomework`. Public clients can read only enabled notices under an enabled
+country. Country administrators can create, edit, publish, and hide their own
+country's notices.

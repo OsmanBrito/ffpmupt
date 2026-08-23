@@ -7,16 +7,24 @@ import 'package:ffpmupt/settings/country_scope.dart';
 import 'package:flutter/material.dart';
 
 class CountryAdminScreen extends StatefulWidget {
-  const CountryAdminScreen({super.key, required this.countryCode});
+  const CountryAdminScreen({
+    super.key,
+    required this.countryCode,
+    required this.isSuperAdmin,
+    this.repository,
+  });
 
   final String countryCode;
+  final bool isSuperAdmin;
+  final CountryRepository? repository;
 
   @override
   State<CountryAdminScreen> createState() => _CountryAdminScreenState();
 }
 
 class _CountryAdminScreenState extends State<CountryAdminScreen> {
-  final _repository = CountryRepository();
+  late final CountryRepository _repository =
+      widget.repository ?? CountryRepository();
   final _nameController = TextEditingController();
   final _timezoneController = TextEditingController();
   String _defaultLanguage = CountryModel.portugal.defaultLanguage;
@@ -129,9 +137,7 @@ class _CountryAdminScreenState extends State<CountryAdminScreen> {
                         FilledButton.tonalIcon(
                           onPressed: _load,
                           icon: const Icon(Icons.refresh),
-                          label: Text(
-                            adminText(context, 'Tentar novamente'),
-                          ),
+                          label: Text(adminText(context, 'Tentar novamente')),
                         ),
                       ],
                     ),
@@ -208,10 +214,14 @@ class _CountryAdminScreenState extends State<CountryAdminScreen> {
                         subtitle: Text(
                           adminText(
                             context,
-                            'Apenas o coordenador pode ativar ou desativar países.',
+                            widget.isSuperAdmin
+                                ? 'Apenas o superadmin deve alterar a disponibilidade pública.'
+                                : 'Apenas o superadmin pode ativar ou desativar países.',
                           ),
                         ),
-                        onChanged: null,
+                        onChanged: widget.isSuperAdmin
+                            ? (value) => setState(() => _enabled = value)
+                            : null,
                       ),
                       const SizedBox(height: 18),
                       Align(

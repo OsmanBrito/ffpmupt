@@ -43,13 +43,15 @@ void main() {
         body: 'A country-specific motto.',
       );
       final decoded = MottoSettings.fromMap(settings.toMap());
-      final fallback = MottoSettings.fallback();
+      final fallback = MottoSettings.fallback(countryCode: 'pt');
+      final nonPortugalFallback = MottoSettings.fallback(countryCode: 'es');
 
       expect(mottoDocumentId, 'motto');
       expect(decoded?.title, settings.title);
       expect(decoded?.body, settings.body);
       expect(fallback.title, currentMotto.title);
       expect(fallback.body, currentMotto.body);
+      expect(nonPortugalFallback.isConfigured, isFalse);
     });
 
     test('family pledge has content for each language', () {
@@ -116,10 +118,7 @@ void main() {
     test('offering payment opens public IBAN page', () {
       expect(offeringAccount.defaultAmount, isNull);
       expect(offeringAccount.iban.trim(), isNotEmpty);
-      expect(
-        offeringAccount.qrPayload,
-        'https://ffpmupt-402e1.web.app/#/ofertas',
-      );
+      expect(offeringAccount.qrPayload, 'https://connect.ffpmu.pt/ofertas');
     });
 
     test('weekly videos are ready to embed', () {
@@ -165,6 +164,44 @@ void main() {
         'https://www.youtube-nocookie.com/embed/uXhZBoveiiM',
       );
       expect(vimeoVideo?.embedUrl, 'https://player.vimeo.com/video/1202206348');
+    });
+
+    test('weekly video URLs reject lookalike domains and insecure links', () {
+      expect(
+        weeklyVideoFromUrl(
+          sourceName: 'YouTube',
+          sourceUrl: youtubeWeeklySourceUrl,
+          title: 'Invalid host',
+          url: 'https://www.youtube.com.evil.example/watch?v=uXhZBoveiiM',
+        ),
+        isNull,
+      );
+      expect(
+        weeklyVideoFromUrl(
+          sourceName: 'Vimeo',
+          sourceUrl: vimeoWeeklySourceUrl,
+          title: 'Invalid scheme',
+          url: 'http://vimeo.com/1202206348',
+        ),
+        isNull,
+      );
+      expect(
+        weeklyVideoFromUrl(
+          sourceName: 'YouTube',
+          sourceUrl: 'https://www.youtube.com.evil.example/videos',
+          title: 'Invalid source',
+          url: 'https://www.youtube.com/watch?v=uXhZBoveiiM',
+        ),
+        isNull,
+      );
+    });
+
+    test('non-Portugal weekly video fallback is empty', () {
+      final fallback = WeeklyVideosSettings.fallback('es');
+
+      expect(fallback.videos, isEmpty);
+      expect(fallback.youtube.watchUrl, isEmpty);
+      expect(fallback.vimeo.embedUrl, isEmpty);
     });
 
     test('weekly video settings match Firestore document shape', () {

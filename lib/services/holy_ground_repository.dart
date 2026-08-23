@@ -69,18 +69,28 @@ class HolyGroundRepository {
       return;
     }
     try {
-      await for (final snapshot
-          in database
-              .collectionGroup('holyGrounds')
-              .where('enabled', isEqualTo: true)
-              .snapshots()) {
-        final grounds = _decode(snapshot.docs);
-        await _writeCache(grounds);
-        yield HolyGroundDirectoryState(
-          grounds: grounds,
-          status: HolyGroundSyncStatus.live,
-        );
-      }
+      // Read each enabled country explicitly. This keeps the client aligned
+      // with the Firestore rule that also checks the parent country's status;
+      // a collection-group query cannot prove that condition for every result.
+      final countriesSnapshot = await database
+          .collection('countries')
+          .where('enabled', isEqualTo: true)
+          .get();
+      final countrySnapshots = await Future.wait(
+        countriesSnapshot.docs.map(
+          (country) => _countryCollection(
+            country.id,
+          ).where('enabled', isEqualTo: true).get(),
+        ),
+      );
+      final grounds = _decode(
+        countrySnapshots.expand((snapshot) => snapshot.docs).toList(),
+      );
+      await _writeCache(grounds);
+      yield HolyGroundDirectoryState(
+        grounds: grounds,
+        status: HolyGroundSyncStatus.live,
+      );
     } on FirebaseException catch (error) {
       yield HolyGroundDirectoryState(
         grounds: cached,

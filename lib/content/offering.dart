@@ -80,7 +80,7 @@ class OfferingAccount {
 
 const offeringAccount = OfferingAccount(
   beneficiaryName: 'Federação da Família para a Paz Mundial e Unificação',
-  offeringPageUrl: 'https://ffpmupt-402e1.web.app/#/ofertas',
+  offeringPageUrl: 'https://connect.ffpmu.pt/ofertas',
   iban: 'PT50 0010 0000 3313 7060 0012 8',
   bankName: 'Banco BPI, S.A.',
   // Keep null when the person should choose the amount.

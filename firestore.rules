@@ -16,6 +16,15 @@ service cloud.firestore {
         ).data.enabled == true;
     }
 
+    function isEnabledCountry(countryCode) {
+      return exists(
+          /databases/$(database)/documents/countries/$(countryCode)
+        )
+        && get(
+          /databases/$(database)/documents/countries/$(countryCode)
+        ).data.enabled == true;
+    }
+
     function isCountryAdmin(countryCode) {
       return isSuperAdmin()
         || (isSignedIn()
@@ -102,7 +111,12 @@ service cloud.firestore {
     }
 
     match /countries/{countryCode} {
-      allow read: if true;
+      // Public country discovery must only expose active countries. Admins
+      // can still open their own country, including while it is being prepared
+      // or temporarily disabled.
+      allow read: if resource.data.enabled == true
+        || isSuperAdmin()
+        || isCountryAdmin(countryCode);
       allow create: if isSuperAdmin()
         && request.resource.data.code == countryCode
         && request.resource.data.name is string
@@ -117,19 +131,19 @@ service cloud.firestore {
     }
 
     match /countries/{countryCode}/settings/weeklyVideos {
-      allow read: if true;
+      allow read: if isEnabledCountry(countryCode) || isCountryAdmin(countryCode);
       allow create, update: if isCountryAdmin(countryCode);
       allow delete: if false;
     }
 
     match /countries/{countryCode}/settings/payments {
-      allow read: if true;
+      allow read: if isEnabledCountry(countryCode) || isCountryAdmin(countryCode);
       allow create, update: if isCountryAdmin(countryCode);
       allow delete: if false;
     }
 
     match /countries/{countryCode}/settings/motto {
-      allow read: if true;
+      allow read: if isEnabledCountry(countryCode) || isCountryAdmin(countryCode);
       allow create, update: if isCountryAdmin(countryCode);
       allow delete: if false;
     }
@@ -141,14 +155,30 @@ service cloud.firestore {
     }
 
     match /countries/{countryCode}/songs/{songId} {
-      allow read: if true;
+      allow read: if isEnabledCountry(countryCode) || isCountryAdmin(countryCode);
       allow create, update: if isCountryAdmin(countryCode);
       allow delete: if false;
     }
 
     match /countries/{countryCode}/promises/{languageCode} {
-      allow read: if true;
+      allow read: if isEnabledCountry(countryCode) || isCountryAdmin(countryCode);
       allow create, update: if isCountryAdmin(countryCode);
+      allow delete: if false;
+    }
+
+    match /countries/{countryCode}/notices/{noticeId} {
+      allow read: if (resource.data.enabled == true
+          && isEnabledCountry(countryCode))
+        || isCountryAdmin(countryCode);
+      allow create, update: if isCountryAdmin(countryCode)
+        && request.resource.data.countryCode == countryCode
+        && request.resource.data.enabled is bool
+        && request.resource.data.title is string
+        && request.resource.data.title.size() >= 1
+        && request.resource.data.title.size() <= 160
+        && request.resource.data.body is string
+        && request.resource.data.body.size() >= 1
+        && request.resource.data.body.size() <= 10000;
       allow delete: if false;
     }
 
@@ -158,7 +188,8 @@ service cloud.firestore {
     }
 
     match /countries/{countryCode}/holyGrounds/{holyGroundId} {
-      allow read: if resource.data.enabled == true
+      allow read: if (resource.data.enabled == true
+          && isEnabledCountry(countryCode))
         || isCountryAdmin(countryCode);
       allow create, update: if isCountryAdmin(countryCode)
         && request.resource.data.countryCode == countryCode
@@ -166,10 +197,13 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Collection-group queries need an explicit recursive match. The public
-    // directory always filters by enabled == true.
+    // Keep collection-group reads safe for clients that still use this path.
+    // The public Flutter web directory reads each enabled country directly so
+    // Firestore can prove the parent-country condition for every query.
     match /{path=**}/holyGrounds/{holyGroundId} {
-      allow read: if resource.data.enabled == true;
+      allow read: if resource.data.enabled == true
+        && resource.data.countryCode is string
+        && isEnabledCountry(resource.data.countryCode);
     }
 
     match /adminInvites/{inviteId} {
@@ -196,15 +230,6 @@ service cloud.firestore {
         || (isSignedIn() && request.auth.uid == userId);
       allow create: if isSuperAdmin() || isValidInviteProfileCreate(userId);
       allow update: if isSuperAdmin() || isValidInviteProfileUpdate(userId);
-      allow delete: if false;
-    }
-
-    // Access requests are intentionally sent through the user's email app.
-    // Keep this collection closed until App Check, rate limiting, and a
-    // retention policy are deployed for an automated request workflow.
-    match /accessRequests/{requestId} {
-      allow create: if false;
-      allow get, list, update: if isSuperAdmin();
       allow delete: if false;
     }
 

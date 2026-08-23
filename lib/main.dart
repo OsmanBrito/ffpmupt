@@ -7,6 +7,7 @@ import 'package:ffpmupt/models/access_request_country.dart';
 import 'package:ffpmupt/screens/admin/admin_screen.dart';
 import 'package:ffpmupt/screens/admin/admin_invite_screen.dart';
 import 'package:ffpmupt/screens/country_selection_screen.dart';
+import 'package:ffpmupt/screens/community_notices_screen.dart';
 import 'package:ffpmupt/screens/access_request_screen.dart';
 import 'package:ffpmupt/screens/family_promise_screen.dart';
 import 'package:ffpmupt/screens/holy_grounds_screen.dart';
@@ -160,7 +161,7 @@ class _MyAppState extends State<MyApp> {
             if (_countryController.country case final country?)
               '/admin': (context) => AdminScreen(country: country),
             '/ofertas': (context) => PublicOfferingScreen(
-              countryCode: _countryController.country?.code ?? 'pt',
+              countryCode: _countryController.country?.code ?? '',
             ),
           },
           onGenerateRoute: (settings) {
@@ -314,6 +315,24 @@ class Home extends StatelessWidget {
                           MaterialPageRoute(
                             builder: (context) =>
                                 VideosScreen(countryCode: country.code),
+                          ),
+                        ),
+                      ),
+                      _HomeActionCard(
+                        step: '6',
+                        icon: Icons.campaign_outlined,
+                        title: CommunityNoticeCopy.of(
+                          AppLanguageScope.watch(context).language,
+                        ).title,
+                        subtitle: CommunityNoticeCopy.of(
+                          AppLanguageScope.watch(context).language,
+                        ).subtitle,
+                        color: const Color(0xff8a4d2f),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => CommunityNoticesScreen(
+                              countryCode: country.code,
+                            ),
                           ),
                         ),
                       ),

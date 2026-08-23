@@ -122,12 +122,20 @@ class HolyGroundImageUploadService {
 
     return switch (extension) {
       'jpg' || 'jpeg' => startsWith(const [0xff, 0xd8, 0xff]),
-      'png' => startsWith(
-        const [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
-      ),
-      'webp' => bytes.length >= 12 &&
-          startsWith(const [0x52, 0x49, 0x46, 0x46]) &&
-          matchesAt(const [0x57, 0x45, 0x42, 0x50], 8),
+      'png' => startsWith(const [
+        0x89,
+        0x50,
+        0x4e,
+        0x47,
+        0x0d,
+        0x0a,
+        0x1a,
+        0x0a,
+      ]),
+      'webp' =>
+        bytes.length >= 12 &&
+            startsWith(const [0x52, 0x49, 0x46, 0x46]) &&
+            matchesAt(const [0x57, 0x45, 0x42, 0x50], 8),
       _ => false,
     };
   }

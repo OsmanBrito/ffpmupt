@@ -32,9 +32,11 @@ class _MottoScreenState extends State<MottoScreen> {
       appBar: AppBar(title: Text(strings.motto)),
       body: StreamBuilder<MottoSettings>(
         stream: _repository.watch(),
-        initialData: MottoSettings.fallback(),
+        initialData: MottoSettings.fallback(countryCode: widget.countryCode),
         builder: (context, snapshot) {
-          final motto = snapshot.data ?? MottoSettings.fallback();
+          final motto =
+              snapshot.data ??
+              MottoSettings.fallback(countryCode: widget.countryCode);
           return SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -47,36 +49,42 @@ class _MottoScreenState extends State<MottoScreen> {
                         horizontal: 28,
                         vertical: 32,
                       ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.auto_stories,
-                            color: Theme.of(context).colorScheme.primary,
-                            size: 42,
-                          ),
-                          const SizedBox(height: 20),
-                          Text(
-                            motto.title,
-                            textAlign: TextAlign.center,
-                            style: textTheme.headlineMedium?.copyWith(
-                              color: const Color(0xff193c37),
-                              fontSize: kIsWeb ? 42 : null,
-                              fontWeight: FontWeight.w800,
+                      child: motto.isConfigured
+                          ? Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.auto_stories,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 42,
+                                ),
+                                const SizedBox(height: 20),
+                                Text(
+                                  motto.title,
+                                  textAlign: TextAlign.center,
+                                  style: textTheme.headlineMedium?.copyWith(
+                                    color: const Color(0xff193c37),
+                                    fontSize: kIsWeb ? 42 : null,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                                Text(
+                                  motto.body,
+                                  style: textTheme.headlineSmall?.copyWith(
+                                    color: const Color(0xff293833),
+                                    fontSize: kIsWeb ? 34 : 22,
+                                    height: 1.35,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            )
+                          : Text(
+                              strings.mottoNotConfigured,
+                              textAlign: TextAlign.center,
+                              style: textTheme.titleLarge,
                             ),
-                          ),
-                          const SizedBox(height: 24),
-                          Text(
-                            motto.body,
-                            style: textTheme.headlineSmall?.copyWith(
-                              color: const Color(0xff293833),
-                              fontSize: kIsWeb ? 34 : 22,
-                              height: 1.35,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
                     ),
                   ),
                 ),
