@@ -1,27 +1,37 @@
 import 'package:ffpmupt/models/country.dart';
 import 'package:ffpmupt/services/country_repository.dart';
+import 'package:ffpmupt/settings/admin_copy.dart';
 import 'package:ffpmupt/settings/app_language.dart';
 import 'package:ffpmupt/settings/app_strings.dart';
 import 'package:ffpmupt/settings/country_scope.dart';
 import 'package:flutter/material.dart';
 
 class CountryAdminScreen extends StatefulWidget {
-  const CountryAdminScreen({super.key, required this.countryCode});
+  const CountryAdminScreen({
+    super.key,
+    required this.countryCode,
+    required this.isSuperAdmin,
+    this.repository,
+  });
 
   final String countryCode;
+  final bool isSuperAdmin;
+  final CountryRepository? repository;
 
   @override
   State<CountryAdminScreen> createState() => _CountryAdminScreenState();
 }
 
 class _CountryAdminScreenState extends State<CountryAdminScreen> {
-  final _repository = CountryRepository();
+  late final CountryRepository _repository =
+      widget.repository ?? CountryRepository();
   final _nameController = TextEditingController();
   final _timezoneController = TextEditingController();
   String _defaultLanguage = CountryModel.portugal.defaultLanguage;
   bool _enabled = CountryModel.portugal.enabled;
   bool _isLoading = true;
   bool _isSaving = false;
+  String? _loadError;
 
   @override
   void initState() {
@@ -42,12 +52,24 @@ class _CountryAdminScreenState extends State<CountryAdminScreen> {
       return;
     }
 
+    if (country == null) {
+      setState(() {
+        _isLoading = false;
+        _loadError = adminText(
+          context,
+          'Não foi possível carregar as configurações deste país.',
+        );
+      });
+      return;
+    }
+
     setState(() {
       _nameController.text = country.name;
       _timezoneController.text = country.timezone;
       _defaultLanguage = country.defaultLanguage;
       _enabled = country.enabled;
       _isLoading = false;
+      _loadError = null;
     });
   }
 
@@ -103,6 +125,23 @@ class _CountryAdminScreenState extends State<CountryAdminScreen> {
             constraints: const BoxConstraints(maxWidth: 760),
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
+                : _loadError != null
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.cloud_off_outlined, size: 48),
+                        const SizedBox(height: 12),
+                        Text(_loadError!, textAlign: TextAlign.center),
+                        const SizedBox(height: 14),
+                        FilledButton.tonalIcon(
+                          onPressed: _load,
+                          icon: const Icon(Icons.refresh),
+                          label: Text(adminText(context, 'Tentar novamente')),
+                        ),
+                      ],
+                    ),
+                  )
                 : ListView(
                     padding: const EdgeInsets.all(20),
                     children: [
@@ -172,11 +211,17 @@ class _CountryAdminScreenState extends State<CountryAdminScreen> {
                         contentPadding: EdgeInsets.zero,
                         title: Text(strings.countryEnabled),
                         value: _enabled,
-                        onChanged: (value) {
-                          setState(() {
-                            _enabled = value;
-                          });
-                        },
+                        subtitle: Text(
+                          adminText(
+                            context,
+                            widget.isSuperAdmin
+                                ? 'Apenas o superadmin deve alterar a disponibilidade pública.'
+                                : 'Apenas o superadmin pode ativar ou desativar países.',
+                          ),
+                        ),
+                        onChanged: widget.isSuperAdmin
+                            ? (value) => setState(() => _enabled = value)
+                            : null,
                       ),
                       const SizedBox(height: 18),
                       Align(

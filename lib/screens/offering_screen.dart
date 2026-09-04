@@ -15,6 +15,13 @@ class OfferingScreen extends StatelessWidget {
     final strings = AppStrings.of(AppLanguageScope.watch(context).language);
     final textTheme = Theme.of(context).textTheme;
 
+    if (countryCode.trim().isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: Text(strings.offerings)),
+        body: Center(child: Text(strings.offeringsSubtitle)),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(title: Text(strings.offerings)),
       body: SafeArea(

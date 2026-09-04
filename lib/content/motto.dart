@@ -1,8 +1,5 @@
 class MottoContent {
-  const MottoContent({
-    required this.title,
-    required this.body,
-  });
+  const MottoContent({required this.title, required this.body});
 
   final String title;
   final String body;

@@ -17,6 +17,7 @@ class SundayModeRepository {
     SundayPlanItem(module: SundayModule.motto, enabled: true),
     SundayPlanItem(module: SundayModule.offerings, enabled: true),
     SundayPlanItem(module: SundayModule.videos, enabled: true),
+    SundayPlanItem(module: SundayModule.notices, enabled: true),
   ];
 
   Future<List<SundayPlanItem>> loadPlan() async {

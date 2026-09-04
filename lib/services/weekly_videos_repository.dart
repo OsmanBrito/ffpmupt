@@ -18,7 +18,10 @@ class WeeklyVideosSettings {
   final WeeklyVideo youtube;
   final WeeklyVideo vimeo;
 
-  List<WeeklyVideo> get videos => [youtube, vimeo];
+  List<WeeklyVideo> get videos => [
+    youtube,
+    vimeo,
+  ].where((video) => video.isConfigured).toList(growable: false);
 
   Map<String, Object?> toMap() {
     return {
@@ -29,10 +32,24 @@ class WeeklyVideosSettings {
   }
 
   static WeeklyVideosSettings fallback(String countryCode) {
+    if (countryCode.toLowerCase() == 'pt') {
+      return WeeklyVideosSettings(
+        countryCode: countryCode,
+        youtube: weeklyVideos[0],
+        vimeo: weeklyVideos[1],
+      );
+    }
+
     return WeeklyVideosSettings(
       countryCode: countryCode,
-      youtube: weeklyVideos[0],
-      vimeo: weeklyVideos[1],
+      youtube: WeeklyVideo.unconfigured(
+        sourceName: 'YouTube',
+        sourceUrl: youtubeWeeklySourceUrl,
+      ),
+      vimeo: WeeklyVideo.unconfigured(
+        sourceName: 'Vimeo',
+        sourceUrl: vimeoWeeklySourceUrl,
+      ),
     );
   }
 

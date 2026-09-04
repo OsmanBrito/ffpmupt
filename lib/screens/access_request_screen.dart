@@ -1,4 +1,7 @@
 import 'package:ffpmupt/models/access_request_country.dart';
+import 'package:ffpmupt/settings/app_language.dart';
+import 'package:ffpmupt/settings/onboarding_copy.dart';
+import 'package:ffpmupt/widgets/language_menu_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -70,7 +73,7 @@ class _AccessRequestScreenState extends State<AccessRequestScreen> {
     }
     final country = _selectedCountry;
     if (country == null) {
-      setState(() => _error = 'Please choose a country first.');
+      setState(() => _error = _copy(context).chooseCountry);
       return;
     }
 
@@ -104,7 +107,10 @@ class _AccessRequestScreenState extends State<AccessRequestScreen> {
       final mailto = Uri(
         scheme: 'mailto',
         path: widget.coordinatorEmail,
-        queryParameters: {'subject': subject, 'body': emailBody},
+        query: _encodeMailtoQueryParameters({
+          'subject': subject,
+          'body': emailBody,
+        }),
       );
       final opened =
           await (widget.emailLauncher?.call(mailto) ??
@@ -118,8 +124,7 @@ class _AccessRequestScreenState extends State<AccessRequestScreen> {
     } on Object catch (_) {
       if (mounted) {
         setState(() {
-          _error =
-              'We could not open your email application. Please send your request to ${widget.coordinatorEmail}.';
+          _error = _copy(context).emailOpenError(widget.coordinatorEmail);
           _preparedEmailText = preparedEmailText;
         });
       }
@@ -132,8 +137,12 @@ class _AccessRequestScreenState extends State<AccessRequestScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final copy = _copy(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Request administrator access')),
+      appBar: AppBar(
+        title: Text(copy.accessRequestTitle),
+        actions: [const LanguageMenuButton(), const SizedBox(width: 8)],
+      ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -149,6 +158,7 @@ class _AccessRequestScreenState extends State<AccessRequestScreen> {
   }
 
   Widget _buildForm() {
+    final copy = _copy(context);
     return Form(
       key: _formKey,
       child: Column(
@@ -157,36 +167,30 @@ class _AccessRequestScreenState extends State<AccessRequestScreen> {
           const Icon(Icons.mark_email_unread_outlined, size: 58),
           const SizedBox(height: 16),
           Text(
-            'Request administrator access',
+            copy.accessRequestTitle,
             textAlign: TextAlign.center,
             style: Theme.of(
               context,
             ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 10),
-          const Text(
-            'Enter your details. We will review your request and send an invitation by email.',
-            textAlign: TextAlign.center,
-          ),
+          Text(copy.accessRequestIntro, textAlign: TextAlign.center),
           const SizedBox(height: 8),
           Text(
-            'Request email: ${widget.coordinatorEmail}',
+            copy.requestEmail(widget.coordinatorEmail),
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 24),
           if (widget.countries.isEmpty)
-            const Text(
-              'No countries are available right now.',
-              textAlign: TextAlign.center,
-            )
+            Text(copy.noCountries, textAlign: TextAlign.center)
           else ...[
             DropdownButtonFormField<String>(
               initialValue: _countryCode,
-              decoration: const InputDecoration(
-                labelText: 'Country',
+              decoration: InputDecoration(
+                labelText: copy.country,
                 prefixIcon: Icon(Icons.public),
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
               ),
               items: [
                 for (final country in widget.countries)
@@ -198,53 +202,53 @@ class _AccessRequestScreenState extends State<AccessRequestScreen> {
                   ),
               ],
               onChanged: (value) => setState(() => _countryCode = value),
-              validator: (value) => value == null ? 'Choose a country.' : null,
+              validator: (value) => value == null ? copy.chooseCountry : null,
             ),
             const SizedBox(height: 14),
             TextFormField(
               controller: _nameController,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
-                labelText: 'Full name',
+              decoration: InputDecoration(
+                labelText: copy.fullName,
                 prefixIcon: Icon(Icons.person_outline),
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
               ),
               validator: (value) => value == null || value.trim().length < 2
-                  ? 'Enter your full name.'
+                  ? copy.enterFullName
                   : null,
             ),
             const SizedBox(height: 14),
             TextFormField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(
-                labelText: 'Email for the invitation',
+              decoration: InputDecoration(
+                labelText: copy.invitationEmail,
                 prefixIcon: Icon(Icons.email_outlined),
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
               ),
               validator: (value) {
                 final email = value?.trim() ?? '';
                 return RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)
                     ? null
-                    : 'Enter a valid email address.';
+                    : copy.validEmail;
               },
             ),
             const SizedBox(height: 14),
             DropdownButtonFormField<String>(
               initialValue: _role,
-              decoration: const InputDecoration(
-                labelText: 'Role',
+              decoration: InputDecoration(
+                labelText: copy.role,
                 prefixIcon: Icon(Icons.badge_outlined),
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
               ),
-              items: const [
-                DropdownMenuItem(
+              items: [
+                DropdownMenuItem<String>(
                   value: 'Country leader',
-                  child: Text('Country leader'),
+                  child: Text(copy.countryLeader),
                 ),
-                DropdownMenuItem(
+                DropdownMenuItem<String>(
                   value: 'Country administrator',
-                  child: Text('Country administrator'),
+                  child: Text(copy.countryAdministrator),
                 ),
               ],
               onChanged: (value) {
@@ -254,18 +258,27 @@ class _AccessRequestScreenState extends State<AccessRequestScreen> {
               },
             ),
             const SizedBox(height: 14),
+            Text(
+              _role == 'Country leader'
+                  ? copy.countryLeaderHelp
+                  : copy.countryAdministratorHelp,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: const Color(0xff65716c)),
+            ),
+            const SizedBox(height: 14),
             TextFormField(
               controller: _messageController,
               maxLines: 4,
               maxLength: 1000,
-              decoration: const InputDecoration(
-                labelText: 'Message (optional)',
+              decoration: InputDecoration(
+                labelText: copy.optionalMessage,
                 alignLabelWithHint: true,
-                prefixIcon: Padding(
+                prefixIcon: const Padding(
                   padding: EdgeInsets.only(bottom: 62),
                   child: Icon(Icons.notes_outlined),
                 ),
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
               ),
             ),
             if (_error != null) ...[
@@ -274,10 +287,7 @@ class _AccessRequestScreenState extends State<AccessRequestScreen> {
             ],
             if (_preparedEmailText case final preparedText?) ...[
               const SizedBox(height: 12),
-              const Text(
-                'Copy the prepared request below and send it manually if you use webmail or do not have an email app configured:',
-                textAlign: TextAlign.center,
-              ),
+              Text(copy.manualCopyInstruction, textAlign: TextAlign.center),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.all(12),
@@ -299,7 +309,9 @@ class _AccessRequestScreenState extends State<AccessRequestScreen> {
                   }
                 },
                 icon: Icon(_copied ? Icons.check : Icons.copy_outlined),
-                label: Text(_copied ? 'Request copied' : 'Copy request text'),
+                label: Text(
+                  _copied ? copy.requestCopied : copy.copyRequestText,
+                ),
               ),
             ],
             const SizedBox(height: 8),
@@ -311,11 +323,11 @@ class _AccessRequestScreenState extends State<AccessRequestScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.email_outlined),
-              label: const Text('Open email to send request'),
+              label: Text(copy.openEmailToSendRequest),
             ),
             const SizedBox(height: 12),
             Text(
-              'This opens your email application with the request prepared. Press Send to complete it. It does not grant access automatically; the coordinator will review the request and send a separate invitation.',
+              copy.requestNextStep,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodySmall,
             ),
@@ -326,6 +338,7 @@ class _AccessRequestScreenState extends State<AccessRequestScreen> {
   }
 
   Widget _buildSuccess() {
+    final copy = _copy(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -336,24 +349,36 @@ class _AccessRequestScreenState extends State<AccessRequestScreen> {
         ),
         const SizedBox(height: 18),
         Text(
-          'Email draft prepared',
+          copy.emailDraftPrepared,
           textAlign: TextAlign.center,
           style: Theme.of(
             context,
           ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 12),
-        const Text(
-          'Your email application should now be open with the request ready to send. Please press Send. After reviewing it, we will send an invitation to the email you provided.',
-          textAlign: TextAlign.center,
-        ),
+        Text(copy.emailDraftInstruction, textAlign: TextAlign.center),
         const SizedBox(height: 24),
         FilledButton.icon(
           onPressed: () => Navigator.of(context).pop(),
           icon: const Icon(Icons.arrow_back),
-          label: const Text('Return to the app'),
+          label: Text(copy.returnToApp),
         ),
       ],
     );
   }
+}
+
+String _encodeMailtoQueryParameters(Map<String, String> parameters) {
+  return parameters.entries
+      .map(
+        (entry) =>
+            '${Uri.encodeComponent(entry.key)}=${Uri.encodeComponent(entry.value)}',
+      )
+      .join('&');
+}
+
+OnboardingCopy _copy(BuildContext context) {
+  final language =
+      AppLanguageScope.maybeWatch(context)?.language ?? AppLanguage.english;
+  return OnboardingCopy.of(language);
 }

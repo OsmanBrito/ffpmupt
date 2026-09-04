@@ -7,6 +7,9 @@ typedef UploadRequestSender =
     Future<http.StreamedResponse> Function(http.MultipartRequest request);
 
 class HolyGroundImageUploadService {
+  static const maxImageBytes = 5 * 1024 * 1024;
+  static const allowedExtensions = {'jpg', 'jpeg', 'png', 'webp'};
+
   HolyGroundImageUploadService({
     UploadRequestSender? send,
     this.cloudName = const String.fromEnvironment(
@@ -29,6 +32,22 @@ class HolyGroundImageUploadService {
   }) async {
     if (bytes.isEmpty) {
       throw const HolyGroundImageUploadException('A imagem está vazia.');
+    }
+    if (bytes.length > maxImageBytes) {
+      throw const HolyGroundImageUploadException(
+        'A imagem deve ter no máximo 5 MB.',
+      );
+    }
+    final extension = fileName.split('.').last.toLowerCase();
+    if (!allowedExtensions.contains(extension)) {
+      throw const HolyGroundImageUploadException(
+        'Use uma imagem JPG, PNG ou WebP.',
+      );
+    }
+    if (!_hasSupportedImageSignature(bytes, extension)) {
+      throw const HolyGroundImageUploadException(
+        'O conteúdo da imagem não corresponde ao formato indicado.',
+      );
     }
     if (cloudName.isEmpty || uploadPreset.isEmpty) {
       throw const HolyGroundImageUploadException(
@@ -74,6 +93,51 @@ class HolyGroundImageUploadService {
       );
     }
     return secureUrl as String;
+  }
+
+  bool _hasSupportedImageSignature(Uint8List bytes, String extension) {
+    bool startsWith(List<int> signature) {
+      if (bytes.length < signature.length) {
+        return false;
+      }
+      for (var index = 0; index < signature.length; index++) {
+        if (bytes[index] != signature[index]) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    bool matchesAt(List<int> signature, int offset) {
+      if (bytes.length < offset + signature.length) {
+        return false;
+      }
+      for (var index = 0; index < signature.length; index++) {
+        if (bytes[offset + index] != signature[index]) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    return switch (extension) {
+      'jpg' || 'jpeg' => startsWith(const [0xff, 0xd8, 0xff]),
+      'png' => startsWith(const [
+        0x89,
+        0x50,
+        0x4e,
+        0x47,
+        0x0d,
+        0x0a,
+        0x1a,
+        0x0a,
+      ]),
+      'webp' =>
+        bytes.length >= 12 &&
+            startsWith(const [0x52, 0x49, 0x46, 0x46]) &&
+            matchesAt(const [0x57, 0x45, 0x42, 0x50], 8),
+      _ => false,
+    };
   }
 }
 

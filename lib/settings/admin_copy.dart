@@ -51,6 +51,8 @@ const _english = <String, String>{
       'Check the latitude and longitude limits.',
   'Selecione uma fotografia antes de publicar o local.':
       'Select a photo before publishing the place.',
+  'A fotografia deve usar uma URL HTTPS válida.':
+      'The photo must use a valid HTTPS URL.',
   'Guardando dados...': 'Saving data...',
   'Enviando fotografia...': 'Uploading photo...',
   'Publicado': 'Published',
@@ -61,6 +63,15 @@ const _english = <String, String>{
       'The publishing status could not be changed.',
   'Email inválido': 'Invalid email',
   'Use um número inteiro': 'Use a whole number',
+  'Novo aviso': 'New notice',
+  'Editar aviso': 'Edit notice',
+  'Data (opcional)': 'Date (optional)',
+  'Local (opcional)': 'Location (optional)',
+  'Ligação HTTPS (opcional)': 'HTTPS link (optional)',
+  'Use uma ligação HTTPS válida': 'Use a valid HTTPS link',
+  'Fixar no topo': 'Pin to top',
+  'Limpar data': 'Clear date',
+  'Escolher data': 'Choose date',
   'Nova música': 'New song',
   'Gestão de músicas': 'Song management',
   'Pesquisar música ou página': 'Search song or page',
@@ -154,7 +165,28 @@ const _english = <String, String>{
   'Email que recebeu o convite': 'Email that received the invitation',
   'Senha': 'Password',
   'Confirmar senha': 'Confirm password',
+  'Use pelo menos 8 caracteres.': 'Use at least 8 characters.',
+  'Use exatamente o email indicado no convite para concluir o acesso.':
+      'Use the exact email shown in the invitation to complete access.',
+  'Mostrar ou ocultar palavra-passe': 'Show or hide password',
   'Esqueci minha senha': 'I forgot my password',
+  'Esqueci a palavra-passe': 'Forgot password?',
+  'Informe o email e a palavra-passe para continuar.':
+      'Enter your email and password to continue.',
+  'Informe o email antes de redefinir a palavra-passe.':
+      'Enter your email before resetting your password.',
+  'Enviámos um email para redefinir a palavra-passe.':
+      'We sent an email to reset your password.',
+  'O email não é válido.': 'The email address is not valid.',
+  'Não encontrámos uma conta com este email.':
+      'We could not find an account with this email.',
+  'Demasiadas tentativas. Aguarde e tente novamente.':
+      'Too many attempts. Wait and try again.',
+  'Não foi possível enviar o email de recuperação.':
+      'We could not send the recovery email.',
+  'Gerir conteúdo de': 'Manage content for',
+  'Peça ao coordenador um convite para este país ou troque de país antes de entrar.':
+      'Ask the coordinator for an invitation to this country or switch country before signing in.',
   'Confirme seu email': 'Confirm your email',
   'Enviamos uma confirmação para': 'We sent a confirmation to',
   'Abra o email e depois volte aqui.': 'Open the email and then return here.',
@@ -199,6 +231,8 @@ const _english = <String, String>{
   'Esta conta não corresponde ao email do convite.':
       'This account does not match the invitation email.',
   'Não foi possível abrir o convite.': 'The invitation could not be opened.',
+  'Não foi possível confirmar o acesso. Tente novamente ou contacte o coordenador.':
+      'We could not confirm access. Try again or contact the coordinator.',
   'Informe um email e uma senha com 8 caracteres.':
       'Enter an email and a password with at least 8 characters.',
   'As senhas não coincidem.': 'The passwords do not match.',
@@ -226,6 +260,10 @@ const _english = <String, String>{
   'Nenhum país encontrado.': 'No countries found.',
   'Configurações do país': 'Country settings',
   'País ativo': 'Country active',
+  'Não foi possível carregar as configurações deste país.':
+      'Could not load this country\'s settings.',
+  'Apenas o coordenador pode ativar ou desativar países.':
+      'Only the coordinator can enable or disable countries.',
   'Administrador associado': 'Administrator assigned',
   'Igreja local cadastrada': 'Local church registered',
   'Promessa nos idiomas necessários': 'Promise in the required languages',

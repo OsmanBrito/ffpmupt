@@ -7,6 +7,7 @@ import 'package:ffpmupt/models/access_request_country.dart';
 import 'package:ffpmupt/screens/admin/admin_screen.dart';
 import 'package:ffpmupt/screens/admin/admin_invite_screen.dart';
 import 'package:ffpmupt/screens/country_selection_screen.dart';
+import 'package:ffpmupt/screens/community_notices_screen.dart';
 import 'package:ffpmupt/screens/access_request_screen.dart';
 import 'package:ffpmupt/screens/family_promise_screen.dart';
 import 'package:ffpmupt/screens/holy_grounds_screen.dart';
@@ -24,6 +25,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ffpmupt/services/offline_audio_cache.dart';
 import 'package:ffpmupt/services/song_repository.dart';
+import 'package:ffpmupt/widgets/language_menu_button.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -52,7 +54,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   final AppLanguageController _languageController = AppLanguageController(
-    loadStoredLanguage: false,
+    loadStoredLanguage: true,
   );
   final CountryController _countryController = CountryController();
   StreamSubscription<SongCatalogState>? _offlineSyncSubscription;
@@ -87,7 +89,7 @@ class _MyAppState extends State<MyApp> {
     _offlineSyncSubscription = SongRepository(countryCode: country.code)
         .watchCatalog()
         .listen((state) {
-          audioCache.cacheAll(
+          audioCache.setAvailable(
             state.songs.expand(
               (song) => song.audioTracks
                   .where((track) => track.enabled)
@@ -159,7 +161,7 @@ class _MyAppState extends State<MyApp> {
             if (_countryController.country case final country?)
               '/admin': (context) => AdminScreen(country: country),
             '/ofertas': (context) => PublicOfferingScreen(
-              countryCode: _countryController.country?.code ?? 'pt',
+              countryCode: _countryController.country?.code ?? '',
             ),
           },
           onGenerateRoute: (settings) {
@@ -205,32 +207,9 @@ class Home extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('$appShortName · ${country.code.toUpperCase()}'),
+        title: Text('$appShortName · ${country.name}'),
         actions: [
-          PopupMenuButton<AppLanguage>(
-            tooltip: strings.appLanguage,
-            icon: const Icon(Icons.translate),
-            onSelected: (language) =>
-                unawaited(AppLanguageScope.read(context).setLanguage(language)),
-            itemBuilder: (context) => [
-              for (final language in AppLanguage.values)
-                PopupMenuItem(
-                  value: language,
-                  child: Row(
-                    children: [
-                      if (language == AppLanguageScope.read(context).language)
-                        const Padding(
-                          padding: EdgeInsets.only(right: 8),
-                          child: Icon(Icons.check, size: 18),
-                        )
-                      else
-                        const SizedBox(width: 26),
-                      Text(appLanguageLabel(language)),
-                    ],
-                  ),
-                ),
-            ],
-          ),
+          const LanguageMenuButton(),
           IconButton(
             tooltip: strings.changeCountry,
             onPressed: () =>
@@ -336,6 +315,24 @@ class Home extends StatelessWidget {
                           MaterialPageRoute(
                             builder: (context) =>
                                 VideosScreen(countryCode: country.code),
+                          ),
+                        ),
+                      ),
+                      _HomeActionCard(
+                        step: '6',
+                        icon: Icons.campaign_outlined,
+                        title: CommunityNoticeCopy.of(
+                          AppLanguageScope.watch(context).language,
+                        ).title,
+                        subtitle: CommunityNoticeCopy.of(
+                          AppLanguageScope.watch(context).language,
+                        ).subtitle,
+                        color: const Color(0xff8a4d2f),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => CommunityNoticesScreen(
+                              countryCode: country.code,
+                            ),
                           ),
                         ),
                       ),
@@ -527,6 +524,13 @@ class _OfflineAudioCacheIndicator extends StatelessWidget {
           final color = isPartial
               ? Theme.of(context).colorScheme.error
               : const Color(0xff2f6b4f);
+          if (progress.status == OfflineAudioCacheStatus.available) {
+            return OutlinedButton.icon(
+              onPressed: cache.downloadAvailable,
+              icon: const Icon(Icons.download_for_offline_outlined),
+              label: Text('${p0[P0Text.downloadOffline]} (${progress.total})'),
+            );
+          }
           final label = switch (progress.status) {
             OfflineAudioCacheStatus.ready => strings.offlineAudioReady,
             OfflineAudioCacheStatus.partial => strings.offlineAudioPartial,

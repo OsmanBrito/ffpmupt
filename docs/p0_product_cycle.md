@@ -54,7 +54,9 @@ um vídeo, áudio ou imagem ainda deve ser confirmada durante a preparação.
 
 - Firestore mantém os dados previamente sincronizados.
 - Músicas, Promessa, pagamentos e Holy Grounds possuem cache local.
-- Áudios são preparados pelo service worker e podem ser tentados novamente.
+- O download dos áudios só começa depois de o utilizador clicar em **Preparar
+  áudios offline**; o service worker guarda os ficheiros e permite tentar
+  novamente quando necessário.
 - Imagens visitadas são guardadas no cache web.
 - Vídeos continuam a exigir internet.
 
