@@ -1,10 +1,14 @@
 import 'dart:async';
+import 'dart:typed_data';
 
+import 'package:crop_your_image/crop_your_image.dart';
 import 'package:ffpmupt/models/community_notice.dart';
 import 'package:ffpmupt/screens/community_notices_screen.dart';
+import 'package:ffpmupt/services/community_notice_image_upload_service.dart';
 import 'package:ffpmupt/services/community_notice_repository.dart';
 import 'package:ffpmupt/settings/admin_copy.dart';
 import 'package:ffpmupt/settings/app_language.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 class CommunityNoticesAdminScreen extends StatefulWidget {
@@ -225,18 +229,27 @@ class CommunityNoticeEditorScreen extends StatefulWidget {
 
 class _CommunityNoticeEditorScreenState
     extends State<CommunityNoticeEditorScreen> {
+  static const _maxImageBytes = CommunityNoticeImageUploadService.maxImageBytes;
+  static const _allowedImageExtensions =
+      CommunityNoticeImageUploadService.allowedExtensions;
+
   final _formKey = GlobalKey<FormState>();
+  final _imageUploadService = CommunityNoticeImageUploadService();
   late final TextEditingController _title;
   late final TextEditingController _body;
   late final TextEditingController _date;
   late final TextEditingController _location;
   late final TextEditingController _linkUrl;
+  late final TextEditingController _imageUrl;
   late final TextEditingController _languageCode;
   late final TextEditingController _sortOrder;
   late NoticeCategory _category;
   late bool _enabled;
   late bool _pinned;
   bool _isSaving = false;
+  Uint8List? _selectedImageBytes;
+  String? _selectedImageName;
+  String? _saveStatus;
 
   @override
   void initState() {
@@ -247,6 +260,7 @@ class _CommunityNoticeEditorScreenState
     _date = TextEditingController(text: notice?.date ?? '');
     _location = TextEditingController(text: notice?.location ?? '');
     _linkUrl = TextEditingController(text: notice?.linkUrl ?? '');
+    _imageUrl = TextEditingController(text: notice?.imageUrl ?? '');
     _languageCode = TextEditingController(
       text: notice?.languageCode ?? widget.defaultLanguage,
     );
@@ -266,6 +280,7 @@ class _CommunityNoticeEditorScreenState
       _date,
       _location,
       _linkUrl,
+      _imageUrl,
       _languageCode,
       _sortOrder,
     ]) {
@@ -291,6 +306,84 @@ class _CommunityNoticeEditorScreenState
         : adminText(context, 'Use uma ligação HTTPS válida');
   }
 
+  Future<void> _pickImage() async {
+    final result = await FilePicker.pickFiles(
+      type: FileType.image,
+      allowMultiple: false,
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty || !mounted) {
+      return;
+    }
+
+    final file = result.files.single;
+    final extension = (file.extension ?? '').toLowerCase();
+    if (!_allowedImageExtensions.contains(extension)) {
+      _showMessage(adminText(context, 'Use uma imagem JPG, PNG ou WebP.'));
+      return;
+    }
+    if (file.size > _maxImageBytes) {
+      _showMessage(adminText(context, 'A imagem deve ter no máximo 5 MB.'));
+      return;
+    }
+    if (file.bytes == null || file.bytes!.isEmpty) {
+      _showMessage(
+        adminText(context, 'Não foi possível ler a imagem selecionada.'),
+      );
+      return;
+    }
+
+    setState(() {
+      _selectedImageBytes = file.bytes;
+      _selectedImageName = file.name;
+    });
+  }
+
+  void _removeImage() {
+    setState(() {
+      _selectedImageBytes = null;
+      _selectedImageName = null;
+      _imageUrl.clear();
+    });
+  }
+
+  Future<void> _cropImage() async {
+    final imageBytes = _selectedImageBytes;
+    final imageName = _selectedImageName;
+    if (imageBytes == null || imageName == null) {
+      return;
+    }
+
+    final croppedBytes = await Navigator.of(context).push<Uint8List>(
+      MaterialPageRoute(
+        builder: (context) => NoticeImageCropScreen(imageBytes: imageBytes),
+      ),
+    );
+    if (croppedBytes == null || !mounted) {
+      return;
+    }
+    if (croppedBytes.length > _maxImageBytes) {
+      _showMessage(
+        adminText(
+          context,
+          'A imagem cortada ultrapassou 5 MB. Tente um corte menor.',
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _selectedImageBytes = croppedBytes;
+      _selectedImageName = _croppedImageName(imageName, croppedBytes);
+    });
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _chooseDate() async {
     final initial = DateTime.tryParse(_date.text) ?? DateTime.now();
     final selected = await showDatePicker(
@@ -312,8 +405,32 @@ class _CommunityNoticeEditorScreenState
     if (!_formKey.currentState!.validate()) {
       return;
     }
-    setState(() => _isSaving = true);
+    setState(() {
+      _isSaving = true;
+      _saveStatus = _selectedImageBytes != null
+          ? adminText(context, 'Enviando imagem...')
+          : adminText(context, 'Guardando dados...');
+    });
     try {
+      var imageUrl = _imageUrl.text.trim();
+      final imageBytes = _selectedImageBytes;
+      final imageName = _selectedImageName;
+      if (imageBytes != null && imageName != null) {
+        imageUrl = await _imageUploadService.upload(
+          bytes: imageBytes,
+          fileName: imageName,
+        );
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _imageUrl.text = imageUrl;
+          _selectedImageBytes = null;
+          _selectedImageName = null;
+          _saveStatus = adminText(context, 'Guardando dados...');
+        });
+      }
+
       await widget.repository.save(
         CommunityNotice(
           id: widget.notice?.id ?? widget.repository.newId(),
@@ -324,6 +441,7 @@ class _CommunityNoticeEditorScreenState
           date: _date.text.trim(),
           location: _location.text.trim(),
           linkUrl: _linkUrl.text.trim(),
+          imageUrl: imageUrl,
           languageCode: _languageCode.text.trim().toLowerCase(),
           enabled: _enabled,
           pinned: _pinned,
@@ -335,17 +453,16 @@ class _CommunityNoticeEditorScreenState
       }
     } on Object catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '${adminText(context, 'Não foi possível guardar')}: $error',
-            ),
-          ),
+        _showMessage(
+          '${adminText(context, 'Não foi possível guardar')}: $error',
         );
       }
     } finally {
       if (mounted) {
-        setState(() => _isSaving = false);
+        setState(() {
+          _isSaving = false;
+          _saveStatus = null;
+        });
       }
     }
   }
@@ -422,6 +539,20 @@ class _CommunityNoticeEditorScreenState
                       alignLabelWithHint: true,
                       border: const OutlineInputBorder(),
                     ),
+                  ),
+                  const SizedBox(height: 12),
+                  _NoticeImagePickerPanel(
+                    selectedBytes: _selectedImageBytes,
+                    currentUrl: _imageUrl.text.trim(),
+                    fileName: _selectedImageName,
+                    isEnabled: !_isSaving,
+                    onPick: _pickImage,
+                    onCrop: _selectedImageBytes != null ? _cropImage : null,
+                    onRemove:
+                        _selectedImageBytes != null ||
+                            _imageUrl.text.trim().isNotEmpty
+                        ? _removeImage
+                        : null,
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
@@ -514,12 +645,285 @@ class _CommunityNoticeEditorScreenState
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.save_outlined),
-                    label: Text(adminText(context, 'Guardar')),
+                    label: Text(_saveStatus ?? adminText(context, 'Guardar')),
                   ),
                 ],
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NoticeImagePickerPanel extends StatelessWidget {
+  const _NoticeImagePickerPanel({
+    required this.selectedBytes,
+    required this.currentUrl,
+    required this.fileName,
+    required this.isEnabled,
+    required this.onPick,
+    required this.onCrop,
+    required this.onRemove,
+  });
+
+  final Uint8List? selectedBytes;
+  final String currentUrl;
+  final String? fileName;
+  final bool isEnabled;
+  final VoidCallback onPick;
+  final VoidCallback? onCrop;
+  final VoidCallback? onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final image = selectedBytes != null
+        ? Image.memory(
+            selectedBytes!,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => const _NoticeImageFallback(),
+          )
+        : currentUrl.isNotEmpty
+        ? Image.network(
+            currentUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => const _NoticeImageFallback(),
+          )
+        : const _NoticeImageFallback();
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: Theme.of(context).colorScheme.outline),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              adminText(context, 'Imagem do aviso (opcional)'),
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: AspectRatio(aspectRatio: 16 / 9, child: image),
+            ),
+            if (fileName != null) ...[
+              const SizedBox(height: 8),
+              Text(fileName!, overflow: TextOverflow.ellipsis),
+            ],
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: isEnabled ? onPick : null,
+                  icon: const Icon(Icons.add_photo_alternate_outlined),
+                  label: Text(adminText(context, 'Selecionar imagem')),
+                ),
+                if (onCrop != null)
+                  OutlinedButton.icon(
+                    onPressed: isEnabled ? onCrop : null,
+                    icon: const Icon(Icons.crop_outlined),
+                    label: Text(adminText(context, 'Cortar imagem')),
+                  ),
+                if (onRemove != null)
+                  TextButton.icon(
+                    onPressed: isEnabled ? onRemove : null,
+                    icon: const Icon(Icons.delete_outline),
+                    label: Text(adminText(context, 'Remover imagem')),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              adminText(context, 'JPG, PNG ou WebP · máximo 5 MB'),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class NoticeImageCropScreen extends StatefulWidget {
+  const NoticeImageCropScreen({super.key, required this.imageBytes});
+
+  final Uint8List imageBytes;
+
+  @override
+  State<NoticeImageCropScreen> createState() => _NoticeImageCropScreenState();
+}
+
+class _NoticeImageCropScreenState extends State<NoticeImageCropScreen> {
+  final _controller = CropController();
+  bool _isReady = false;
+  bool _isCropping = false;
+  String? _error;
+
+  void _applyCrop() {
+    if (!_isReady || _isCropping) {
+      return;
+    }
+    setState(() {
+      _isCropping = true;
+      _error = null;
+    });
+    _controller.crop();
+  }
+
+  void _onCropped(CropResult result) {
+    if (!mounted) {
+      return;
+    }
+    switch (result) {
+      case CropSuccess(:final croppedImage):
+        Navigator.of(context).pop(croppedImage);
+      case CropFailure():
+        setState(() {
+          _isCropping = false;
+          _error = adminText(
+            context,
+            'Não foi possível cortar a imagem. Tente novamente.',
+          );
+        });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(adminText(context, 'Cortar imagem')),
+        leading: IconButton(
+          tooltip: adminText(context, 'Cancelar'),
+          onPressed: _isCropping ? null : () => Navigator.of(context).pop(),
+          icon: const Icon(Icons.close),
+        ),
+      ),
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
+              child: Text(
+                adminText(
+                  context,
+                  'Arraste para reposicionar e use o gesto de pinça ou a roda do rato para ampliar.',
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            Expanded(
+              child: ColoredBox(
+                color: Colors.black,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Crop(
+                    image: widget.imageBytes,
+                    controller: _controller,
+                    aspectRatio: 16 / 9,
+                    initialRectBuilder: InitialRectBuilder.withSizeAndRatio(
+                      size: 1,
+                      aspectRatio: 16 / 9,
+                    ),
+                    interactive: true,
+                    fixCropRect: true,
+                    maskColor: Colors.black.withValues(alpha: 0.7),
+                    baseColor: Colors.black,
+                    radius: 8,
+                    filterQuality: FilterQuality.high,
+                    progressIndicator: const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                    onStatusChanged: (status) {
+                      if (!mounted) {
+                        return;
+                      }
+                      final ready = status == CropStatus.ready;
+                      if (_isReady != ready) {
+                        setState(() => _isReady = ready);
+                      }
+                    },
+                    onCropped: _onCropped,
+                  ),
+                ),
+              ),
+            ),
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                child: Text(
+                  _error!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _isCropping
+                          ? null
+                          : () => Navigator.of(context).pop(),
+                      child: Text(adminText(context, 'Cancelar')),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: _isReady && !_isCropping ? _applyCrop : null,
+                      icon: _isCropping
+                          ? const SizedBox.square(
+                              dimension: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.crop_outlined),
+                      label: Text(adminText(context, 'Aplicar corte')),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String _croppedImageName(String originalName, Uint8List bytes) {
+  final baseName = originalName.contains('.')
+      ? originalName.substring(0, originalName.lastIndexOf('.'))
+      : originalName;
+  final isJpeg =
+      bytes.length >= 3 &&
+      bytes[0] == 0xff &&
+      bytes[1] == 0xd8 &&
+      bytes[2] == 0xff;
+  return '${baseName}_cortada.${isJpeg ? 'jpg' : 'png'}';
+}
+
+class _NoticeImageFallback extends StatelessWidget {
+  const _NoticeImageFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: Center(
+        child: Icon(
+          Icons.image_outlined,
+          size: 48,
+          color: Theme.of(context).colorScheme.outline,
         ),
       ),
     );

@@ -49,6 +49,7 @@ dependencies:
   xml: ^6.6.1
   url_launcher: ^6.3.2
   http: ^1.6.0
+  crop_your_image: ^2.0.0
 
 dev_dependencies:
   flutter_test:

@@ -57,6 +57,40 @@ service cloud.firestore {
         ]);
     }
 
+    function isValidNoticeDocument(countryCode) {
+      return request.resource.data.countryCode == countryCode
+        && request.resource.data.enabled is bool
+        && request.resource.data.title is string
+        && request.resource.data.title.size() >= 1
+        && request.resource.data.title.size() <= 160
+        && request.resource.data.body is string
+        && request.resource.data.body.size() >= 1
+        && request.resource.data.body.size() <= 10000
+        && request.resource.data.category in [
+          'general', 'event', 'specialDay', 'workshop', 'weeklyHomework'
+        ]
+        && request.resource.data.date is string
+        && (request.resource.data.date == ''
+          || request.resource.data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'))
+        && request.resource.data.location is string
+        && request.resource.data.location.size() <= 300
+        && request.resource.data.linkUrl is string
+        && request.resource.data.linkUrl.size() <= 2048
+        && (request.resource.data.linkUrl == ''
+          || request.resource.data.linkUrl.matches('^https://.+$'))
+        && (!request.resource.data.keys().hasAny(['imageUrl'])
+          || (request.resource.data.imageUrl is string
+            && request.resource.data.imageUrl.size() <= 2048
+            && (request.resource.data.imageUrl == ''
+              || request.resource.data.imageUrl.matches(
+                '^https://res[.]cloudinary[.]com/.+$'
+              ))))
+        && request.resource.data.languageCode is string
+        && request.resource.data.languageCode.matches('^[a-z]{2,5}(-[a-z]{2,5})?$')
+        && request.resource.data.pinned is bool
+        && request.resource.data.sortOrder is int;
+    }
+
     function isInviteEmail(invite) {
       return isSignedIn()
         && request.auth.token.email is string
@@ -171,14 +205,7 @@ service cloud.firestore {
           && isEnabledCountry(countryCode))
         || isCountryAdmin(countryCode);
       allow create, update: if isCountryAdmin(countryCode)
-        && request.resource.data.countryCode == countryCode
-        && request.resource.data.enabled is bool
-        && request.resource.data.title is string
-        && request.resource.data.title.size() >= 1
-        && request.resource.data.title.size() <= 160
-        && request.resource.data.body is string
-        && request.resource.data.body.size() >= 1
-        && request.resource.data.body.size() <= 10000;
+        && isValidNoticeDocument(countryCode);
       allow delete: if false;
     }
 

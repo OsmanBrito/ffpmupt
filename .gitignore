@@ -31,6 +31,16 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+/node_modules/
+.firebase/
+firestore-debug.log
+ui-debug.log
+
+# Local/generated artifacts that are not part of the application
+/output/
+/tmp/
+/FFPMU_Connect_Country_Leader_Onboarding_Guide.docx
+/assets/ginseng-news-banner.png
 
 # Symbolication related
 app.*.symbols

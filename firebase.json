@@ -3,6 +3,11 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
+  "emulators": {
+    "firestore": {
+      "port": 8088
+    }
+  },
   "hosting": {
     "site": "ffpmupt-402e1",
     "public": "build/web",

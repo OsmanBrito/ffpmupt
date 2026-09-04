@@ -27,6 +27,7 @@ class CommunityNotice {
     required this.date,
     required this.location,
     required this.linkUrl,
+    this.imageUrl = '',
     required this.languageCode,
     required this.enabled,
     required this.pinned,
@@ -43,6 +44,7 @@ class CommunityNotice {
   final String date;
   final String location;
   final String linkUrl;
+  final String imageUrl;
   final String languageCode;
   final bool enabled;
   final bool pinned;
@@ -59,6 +61,7 @@ class CommunityNotice {
       'date': date,
       'location': location,
       'linkUrl': linkUrl,
+      'imageUrl': imageUrl,
       'languageCode': languageCode,
       'enabled': enabled,
       'pinned': pinned,
@@ -76,6 +79,7 @@ class CommunityNotice {
       date: date,
       location: location,
       linkUrl: linkUrl,
+      imageUrl: imageUrl,
       languageCode: languageCode,
       enabled: enabled ?? this.enabled,
       pinned: pinned ?? this.pinned,
@@ -114,6 +118,7 @@ class CommunityNotice {
       date: date,
       location: _noticeString(map['location']),
       linkUrl: _noticeString(map['linkUrl']),
+      imageUrl: _noticeString(map['imageUrl']),
       languageCode: _noticeString(
         map['languageCode'],
         fallback: 'en',

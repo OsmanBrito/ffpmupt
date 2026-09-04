@@ -32,7 +32,7 @@ class _CommunityNoticesScreenState extends State<CommunityNoticesScreen> {
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 960),
+            constraints: const BoxConstraints(maxWidth: 780),
             child: StreamBuilder<List<CommunityNotice>>(
               stream: _repository.watchPublic(),
               builder: (context, snapshot) {
@@ -146,10 +146,43 @@ class _NoticeCard extends StatelessWidget {
     final date = notice.parsedDate;
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (notice.imageUrl.isNotEmpty) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final height = (constraints.maxWidth * 9 / 16).clamp(
+                      150.0,
+                      260.0,
+                    );
+                    return SizedBox(
+                      height: height,
+                      child: Image.network(
+                        optimizedNoticeImageUrl(notice.imageUrl),
+                        fit: BoxFit.cover,
+                        filterQuality: FilterQuality.medium,
+                        frameBuilder: (context, child, frame, _) =>
+                            AnimatedOpacity(
+                              opacity: frame == null ? 0 : 1,
+                              duration: const Duration(milliseconds: 180),
+                              child: child,
+                            ),
+                        loadingBuilder: (context, child, progress) =>
+                            progress == null
+                            ? child
+                            : const _NoticeImageLoading(),
+                        errorBuilder: (_, _, _) => const _NoticeImageFallback(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 14),
+            ],
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -245,6 +278,55 @@ class _NoticeCard extends StatelessWidget {
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+String optimizedNoticeImageUrl(String url) {
+  final uri = Uri.tryParse(url);
+  const uploadMarker = '/image/upload/';
+  const transformation = 'f_webp,q_auto,w_1200,c_limit';
+  if (uri == null ||
+      uri.scheme != 'https' ||
+      uri.host != 'res.cloudinary.com' ||
+      !uri.path.contains(uploadMarker) ||
+      uri.path.contains('$uploadMarker$transformation/')) {
+    return url;
+  }
+  return url.replaceFirst(uploadMarker, '$uploadMarker$transformation/');
+}
+
+class _NoticeImageLoading extends StatelessWidget {
+  const _NoticeImageLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: const Center(
+        child: SizedBox.square(
+          dimension: 28,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+    );
+  }
+}
+
+class _NoticeImageFallback extends StatelessWidget {
+  const _NoticeImageFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: Center(
+        child: Icon(
+          Icons.broken_image_outlined,
+          size: 44,
+          color: Theme.of(context).colorScheme.outline,
         ),
       ),
     );

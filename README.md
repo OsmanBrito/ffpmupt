@@ -32,9 +32,9 @@ message and does not write personal data to Firestore.
 
 Country administrators can edit their country's content settings, but only a
 superadmin can create a country or change whether it is enabled. Holy Ground
-images are checked for type and size in the client before being sent to the
-configured Cloudinary upload preset; the preset must also enforce equivalent
-limits in Cloudinary.
+and notice images are checked for type and size in the client before being sent
+to the configured Cloudinary upload preset; the preset must also enforce
+equivalent limits in Cloudinary.
 
 ## Development
 

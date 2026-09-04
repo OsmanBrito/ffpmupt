@@ -297,6 +297,7 @@ Path: `countries/{countryCode}/notices/{noticeId}`
   "date": "2026-09-12",
   "location": "Lisboa",
   "linkUrl": "https://...",
+  "imageUrl": "https://res.cloudinary.com/...",
   "languageCode": "pt",
   "enabled": true,
   "pinned": false,
@@ -309,4 +310,5 @@ Path: `countries/{countryCode}/notices/{noticeId}`
 Categories are `general`, `event`, `specialDay`, `workshop`, and
 `weeklyHomework`. Public clients can read only enabled notices under an enabled
 country. Country administrators can create, edit, publish, and hide their own
-country's notices.
+country's notices. The optional image is uploaded to Cloudinary after client-side
+type and size validation, and only the HTTPS delivery URL is stored in Firestore.
