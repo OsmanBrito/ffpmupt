@@ -89,7 +89,7 @@ class _MyAppState extends State<MyApp> {
     _offlineSyncSubscription = SongRepository(countryCode: country.code)
         .watchCatalog()
         .listen((state) {
-          audioCache.cacheAll(
+          audioCache.setAvailable(
             state.songs.expand(
               (song) => song.audioTracks
                   .where((track) => track.enabled)
@@ -524,6 +524,13 @@ class _OfflineAudioCacheIndicator extends StatelessWidget {
           final color = isPartial
               ? Theme.of(context).colorScheme.error
               : const Color(0xff2f6b4f);
+          if (progress.status == OfflineAudioCacheStatus.available) {
+            return OutlinedButton.icon(
+              onPressed: cache.downloadAvailable,
+              icon: const Icon(Icons.download_for_offline_outlined),
+              label: Text('${p0[P0Text.downloadOffline]} (${progress.total})'),
+            );
+          }
           final label = switch (progress.status) {
             OfflineAudioCacheStatus.ready => strings.offlineAudioReady,
             OfflineAudioCacheStatus.partial => strings.offlineAudioPartial,

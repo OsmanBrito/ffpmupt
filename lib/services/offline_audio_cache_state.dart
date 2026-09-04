@@ -1,4 +1,11 @@
-enum OfflineAudioCacheStatus { idle, checking, downloading, ready, partial }
+enum OfflineAudioCacheStatus {
+  idle,
+  available,
+  checking,
+  downloading,
+  ready,
+  partial,
+}
 
 class OfflineAudioCacheProgress {
   const OfflineAudioCacheProgress({

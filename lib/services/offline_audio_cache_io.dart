@@ -16,7 +16,9 @@ class OfflineAudioCache {
   OfflineAudioCacheProgress get currentProgress =>
       OfflineAudioCacheProgress.idle;
 
-  void cacheAll(Iterable<String> urls) {}
+  void setAvailable(Iterable<String> urls) {}
+
+  void downloadAvailable() {}
 
   void retry() {}
 }

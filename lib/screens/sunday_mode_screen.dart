@@ -536,10 +536,13 @@ class _OfflinePreparationPanel extends StatelessWidget {
         final progress = snapshot.data ?? OfflineAudioCacheProgress.idle;
         final ready = progress.status == OfflineAudioCacheStatus.ready;
         final partial = progress.status == OfflineAudioCacheStatus.partial;
+        final available = progress.status == OfflineAudioCacheStatus.available;
         final label = ready
             ? text[P0Text.offlineReady]
             : partial
             ? text[P0Text.offlinePartial]
+            : available
+            ? text[P0Text.offlineAvailable]
             : text[P0Text.offlinePreparing];
         return DecoratedBox(
           decoration: BoxDecoration(
@@ -560,6 +563,8 @@ class _OfflinePreparationPanel extends StatelessWidget {
                       ? Icons.offline_pin_outlined
                       : partial
                       ? Icons.cloud_off_outlined
+                      : available
+                      ? Icons.download_for_offline_outlined
                       : Icons.downloading_outlined,
                 ),
                 const SizedBox(width: 12),
@@ -579,7 +584,13 @@ class _OfflinePreparationPanel extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (partial)
+                if (available)
+                  IconButton.filledTonal(
+                    tooltip: text[P0Text.downloadOffline],
+                    onPressed: cache.downloadAvailable,
+                    icon: const Icon(Icons.download_outlined),
+                  )
+                else if (partial)
                   IconButton.filledTonal(
                     tooltip: text[P0Text.retry],
                     onPressed: cache.retry,
