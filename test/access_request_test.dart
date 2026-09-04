@@ -44,8 +44,10 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: AccessRequestScreen(
-          countries: const [AccessRequestCountry(code: 'pt', name: 'Portugal')],
-          initialCountryCode: 'pt',
+          countries: const [
+            AccessRequestCountry(code: 'va', name: 'Vatican City'),
+          ],
+          initialCountryCode: 'va',
           emailLauncher: (uri) async {
             captured = uri;
             return true;
@@ -54,8 +56,19 @@ void main() {
       ),
     );
 
-    await tester.enterText(find.byType(TextFormField).at(0), 'Ana Leader');
-    await tester.enterText(find.byType(TextFormField).at(1), 'ana@example.com');
+    await tester.enterText(
+      find.byType(TextFormField).at(0),
+      'Un Hee Schiefelbein Brito',
+    );
+    await tester.enterText(
+      find.byType(TextFormField).at(1),
+      'peace.unhee@gmail.com',
+    );
+    await tester.tap(find.text('Country leader'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Country administrator').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).at(2), 'Message');
     final submitButton = find.text('Open email to send request');
     await tester.ensureVisible(submitButton);
     await tester.tap(submitButton);
@@ -63,7 +76,34 @@ void main() {
 
     expect(captured?.scheme, 'mailto');
     expect(captured?.path, 'osman.gimenes@gmail.com');
-    expect(captured?.queryParameters['subject'], contains('Portugal'));
+    expect(
+      captured?.queryParameters['subject'],
+      'FFPMU Connect — Administrator access request — Vatican City',
+    );
+    expect(
+      captured?.queryParameters['body'],
+      [
+        'Hello Osman,',
+        '',
+        'I would like to request administrator access to FFPMU Connect.',
+        '',
+        'Country: Vatican City (VA)',
+        'Name: Un Hee Schiefelbein Brito',
+        'Role: Country administrator',
+        'Email for the invitation: peace.unhee@gmail.com',
+        '',
+        'Message:',
+        'Message',
+        '',
+        'Thank you.',
+      ].join('\n'),
+    );
+    final rawMailto = captured.toString();
+    expect(rawMailto, isNot(contains('+')));
+    expect(rawMailto, isNot(contains(r'\')));
+    expect(rawMailto, contains('%20'));
+    expect(rawMailto, contains('%0A%0A'));
+    expect(rawMailto, contains('peace.unhee%40gmail.com'));
     expect(find.text('Email draft prepared'), findsOneWidget);
   });
 

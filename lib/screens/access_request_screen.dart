@@ -107,7 +107,10 @@ class _AccessRequestScreenState extends State<AccessRequestScreen> {
       final mailto = Uri(
         scheme: 'mailto',
         path: widget.coordinatorEmail,
-        queryParameters: {'subject': subject, 'body': emailBody},
+        query: _encodeMailtoQueryParameters({
+          'subject': subject,
+          'body': emailBody,
+        }),
       );
       final opened =
           await (widget.emailLauncher?.call(mailto) ??
@@ -363,6 +366,15 @@ class _AccessRequestScreenState extends State<AccessRequestScreen> {
       ],
     );
   }
+}
+
+String _encodeMailtoQueryParameters(Map<String, String> parameters) {
+  return parameters.entries
+      .map(
+        (entry) =>
+            '${Uri.encodeComponent(entry.key)}=${Uri.encodeComponent(entry.value)}',
+      )
+      .join('&');
 }
 
 OnboardingCopy _copy(BuildContext context) {
