@@ -12,6 +12,7 @@ class AppStrings {
     required this.promiseHistoryLabel,
     required this.motto,
     required this.mottoSubtitle,
+    required this.mottoNotConfigured,
     required this.offerings,
     required this.offeringsSubtitle,
     required this.weeklyVideos,
@@ -99,6 +100,7 @@ class AppStrings {
   final String promiseHistoryLabel;
   final String motto;
   final String mottoSubtitle;
+  final String mottoNotConfigured;
   final String offerings;
   final String offeringsSubtitle;
   final String weeklyVideos;
@@ -197,7 +199,7 @@ class AppStrings {
 
   static const portuguese = AppStrings(
     sundayService: 'Serviço de Domingo',
-    homeSubtitle: 'Textos e canções para a comunidade FFPMU Portugal',
+    homeSubtitle: 'Textos e canções para a comunidade FFPMU Connect',
     appLanguage: 'Idioma da app',
     songs: 'Canções',
     songsSubtitle: 'Letras, páginas e áudio disponível',
@@ -206,6 +208,7 @@ class AppStrings {
     promiseHistoryLabel: 'Promessa',
     motto: 'Lema 2026',
     mottoSubtitle: 'Texto anual para ler e projetar',
+    mottoNotConfigured: 'O lema deste país ainda não foi configurado.',
     offerings: 'Ofertas / Dízimos',
     offeringsSubtitle: 'IBAN copiável e QR para abrir no telemóvel',
     weeklyVideos: 'Vídeos / Semanário',
@@ -290,7 +293,7 @@ class AppStrings {
 
   static const korean = AppStrings(
     sundayService: '주일 예배',
-    homeSubtitle: 'FFPMU 포르투갈 공동체를 위한 말씀과 성가',
+    homeSubtitle: 'FFPMU Connect 공동체를 위한 말씀과 성가',
     appLanguage: '앱 언어',
     songs: '성가',
     songsSubtitle: '가사, 페이지 및 사용 가능한 오디오',
@@ -299,6 +302,7 @@ class AppStrings {
     promiseHistoryLabel: '맹세',
     motto: '2026년 표어',
     mottoSubtitle: '읽고 투사할 연간 표어',
+    mottoNotConfigured: '이 국가의 표어가 아직 설정되지 않았습니다.',
     offerings: '헌금 / 십일조',
     offeringsSubtitle: '복사 가능한 IBAN 및 모바일용 QR',
     weeklyVideos: '영상 / 주간 뉴스',
@@ -380,7 +384,7 @@ class AppStrings {
 
   static const english = AppStrings(
     sundayService: 'Sunday Service',
-    homeSubtitle: 'Texts and songs for the FFPMU Portugal community',
+    homeSubtitle: 'Texts and songs for the FFPMU Connect community',
     appLanguage: 'App language',
     songs: 'Songs',
     songsSubtitle: 'Lyrics, pages, and available audio',
@@ -389,6 +393,7 @@ class AppStrings {
     promiseHistoryLabel: 'Pledge',
     motto: '2026 Motto',
     mottoSubtitle: 'Annual text for reading and projection',
+    mottoNotConfigured: 'This country has not configured a motto yet.',
     offerings: 'Offerings / Tithes',
     offeringsSubtitle: 'Copyable IBAN and phone QR',
     weeklyVideos: 'Videos / Weekly News',
@@ -472,7 +477,7 @@ class AppStrings {
 
   static const spanish = AppStrings(
     sundayService: 'Servicio dominical',
-    homeSubtitle: 'Textos y canciones para la comunidad FFPMU Portugal',
+    homeSubtitle: 'Textos y canciones para la comunidad FFPMU Connect',
     appLanguage: 'Idioma de la app',
     songs: 'Canciones',
     songsSubtitle: 'Letras, páginas y audio disponible',
@@ -481,6 +486,7 @@ class AppStrings {
     promiseHistoryLabel: 'Promesa',
     motto: 'Lema 2026',
     mottoSubtitle: 'Texto anual para leer y proyectar',
+    mottoNotConfigured: 'Este país todavía no ha configurado un lema.',
     offerings: 'Ofrendas / Diezmos',
     offeringsSubtitle: 'IBAN copiable y QR para el móvil',
     weeklyVideos: 'Vídeos / Semanario',
@@ -565,7 +571,7 @@ class AppStrings {
 
   static const german = AppStrings(
     sundayService: 'Sonntagsgottesdienst',
-    homeSubtitle: 'Texte und Lieder für die FFPMU Portugal Gemeinde',
+    homeSubtitle: 'Texte und Lieder für die FFPMU Connect Gemeinde',
     appLanguage: 'App-Sprache',
     songs: 'Lieder',
     songsSubtitle: 'Texte, Seiten und verfügbare Audios',
@@ -574,6 +580,7 @@ class AppStrings {
     promiseHistoryLabel: 'Gelöbnis',
     motto: 'Motto 2026',
     mottoSubtitle: 'Jahrestext zum Lesen und Projizieren',
+    mottoNotConfigured: 'Für dieses Land wurde noch kein Motto konfiguriert.',
     offerings: 'Spenden / Zehnten',
     offeringsSubtitle: 'Kopierbare IBAN und QR fürs Telefon',
     weeklyVideos: 'Videos / Wochennews',
@@ -658,7 +665,7 @@ class AppStrings {
 
   static const italian = AppStrings(
     sundayService: 'Servizio domenicale',
-    homeSubtitle: 'Testi e canti per la comunità FFPMU Portugal',
+    homeSubtitle: 'Testi e canti per la comunità FFPMU Connect',
     appLanguage: 'Lingua dell’app',
     songs: 'Canti',
     songsSubtitle: 'Testi, pagine e audio disponibile',
@@ -667,6 +674,7 @@ class AppStrings {
     promiseHistoryLabel: 'Promessa',
     motto: 'Motto 2026',
     mottoSubtitle: 'Testo annuale da leggere e proiettare',
+    mottoNotConfigured: 'Questo paese non ha ancora configurato un motto.',
     offerings: 'Offerte / Decime',
     offeringsSubtitle: 'IBAN copiabile e QR per il telefono',
     weeklyVideos: 'Video / Settimanale',
@@ -750,7 +758,7 @@ class AppStrings {
 
   static const french = AppStrings(
     sundayService: 'Service du dimanche',
-    homeSubtitle: 'Textes et chants pour la communauté FFPMU Portugal',
+    homeSubtitle: 'Textes et chants pour la communauté FFPMU Connect',
     appLanguage: 'Langue de l’app',
     songs: 'Chants',
     songsSubtitle: 'Paroles, pages et audio disponible',
@@ -759,6 +767,7 @@ class AppStrings {
     promiseHistoryLabel: 'Promesse',
     motto: 'Devise 2026',
     mottoSubtitle: 'Texte annuel à lire et projeter',
+    mottoNotConfigured: 'Aucune devise n’a encore été configurée pour ce pays.',
     offerings: 'Offrandes / Dîmes',
     offeringsSubtitle: 'IBAN copiable et QR pour téléphone',
     weeklyVideos: 'Vidéos / Hebdo',

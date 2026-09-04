@@ -51,6 +51,8 @@ O preset deve manter limites equivalentes no painel do Cloudinary. Como o
 upload é feito diretamente pelo navegador, o nome do preset é público; não
 adicione API Secret ao aplicativo. Ao trocar uma fotografia, o arquivo antigo
 deve ser removido manualmente no Cloudinary caso não seja mais necessário.
+O serviço também valida a extensão, a assinatura binária e o tamanho do arquivo
+antes do upload, mas isso não substitui os limites configurados no Cloudinary.
 
 ## Publicação
 

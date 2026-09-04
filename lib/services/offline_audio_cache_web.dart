@@ -28,19 +28,33 @@ class OfflineAudioCache {
 
   OfflineAudioCacheProgress get currentProgress => _currentProgress;
 
-  void cacheAll(Iterable<String> urls) {
+  void setAvailable(Iterable<String> urls) {
     final uniqueUrls = urls.where((url) => url.trim().isNotEmpty).toSet();
-    if (uniqueUrls.isEmpty) {
+    if (_sameUrls(_lastUrls, uniqueUrls)) {
       return;
     }
     _lastUrls = uniqueUrls;
-    _cacheAudio(uniqueUrls.map((url) => url.toJS).toList().toJS);
+    _setProgress(
+      uniqueUrls.isEmpty
+          ? OfflineAudioCacheProgress.idle
+          : OfflineAudioCacheProgress(
+              status: OfflineAudioCacheStatus.available,
+              completed: 0,
+              total: uniqueUrls.length,
+              failed: 0,
+            ),
+    );
+  }
+
+  void downloadAvailable() {
+    if (_lastUrls.isEmpty) {
+      return;
+    }
+    _cacheAudio(_lastUrls.map((url) => url.toJS).toList().toJS);
   }
 
   void retry() {
-    if (_lastUrls.isNotEmpty) {
-      _cacheAudio(_lastUrls.map((url) => url.toJS).toList().toJS);
-    }
+    downloadAvailable();
   }
 
   void _handleProgress(JSAny? value) {
@@ -63,7 +77,15 @@ class OfflineAudioCache {
       failed: (data['failed'] as num?)?.toInt() ?? 0,
       updatedAt: DateTime.now(),
     );
+    _setProgress(progress);
+  }
+
+  void _setProgress(OfflineAudioCacheProgress progress) {
     _currentProgress = progress;
     _progressController.add(progress);
+  }
+
+  bool _sameUrls(Set<String> left, Set<String> right) {
+    return left.length == right.length && left.containsAll(right);
   }
 }

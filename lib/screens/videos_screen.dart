@@ -25,7 +25,7 @@ class _VideosScreenState extends State<VideosScreen> {
   final _youtubeController = TextEditingController();
   final _vimeoController = TextEditingController();
   StreamSubscription<User?>? _authSubscription;
-  late List<WeeklyVideo> _videos = weeklyVideos;
+  List<WeeklyVideo> _videos = const [];
   bool _isLoading = true;
   bool _isCheckingAdmin = true;
   bool _isAdmin = false;
@@ -76,8 +76,12 @@ class _VideosScreenState extends State<VideosScreen> {
 
     setState(() {
       _videos = settings.videos;
-      _youtubeController.text = settings.youtube.watchUrl;
-      _vimeoController.text = settings.vimeo.watchUrl;
+      _youtubeController.text = settings.youtube.isConfigured
+          ? settings.youtube.watchUrl
+          : '';
+      _vimeoController.text = settings.vimeo.isConfigured
+          ? settings.vimeo.watchUrl
+          : '';
       _isLoading = false;
     });
   }
@@ -86,13 +90,13 @@ class _VideosScreenState extends State<VideosScreen> {
     final youtubeVideo = weeklyVideoFromUrl(
       sourceName: 'YouTube',
       sourceUrl: youtubeWeeklySourceUrl,
-      title: 'YouTube Semanário',
+      title: strings.weeklyVideos,
       url: _youtubeController.text,
     );
     final vimeoVideo = weeklyVideoFromUrl(
       sourceName: 'Vimeo',
       sourceUrl: vimeoWeeklySourceUrl,
-      title: 'Vimeo Weekly News',
+      title: strings.weeklyVideos,
       url: _vimeoController.text,
     );
 

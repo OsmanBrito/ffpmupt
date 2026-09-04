@@ -56,21 +56,27 @@ class AppLanguageController extends ChangeNotifier {
   }
 
   AppLanguage _language = AppLanguage.portuguese;
+  bool _hasExplicitChoice = false;
 
   AppLanguage get language => _language;
 
   Future<void> setLanguage(AppLanguage language) async {
     if (_language == language) {
+      _hasExplicitChoice = true;
       return;
     }
 
     _language = language;
+    _hasExplicitChoice = true;
     notifyListeners();
 
     await LocalStore.setString(_appLanguageKey, language.name);
   }
 
   void useCountryLanguage(String languageCode) {
+    if (_hasExplicitChoice) {
+      return;
+    }
     final language = appLanguageFromCode(languageCode);
     if (_language == language) {
       return;
@@ -94,6 +100,7 @@ class AppLanguageController extends ChangeNotifier {
     }
 
     _language = storedLanguage;
+    _hasExplicitChoice = true;
     notifyListeners();
   }
 }

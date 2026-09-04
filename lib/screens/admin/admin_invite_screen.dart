@@ -1,6 +1,7 @@
 import 'package:ffpmupt/models/operational_crm.dart';
 import 'package:ffpmupt/services/operational_crm_repository.dart';
 import 'package:ffpmupt/settings/admin_copy.dart';
+import 'package:ffpmupt/widgets/language_menu_button.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -25,6 +26,8 @@ class _AdminInviteScreenState extends State<AdminInviteScreen> {
   AdminInvite? _invite;
   bool _isBusy = false;
   bool _accepted = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
   String? _message;
 
   @override
@@ -78,9 +81,14 @@ class _AdminInviteScreenState extends State<AdminInviteScreen> {
               : adminText(context, 'Não foi possível abrir o convite.');
         });
       }
-    } on Object catch (error) {
+    } on Object catch (_) {
       if (mounted) {
-        setState(() => _message = '$error');
+        setState(
+          () => _message = adminText(
+            context,
+            'Não foi possível abrir o convite.',
+          ),
+        );
       }
     } finally {
       if (mounted) {
@@ -172,14 +180,20 @@ class _AdminInviteScreenState extends State<AdminInviteScreen> {
       );
       return;
     }
-    await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
-    if (mounted) {
-      setState(
-        () => _message = adminText(
-          context,
-          'Email para redefinir a senha enviado.',
-        ),
-      );
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      if (mounted) {
+        setState(
+          () => _message = adminText(
+            context,
+            'Email para redefinir a senha enviado.',
+          ),
+        );
+      }
+    } on FirebaseAuthException catch (error) {
+      if (mounted) {
+        setState(() => _message = _authErrorMessage(context, error));
+      }
     }
   }
 
@@ -209,9 +223,14 @@ class _AdminInviteScreenState extends State<AdminInviteScreen> {
       if (mounted) {
         setState(() => _accepted = true);
       }
-    } on Object catch (error) {
+    } on Object catch (_) {
       if (mounted) {
-        setState(() => _message = '$error');
+        setState(
+          () => _message = adminText(
+            context,
+            'Não foi possível confirmar o acesso. Tente novamente ou contacte o coordenador.',
+          ),
+        );
       }
     } finally {
       if (mounted) {
@@ -225,6 +244,7 @@ class _AdminInviteScreenState extends State<AdminInviteScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(adminText(context, 'Convite de administrador')),
+        actions: [const LanguageMenuButton(), const SizedBox(width: 8)],
       ),
       body: SafeArea(
         child: Center(
@@ -298,32 +318,72 @@ class _AdminInviteScreenState extends State<AdminInviteScreen> {
         TextField(
           controller: _emailController,
           keyboardType: TextInputType.emailAddress,
+          autofocus: true,
+          textInputAction: TextInputAction.next,
           decoration: InputDecoration(
             labelText: adminText(context, 'Email que recebeu o convite'),
             prefixIcon: const Icon(Icons.email_outlined),
             border: const OutlineInputBorder(),
           ),
         ),
+        const SizedBox(height: 6),
+        Text(
+          adminText(
+            context,
+            'Use exatamente o email indicado no convite para concluir o acesso.',
+          ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: const Color(0xff65716c)),
+        ),
         const SizedBox(height: 12),
         TextField(
           controller: _passwordController,
-          obscureText: true,
+          obscureText: _obscurePassword,
+          textInputAction: _mode == _InviteAuthMode.createAccount
+              ? TextInputAction.next
+              : TextInputAction.done,
+          onSubmitted: _mode == _InviteAuthMode.signIn
+              ? (_) => _authenticate()
+              : null,
           decoration: InputDecoration(
             labelText: adminText(context, 'Senha'),
             prefixIcon: const Icon(Icons.password),
             border: const OutlineInputBorder(),
+            helperText: _mode == _InviteAuthMode.createAccount
+                ? adminText(context, 'Use pelo menos 8 caracteres.')
+                : null,
+            suffixIcon: IconButton(
+              tooltip: adminText(context, 'Mostrar ou ocultar palavra-passe'),
+              onPressed: () =>
+                  setState(() => _obscurePassword = !_obscurePassword),
+              icon: Icon(
+                _obscurePassword ? Icons.visibility : Icons.visibility_off,
+              ),
+            ),
           ),
         ),
         if (_mode == _InviteAuthMode.createAccount) ...[
           const SizedBox(height: 12),
           TextField(
             controller: _confirmPasswordController,
-            obscureText: true,
+            obscureText: _obscureConfirmPassword,
             onSubmitted: (_) => _authenticate(),
             decoration: InputDecoration(
               labelText: adminText(context, 'Confirmar senha'),
               prefixIcon: const Icon(Icons.password),
               border: const OutlineInputBorder(),
+              suffixIcon: IconButton(
+                tooltip: adminText(context, 'Mostrar ou ocultar palavra-passe'),
+                onPressed: () => setState(
+                  () => _obscureConfirmPassword = !_obscureConfirmPassword,
+                ),
+                icon: Icon(
+                  _obscureConfirmPassword
+                      ? Icons.visibility
+                      : Icons.visibility_off,
+                ),
+              ),
             ),
           ),
         ],
@@ -532,6 +592,6 @@ String _authErrorMessage(BuildContext context, FirebaseAuthException error) {
       context,
       'Muitas tentativas. Aguarde e tente novamente.',
     ),
-    _ => error.message ?? adminText(context, 'Não foi possível autenticar.'),
+    _ => adminText(context, 'Não foi possível autenticar.'),
   };
 }

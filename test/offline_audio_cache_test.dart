@@ -24,4 +24,17 @@ void main() {
     );
     expect(complete.fraction, 1);
   });
+
+  test('available offline audio reports the pending download count', () {
+    const progress = OfflineAudioCacheProgress(
+      status: OfflineAudioCacheStatus.available,
+      completed: 0,
+      total: 31,
+      failed: 0,
+    );
+
+    expect(progress.status, OfflineAudioCacheStatus.available);
+    expect(progress.total, 31);
+    expect(progress.fraction, 0);
+  });
 }

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:ffpmupt/models/country.dart';
 import 'package:ffpmupt/models/sunday_mode.dart';
+import 'package:ffpmupt/screens/community_notices_screen.dart';
 import 'package:ffpmupt/screens/family_promise_screen.dart';
 import 'package:ffpmupt/screens/list_of_songs_screen.dart';
 import 'package:ffpmupt/screens/motto_screen.dart';
@@ -96,6 +97,9 @@ class _SundayModeScreenState extends State<SundayModeScreen> {
         countryCode: widget.country.code,
       ),
       SundayModule.videos => VideosScreen(countryCode: widget.country.code),
+      SundayModule.notices => CommunityNoticesScreen(
+        countryCode: widget.country.code,
+      ),
     };
     await Navigator.of(
       context,
@@ -269,7 +273,11 @@ class _SundayModeScreenState extends State<SundayModeScreen> {
                             child: _SundayStepTile(
                               index: index,
                               icon: _moduleIcon(item.module),
-                              label: _moduleLabel(item.module, strings),
+                              label: _moduleLabel(
+                                item.module,
+                                strings,
+                                language,
+                              ),
                               included: item.enabled,
                               complete: complete,
                               isActive: _startedAt != null,
@@ -328,16 +336,22 @@ IconData _moduleIcon(SundayModule module) {
     SundayModule.motto => Icons.auto_stories_outlined,
     SundayModule.offerings => Icons.volunteer_activism_outlined,
     SundayModule.videos => Icons.ondemand_video_outlined,
+    SundayModule.notices => Icons.campaign_outlined,
   };
 }
 
-String _moduleLabel(SundayModule module, AppStrings strings) {
+String _moduleLabel(
+  SundayModule module,
+  AppStrings strings,
+  AppLanguage language,
+) {
   return switch (module) {
     SundayModule.songs => strings.songs,
     SundayModule.familyPromise => strings.familyPromise,
     SundayModule.motto => strings.motto,
     SundayModule.offerings => strings.offerings,
     SundayModule.videos => strings.weeklyVideos,
+    SundayModule.notices => CommunityNoticeCopy.of(language).title,
   };
 }
 
@@ -522,10 +536,13 @@ class _OfflinePreparationPanel extends StatelessWidget {
         final progress = snapshot.data ?? OfflineAudioCacheProgress.idle;
         final ready = progress.status == OfflineAudioCacheStatus.ready;
         final partial = progress.status == OfflineAudioCacheStatus.partial;
+        final available = progress.status == OfflineAudioCacheStatus.available;
         final label = ready
             ? text[P0Text.offlineReady]
             : partial
             ? text[P0Text.offlinePartial]
+            : available
+            ? text[P0Text.offlineAvailable]
             : text[P0Text.offlinePreparing];
         return DecoratedBox(
           decoration: BoxDecoration(
@@ -546,6 +563,8 @@ class _OfflinePreparationPanel extends StatelessWidget {
                       ? Icons.offline_pin_outlined
                       : partial
                       ? Icons.cloud_off_outlined
+                      : available
+                      ? Icons.download_for_offline_outlined
                       : Icons.downloading_outlined,
                 ),
                 const SizedBox(width: 12),
@@ -565,7 +584,13 @@ class _OfflinePreparationPanel extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (partial)
+                if (available)
+                  IconButton.filledTonal(
+                    tooltip: text[P0Text.downloadOffline],
+                    onPressed: cache.downloadAvailable,
+                    icon: const Icon(Icons.download_outlined),
+                  )
+                else if (partial)
                   IconButton.filledTonal(
                     tooltip: text[P0Text.retry],
                     onPressed: cache.retry,

@@ -1,4 +1,4 @@
-enum SundayModule { songs, familyPromise, motto, offerings, videos }
+enum SundayModule { songs, familyPromise, motto, offerings, videos, notices }
 
 class SundayPlanItem {
   const SundayPlanItem({required this.module, required this.enabled});
