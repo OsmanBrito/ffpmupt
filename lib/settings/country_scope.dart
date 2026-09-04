@@ -27,7 +27,9 @@ class CountryController extends ChangeNotifier {
     if (preferredCode != null) {
       _country = _findCountry(preferredCode);
     }
-    if (_country != null && locationCode == null) {
+    if (_country != null &&
+        locationCode == null &&
+        !shouldPreserveCountryLocation()) {
       setCountryLocation(_country!.code);
     }
     _isLoading = false;
