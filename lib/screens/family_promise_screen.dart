@@ -8,7 +8,8 @@ import 'package:ffpmupt/services/pledge_speaker.dart';
 import 'package:ffpmupt/settings/app_language.dart';
 import 'package:ffpmupt/settings/app_strings.dart';
 import 'package:ffpmupt/settings/local_store.dart';
-import 'package:flutter/foundation.dart';
+import 'package:ffpmupt/theme/app_theme.dart';
+import 'package:ffpmupt/widgets/reading_mode_button.dart';
 import 'package:flutter/material.dart';
 
 class FamilyPromiseScreen extends StatefulWidget {
@@ -29,6 +30,7 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
   int _currentIndex = 0;
   List<int> _history = [];
   bool _isSpeaking = false;
+  bool _isPresentation = false;
 
   String get _historyKey => 'family_promise_history_${widget.country.code}_v1';
 
@@ -184,16 +186,25 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: color,
-        foregroundColor: Colors.white,
-        title: Text(strings.familyPromise),
+        title: Text(promise.title),
+        actions: [
+          ReadingModeButton(
+            isPresentation: _isPresentation,
+            onPressed: () => setState(() => _isPresentation = !_isPresentation),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1080),
+              constraints: BoxConstraints(
+                maxWidth: _isPresentation
+                    ? AppTypography.presentationWidth
+                    : AppTypography.readingWidth,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -262,18 +273,11 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
                         vertical: 30,
                       ),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            promise.title,
-                            textAlign: TextAlign.center,
-                            style: textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              fontSize: kIsWeb ? 40 : null,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
                             '${_currentIndex + 1} / ${items.length}',
+                            textAlign: TextAlign.center,
                             style: textTheme.titleMedium?.copyWith(
                               color: color,
                               fontWeight: FontWeight.w700,
@@ -284,6 +288,7 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               IconButton.filledTonal(
+                                tooltip: strings.previousLyric,
                                 onPressed: _currentIndex == 0
                                     ? null
                                     : () => _showItem(_currentIndex - 1),
@@ -291,6 +296,7 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
                               ),
                               const SizedBox(width: 16),
                               IconButton.filledTonal(
+                                tooltip: strings.nextLyric,
                                 onPressed: _currentIndex == items.length - 1
                                     ? null
                                     : () => _showItem(_currentIndex + 1),
@@ -330,13 +336,21 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
                             ],
                           ),
                           const SizedBox(height: 28),
-                          Text(
-                            items[_currentIndex],
-                            textAlign: TextAlign.center,
-                            style: textTheme.headlineSmall?.copyWith(
-                              fontSize: kIsWeb ? 34 : 21,
-                              height: 1.38,
-                              color: const Color(0xff293833),
+                          LayoutBuilder(
+                            builder: (context, constraints) => Text(
+                              items[_currentIndex],
+                              textAlign: _isPresentation
+                                  ? TextAlign.center
+                                  : TextAlign.start,
+                              style: textTheme.headlineSmall?.copyWith(
+                                fontSize: AppTypography.readingTextSize(
+                                  availableWidth: constraints.maxWidth,
+                                  presentation: _isPresentation,
+                                ),
+                                height: _isPresentation ? 1.28 : 1.55,
+                                color: AppColors.ink,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                         ],

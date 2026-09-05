@@ -35,6 +35,21 @@ abstract final class AppRadius {
   static const pill = 999.0;
 }
 
+abstract final class AppTypography {
+  static const readingWidth = 720.0;
+  static const presentationWidth = 1120.0;
+
+  static double readingTextSize({
+    required double availableWidth,
+    required bool presentation,
+  }) {
+    if (presentation) {
+      return availableWidth >= 900 ? 48 : 34;
+    }
+    return availableWidth >= 620 ? 28 : 22;
+  }
+}
+
 abstract final class AppTheme {
   static ThemeData light() {
     final scheme =
@@ -58,7 +73,16 @@ abstract final class AppTheme {
           surfaceContainerHighest: const Color(0xffdfe8e3),
         );
 
-    final base = ThemeData(useMaterial3: true, colorScheme: scheme);
+    final base = ThemeData(
+      useMaterial3: true,
+      colorScheme: scheme,
+      fontFamilyFallback: const [
+        'Noto Sans',
+        'Noto Sans CJK KR',
+        'Arial',
+        'sans-serif',
+      ],
+    );
     final textTheme = base.textTheme.apply(
       bodyColor: AppColors.ink,
       displayColor: AppColors.forest,

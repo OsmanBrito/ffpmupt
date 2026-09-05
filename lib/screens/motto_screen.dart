@@ -2,7 +2,8 @@ import 'package:ffpmupt/models/motto.dart';
 import 'package:ffpmupt/services/motto_repository.dart';
 import 'package:ffpmupt/settings/app_language.dart';
 import 'package:ffpmupt/settings/app_strings.dart';
-import 'package:flutter/foundation.dart';
+import 'package:ffpmupt/theme/app_theme.dart';
+import 'package:ffpmupt/widgets/reading_mode_button.dart';
 import 'package:flutter/material.dart';
 
 class MottoScreen extends StatefulWidget {
@@ -16,6 +17,7 @@ class MottoScreen extends StatefulWidget {
 
 class _MottoScreenState extends State<MottoScreen> {
   late final MottoRepository _repository;
+  bool _isPresentation = false;
 
   @override
   void initState() {
@@ -28,21 +30,35 @@ class _MottoScreenState extends State<MottoScreen> {
     final strings = AppStrings.of(AppLanguageScope.watch(context).language);
     final textTheme = Theme.of(context).textTheme;
 
-    return Scaffold(
-      appBar: AppBar(title: Text(strings.motto)),
-      body: StreamBuilder<MottoSettings>(
-        stream: _repository.watch(),
-        initialData: MottoSettings.fallback(countryCode: widget.countryCode),
-        builder: (context, snapshot) {
-          final motto =
-              snapshot.data ??
-              MottoSettings.fallback(countryCode: widget.countryCode);
-          return SafeArea(
+    return StreamBuilder<MottoSettings>(
+      stream: _repository.watch(),
+      initialData: MottoSettings.fallback(countryCode: widget.countryCode),
+      builder: (context, snapshot) {
+        final motto =
+            snapshot.data ??
+            MottoSettings.fallback(countryCode: widget.countryCode);
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(motto.isConfigured ? motto.title : strings.motto),
+            actions: [
+              ReadingModeButton(
+                isPresentation: _isPresentation,
+                onPressed: () =>
+                    setState(() => _isPresentation = !_isPresentation),
+              ),
+              const SizedBox(width: 8),
+            ],
+          ),
+          body: SafeArea(
             child: Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(24),
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 980),
+                  constraints: BoxConstraints(
+                    maxWidth: _isPresentation
+                        ? AppTypography.presentationWidth
+                        : AppTypography.readingWidth,
+                  ),
                   child: Card(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
@@ -52,6 +68,7 @@ class _MottoScreenState extends State<MottoScreen> {
                       child: motto.isConfigured
                           ? Column(
                               mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 Icon(
                                   Icons.auto_stories,
@@ -59,24 +76,22 @@ class _MottoScreenState extends State<MottoScreen> {
                                   size: 42,
                                 ),
                                 const SizedBox(height: 20),
-                                Text(
-                                  motto.title,
-                                  textAlign: TextAlign.center,
-                                  style: textTheme.headlineMedium?.copyWith(
-                                    color: const Color(0xff193c37),
-                                    fontSize: kIsWeb ? 42 : null,
-                                    fontWeight: FontWeight.w800,
+                                LayoutBuilder(
+                                  builder: (context, constraints) => Text(
+                                    motto.body,
+                                    style: textTheme.headlineSmall?.copyWith(
+                                      color: AppColors.ink,
+                                      fontSize: AppTypography.readingTextSize(
+                                        availableWidth: constraints.maxWidth,
+                                        presentation: _isPresentation,
+                                      ),
+                                      height: _isPresentation ? 1.28 : 1.55,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    textAlign: _isPresentation
+                                        ? TextAlign.center
+                                        : TextAlign.start,
                                   ),
-                                ),
-                                const SizedBox(height: 24),
-                                Text(
-                                  motto.body,
-                                  style: textTheme.headlineSmall?.copyWith(
-                                    color: const Color(0xff293833),
-                                    fontSize: kIsWeb ? 34 : 22,
-                                    height: 1.35,
-                                  ),
-                                  textAlign: TextAlign.center,
                                 ),
                               ],
                             )
@@ -90,9 +105,9 @@ class _MottoScreenState extends State<MottoScreen> {
                 ),
               ),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }

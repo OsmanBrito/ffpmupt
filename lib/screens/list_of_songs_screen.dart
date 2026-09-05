@@ -1,57 +1,35 @@
 import 'dart:async';
 
+import 'package:ffpmupt/models/song.dart';
+import 'package:ffpmupt/services/song_library_preferences.dart';
+import 'package:ffpmupt/services/song_repository.dart';
 import 'package:ffpmupt/settings/app_language.dart';
 import 'package:ffpmupt/settings/app_strings.dart';
-import 'package:ffpmupt/models/song.dart';
-import 'package:ffpmupt/services/song_repository.dart';
+import 'package:ffpmupt/settings/reading_song_strings.dart';
 import 'package:ffpmupt/songs/bundled_song_catalog.dart';
+import 'package:ffpmupt/theme/app_theme.dart';
 import 'package:ffpmupt/widgets/offering_payment_panel.dart';
+import 'package:ffpmupt/widgets/reading_mode_button.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 
-String _normalizeSongSearch(String value) {
-  const replacements = {
-    'á': 'a',
-    'à': 'a',
-    'ã': 'a',
-    'â': 'a',
-    'ä': 'a',
-    'é': 'e',
-    'è': 'e',
-    'ê': 'e',
-    'ë': 'e',
-    'í': 'i',
-    'ì': 'i',
-    'î': 'i',
-    'ï': 'i',
-    'ó': 'o',
-    'ò': 'o',
-    'õ': 'o',
-    'ô': 'o',
-    'ö': 'o',
-    'ú': 'u',
-    'ù': 'u',
-    'û': 'u',
-    'ü': 'u',
-    'ç': 'c',
-  };
-
-  final lower = value.toLowerCase();
-  final buffer = StringBuffer();
-  for (final codeUnit in lower.codeUnits) {
-    final character = String.fromCharCode(codeUnit);
-    buffer.write(replacements[character] ?? character);
-  }
-
-  return buffer.toString();
-}
-
 class ListOfSongsScreen extends StatefulWidget {
-  const ListOfSongsScreen({super.key, required this.countryCode});
+  const ListOfSongsScreen({
+    super.key,
+    required this.countryCode,
+    this.enableLocalLibrary = true,
+    this.watchCatalog = true,
+  });
 
   final String countryCode;
+
+  @visibleForTesting
+  final bool enableLocalLibrary;
+
+  @visibleForTesting
+  final bool watchCatalog;
 
   @override
   State<ListOfSongsScreen> createState() => _ListOfSongsScreenState();
@@ -60,41 +38,61 @@ class ListOfSongsScreen extends StatefulWidget {
 class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
   final _controller = TextEditingController();
   late final SongRepository _repository;
+  late final SongLibraryPreferences _libraryPreferences;
   StreamSubscription<SongCatalogState>? _catalogSubscription;
   late List<SongDocument> _songs;
   SongCategory? _selectedCategory;
   bool _showOnlyWithMusic = false;
+  Set<String> _favoriteIds = <String>{};
+  List<String> _recentIds = <String>[];
+  SongLibraryView _libraryView = SongLibraryView.all;
+  SongSort _sort = SongSort.catalogue;
   String _searchQuery = '';
 
   List<SongDocument> get _filteredSongs {
-    final query = _normalizeSongSearch(_searchQuery.trim());
-
-    return _songs.where((song) {
-      final searchableText = _normalizeSongSearch(
-        [song.title, song.page, song.category.value, ...song.lyrics].join(' '),
-      );
-      final matchesSearch = query.isEmpty || searchableText.contains(query);
-      final matchesCategory =
-          _selectedCategory == null || song.category == _selectedCategory;
-      final matchesMusic =
-          !_showOnlyWithMusic || song.audioTracks.any((track) => track.enabled);
-
-      return matchesSearch && matchesCategory && matchesMusic;
-    }).toList();
+    return filterAndSortSongs(
+      songs: _songs,
+      query: _searchQuery,
+      view: _libraryView,
+      sort: _sort,
+      category: _selectedCategory,
+      onlyWithAudio: _showOnlyWithMusic,
+      favoriteIds: _favoriteIds,
+      recentIds: _recentIds,
+    );
   }
 
   @override
   void initState() {
     super.initState();
     _repository = SongRepository(countryCode: widget.countryCode);
+    _libraryPreferences = SongLibraryPreferences(
+      countryCode: widget.countryCode,
+    );
     _songs = bundledCatalogForCountry(widget.countryCode);
-    _catalogSubscription = _repository.watchCatalog().listen((state) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _songs = state.songs;
+    if (widget.enableLocalLibrary) {
+      unawaited(_loadLibraryState());
+    }
+    if (widget.watchCatalog) {
+      _catalogSubscription = _repository.watchCatalog().listen((state) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _songs = state.songs;
+        });
       });
+    }
+  }
+
+  Future<void> _loadLibraryState() async {
+    final state = await _libraryPreferences.load();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _favoriteIds = state.favoriteIds;
+      _recentIds = state.recentIds;
     });
   }
 
@@ -116,16 +114,55 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
     });
   }
 
-  void _showAllSongs() {
-    setState(() {
-      _selectedCategory = null;
-      _showOnlyWithMusic = false;
-    });
+  Future<void> _toggleFavorite(SongDocument song) async {
+    final updated = {..._favoriteIds};
+    if (!updated.add(song.id)) {
+      updated.remove(song.id);
+    }
+    setState(() => _favoriteIds = updated);
+    await _libraryPreferences.saveFavorites(updated);
+  }
+
+  Future<void> _openSong(SongDocument song) async {
+    final recent = await _libraryPreferences.markRecent(song.id, _recentIds);
+    if (mounted) {
+      setState(() => _recentIds = recent);
+    }
+    if (!mounted) {
+      return;
+    }
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => SongScreen(
+          song: song,
+          countryCode: widget.countryCode,
+          initiallyFavorite: _favoriteIds.contains(song.id),
+          onFavoriteChanged: (favorite) {
+            final updated = {..._favoriteIds};
+            favorite ? updated.add(song.id) : updated.remove(song.id);
+            if (mounted) {
+              setState(() => _favoriteIds = updated);
+            }
+            unawaited(_libraryPreferences.saveFavorites(updated));
+          },
+        ),
+      ),
+    );
   }
 
   void _clearSearch() {
     _controller.clear();
     _filterSong('');
+  }
+
+  void _clearSearchAndFilters() {
+    _controller.clear();
+    setState(() {
+      _searchQuery = '';
+      _libraryView = SongLibraryView.all;
+      _selectedCategory = null;
+      _showOnlyWithMusic = false;
+    });
   }
 
   @override
@@ -165,9 +202,120 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
     }
   }
 
+  String _sortLabel(SongSort sort, ReadingSongStrings copy) {
+    return copy[switch (sort) {
+      SongSort.catalogue => ReadingSongText.catalogueOrder,
+      SongSort.alphabetical => ReadingSongText.alphabeticalOrder,
+      SongSort.page => ReadingSongText.pageOrder,
+    }];
+  }
+
+  int get _activeFilterCount =>
+      (_selectedCategory == null ? 0 : 1) + (_showOnlyWithMusic ? 1 : 0);
+
+  Widget _buildCategoryFilters(AppStrings strings) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        FilterChip(
+          avatar: const Icon(Icons.music_note, size: 18),
+          label: Text(strings.withMusic),
+          selected: _showOnlyWithMusic,
+          onSelected: (_) => _toggleMusicFilter(),
+        ),
+        for (final category in SongCategory.values.where(
+          (category) => _songs.any((song) => song.category == category),
+        ))
+          FilterChip(
+            label: Text(_labelBy(category, strings)),
+            selected: _selectedCategory == category,
+            selectedColor: _colorBy(category).withValues(alpha: 0.18),
+            checkmarkColor: _colorBy(category),
+            onSelected: (_) =>
+                _showSongsBy(_selectedCategory == category ? null : category),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _showMobileFilters(AppStrings strings, ReadingSongStrings copy) {
+    return showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: SizedBox(
+          height: MediaQuery.sizeOf(context).height * 0.72,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+            child: StatefulBuilder(
+              builder: (context, setModalState) => Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    copy[ReadingSongText.filters],
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          FilterChip(
+                            avatar: const Icon(Icons.music_note, size: 18),
+                            label: Text(strings.withMusic),
+                            selected: _showOnlyWithMusic,
+                            onSelected: (_) {
+                              _toggleMusicFilter();
+                              setModalState(() {});
+                            },
+                          ),
+                          for (final category in SongCategory.values.where(
+                            (category) =>
+                                _songs.any((song) => song.category == category),
+                          ))
+                            FilterChip(
+                              label: Text(_labelBy(category, strings)),
+                              selected: _selectedCategory == category,
+                              selectedColor: _colorBy(
+                                category,
+                              ).withValues(alpha: 0.18),
+                              onSelected: (_) {
+                                _showSongsBy(
+                                  _selectedCategory == category
+                                      ? null
+                                      : category,
+                                );
+                                setModalState(() {});
+                              },
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  FilledButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(
+                      MaterialLocalizations.of(context).closeButtonLabel,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final strings = AppStrings.of(AppLanguageScope.watch(context).language);
+    final language = AppLanguageScope.watch(context).language;
+    final strings = AppStrings.of(language);
+    final copy = ReadingSongStrings.of(language);
     final filteredSongs = _filteredSongs;
 
     return Scaffold(
@@ -183,62 +331,137 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
-                      child: Column(
-                        children: [
-                          TextField(
-                            controller: _controller,
-                            onChanged: _filterSong,
-                            decoration: InputDecoration(
-                              prefixIcon: const Icon(Icons.search),
-                              hintText: strings.searchSongHint,
-                              suffixIcon: _searchQuery.isEmpty
-                                  ? null
-                                  : IconButton(
-                                      tooltip: strings.clearSearch,
-                                      icon: const Icon(Icons.close),
-                                      onPressed: _clearSearch,
-                                    ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          Wrap(
-                            alignment: WrapAlignment.center,
-                            spacing: 8,
-                            runSpacing: 8,
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final compact = constraints.maxWidth < 640;
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              FilterChip(
-                                label: Text(strings.all),
-                                selected:
-                                    _selectedCategory == null &&
-                                    !_showOnlyWithMusic,
-                                onSelected: (_) => _showAllSongs(),
-                              ),
-                              FilterChip(
-                                avatar: const Icon(Icons.music_note, size: 18),
-                                label: Text(strings.withMusic),
-                                selected: _showOnlyWithMusic,
-                                onSelected: (_) => _toggleMusicFilter(),
-                              ),
-                              for (final category in SongCategory.values.where(
-                                (category) => _songs.any(
-                                  (song) => song.category == category,
+                              TextField(
+                                controller: _controller,
+                                onChanged: _filterSong,
+                                textInputAction: TextInputAction.search,
+                                decoration: InputDecoration(
+                                  prefixIcon: const Icon(Icons.search),
+                                  hintText: copy[ReadingSongText.searchSong],
+                                  suffixIcon: _searchQuery.isEmpty
+                                      ? null
+                                      : IconButton(
+                                          tooltip: strings.clearSearch,
+                                          icon: const Icon(Icons.close),
+                                          onPressed: _clearSearch,
+                                        ),
                                 ),
-                              ))
-                                FilterChip(
-                                  label: Text(_labelBy(category, strings)),
-                                  selected: _selectedCategory == category,
-                                  selectedColor: _colorBy(
-                                    category,
-                                  ).withValues(alpha: 0.18),
-                                  checkmarkColor: _colorBy(category),
-                                  onSelected: (_) => _showSongsBy(category),
-                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      child: Row(
+                                        children: [
+                                          ChoiceChip(
+                                            label: Text(strings.all),
+                                            selected:
+                                                _libraryView ==
+                                                SongLibraryView.all,
+                                            onSelected: (_) => setState(
+                                              () => _libraryView =
+                                                  SongLibraryView.all,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          ChoiceChip(
+                                            avatar: const Icon(
+                                              Icons.favorite_outline,
+                                              size: 18,
+                                            ),
+                                            label: Text(
+                                              copy[ReadingSongText.favorites],
+                                            ),
+                                            selected:
+                                                _libraryView ==
+                                                SongLibraryView.favorites,
+                                            onSelected: (_) => setState(
+                                              () => _libraryView =
+                                                  SongLibraryView.favorites,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          ChoiceChip(
+                                            avatar: const Icon(
+                                              Icons.history,
+                                              size: 18,
+                                            ),
+                                            label: Text(
+                                              copy[ReadingSongText.recent],
+                                            ),
+                                            selected:
+                                                _libraryView ==
+                                                SongLibraryView.recent,
+                                            onSelected: (_) => setState(
+                                              () => _libraryView =
+                                                  SongLibraryView.recent,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  PopupMenuButton<SongSort>(
+                                    tooltip: copy[ReadingSongText.sortBy],
+                                    initialValue: _sort,
+                                    onSelected: (value) =>
+                                        setState(() => _sort = value),
+                                    itemBuilder: (context) => [
+                                      for (final sort in SongSort.values)
+                                        PopupMenuItem(
+                                          value: sort,
+                                          child: Row(
+                                            children: [
+                                              if (_sort == sort)
+                                                const Icon(
+                                                  Icons.check,
+                                                  size: 18,
+                                                )
+                                              else
+                                                const SizedBox(width: 18),
+                                              const SizedBox(width: 10),
+                                              Text(_sortLabel(sort, copy)),
+                                            ],
+                                          ),
+                                        ),
+                                    ],
+                                    icon: const Icon(Icons.sort),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              if (compact)
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: OutlinedButton.icon(
+                                    onPressed: () =>
+                                        _showMobileFilters(strings, copy),
+                                    icon: Icon(
+                                      _activeFilterCount == 0
+                                          ? Icons.filter_list
+                                          : Icons.filter_list_alt,
+                                    ),
+                                    label: Text(
+                                      _activeFilterCount == 0
+                                          ? copy[ReadingSongText.filters]
+                                          : '${copy[ReadingSongText.filters]} ($_activeFilterCount)',
+                                    ),
+                                  ),
+                                )
+                              else
+                                _buildCategoryFilters(strings),
                             ],
-                          ),
-                        ],
+                          );
+                        },
                       ),
                     ),
                   ),
@@ -249,13 +472,16 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
                     ),
                     child: Row(
                       children: [
-                        Text(
-                          '${filteredSongs.length} ${strings.songCountSuffix} • ${strings.searchByTitlePageLyrics}',
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(
-                                color: const Color(0xff56635f),
-                                fontWeight: FontWeight.w700,
-                              ),
+                        Expanded(
+                          child: Text(
+                            '${filteredSongs.length} ${strings.songCountSuffix} · ${_sortLabel(_sort, copy)}',
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(
+                                  color: AppColors.muted,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
                         ),
                       ],
                     ),
@@ -277,7 +503,7 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
                                 ),
                                 const SizedBox(height: 14),
                                 FilledButton.tonalIcon(
-                                  onPressed: _showAllSongs,
+                                  onPressed: _clearSearchAndFilters,
                                   icon: const Icon(Icons.refresh),
                                   label: Text(strings.clearSearch),
                                 ),
@@ -323,18 +549,28 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
                                       if (song.page.trim().isNotEmpty &&
                                           song.page.trim() != '0')
                                         '${strings.page} ${song.page}',
-                                    ].join(' • '),
+                                      if (song.audioTracks.any(
+                                        (track) => track.enabled,
+                                      ))
+                                        '♪ ${copy[ReadingSongText.audio]}',
+                                    ].join(' · '),
                                   ),
-                                  isThreeLine: false,
-                                  trailing: const Icon(Icons.chevron_right),
-                                  onTap: () => Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (context) => SongScreen(
-                                        song: song,
-                                        countryCode: widget.countryCode,
-                                      ),
+                                  trailing: IconButton(
+                                    tooltip:
+                                        copy[_favoriteIds.contains(song.id)
+                                            ? ReadingSongText.removeFavorite
+                                            : ReadingSongText.favorite],
+                                    onPressed: () => _toggleFavorite(song),
+                                    icon: Icon(
+                                      _favoriteIds.contains(song.id)
+                                          ? Icons.favorite
+                                          : Icons.favorite_border,
+                                      color: _favoriteIds.contains(song.id)
+                                          ? AppColors.berry
+                                          : null,
                                     ),
                                   ),
+                                  onTap: () => _openSong(song),
                                 ),
                               );
                             },
@@ -353,8 +589,16 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
 class SongScreen extends StatefulWidget {
   final SongDocument song;
   final String countryCode;
+  final bool initiallyFavorite;
+  final ValueChanged<bool>? onFavoriteChanged;
 
-  const SongScreen({super.key, required this.song, required this.countryCode});
+  const SongScreen({
+    super.key,
+    required this.song,
+    required this.countryCode,
+    this.initiallyFavorite = false,
+    this.onFavoriteChanged,
+  });
 
   @override
   State<SongScreen> createState() => _SongScreenState();
@@ -366,7 +610,9 @@ class _SongScreenState extends State<SongScreen> {
   StreamSubscription<Duration>? _positionSubscription;
   StreamSubscription<Duration?>? _durationSubscription;
   late int _currentIndex = 0;
-  late double _lyricFontSize = kIsWeb ? 46 : 25;
+  late double _lyricFontSize = kIsWeb ? 30 : 25;
+  late bool _isFavorite = widget.initiallyFavorite;
+  bool _isPresentation = false;
   Duration _audioPosition = Duration.zero;
   Duration _audioDuration = Duration.zero;
 
@@ -501,6 +747,11 @@ class _SongScreenState extends State<SongScreen> {
     });
   }
 
+  void _toggleFavorite() {
+    setState(() => _isFavorite = !_isFavorite);
+    widget.onFavoriteChanged?.call(_isFavorite);
+  }
+
   void _toggleAudio() {
     if (!_hasAudio) {
       return;
@@ -608,10 +859,14 @@ class _SongScreenState extends State<SongScreen> {
   }
 
   Widget _buildLyricCard({required Color color, required TextTheme textTheme}) {
+    final displayedFontSize = _isPresentation && _lyricFontSize < 48
+        ? 48.0
+        : _lyricFontSize;
     return Card(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 30),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
               '${_currentIndex + 1} / ${widget.song.lyrics.length}',
@@ -623,10 +878,10 @@ class _SongScreenState extends State<SongScreen> {
             const SizedBox(height: 20),
             Text(
               widget.song.lyrics[_currentIndex],
-              textAlign: TextAlign.center,
+              textAlign: _isPresentation ? TextAlign.center : TextAlign.start,
               style: textTheme.headlineMedium?.copyWith(
-                fontSize: _lyricFontSize,
-                height: 1.28,
+                fontSize: displayedFontSize,
+                height: _isPresentation ? 1.28 : 1.5,
                 color: _getColorByChorus(),
                 fontWeight: FontWeight.w500,
               ),
@@ -637,36 +892,56 @@ class _SongScreenState extends State<SongScreen> {
     );
   }
 
-  Widget _buildSongControls(AppStrings strings) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        IconButton.filledTonal(
-          tooltip: strings.previousLyric,
-          onPressed: _currentIndex == 0 ? null : _showPreviousLyric,
-          icon: const Icon(Icons.arrow_back),
-        ),
-        const SizedBox(width: 10),
-        IconButton.filledTonal(
-          tooltip: strings.decreaseTextSize,
-          onPressed: _lyricFontSize <= 22 ? null : _decreaseLyricSize,
-          icon: const Icon(Icons.text_decrease),
-        ),
-        const SizedBox(width: 10),
-        IconButton.filledTonal(
-          tooltip: strings.increaseTextSize,
-          onPressed: _lyricFontSize >= 72 ? null : _increaseLyricSize,
-          icon: const Icon(Icons.text_increase),
-        ),
-        const SizedBox(width: 10),
-        IconButton.filledTonal(
-          tooltip: strings.nextLyric,
-          onPressed: _currentIndex == widget.song.lyrics.length - 1
-              ? null
-              : _showNextLyric,
-          icon: const Icon(Icons.arrow_forward),
-        ),
-      ],
+  Widget _buildSongControls(ReadingSongStrings copy) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final showLabels = constraints.maxWidth >= 620;
+        final controls =
+            <({String label, IconData icon, VoidCallback? onPressed})>[
+              (
+                label: copy[ReadingSongText.previous],
+                icon: Icons.arrow_back,
+                onPressed: _currentIndex == 0 ? null : _showPreviousLyric,
+              ),
+              (
+                label: copy[ReadingSongText.smallerText],
+                icon: Icons.text_decrease,
+                onPressed: _lyricFontSize <= 22 ? null : _decreaseLyricSize,
+              ),
+              (
+                label: copy[ReadingSongText.largerText],
+                icon: Icons.text_increase,
+                onPressed: _lyricFontSize >= 72 ? null : _increaseLyricSize,
+              ),
+              (
+                label: copy[ReadingSongText.next],
+                icon: Icons.arrow_forward,
+                onPressed: _currentIndex == widget.song.lyrics.length - 1
+                    ? null
+                    : _showNextLyric,
+              ),
+            ];
+        return Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 10,
+          runSpacing: 8,
+          children: [
+            for (final control in controls)
+              if (showLabels)
+                FilledButton.tonalIcon(
+                  onPressed: control.onPressed,
+                  icon: Icon(control.icon),
+                  label: Text(control.label),
+                )
+              else
+                IconButton.filledTonal(
+                  tooltip: control.label,
+                  onPressed: control.onPressed,
+                  icon: Icon(control.icon),
+                ),
+          ],
+        );
+      },
     );
   }
 
@@ -778,7 +1053,9 @@ class _SongScreenState extends State<SongScreen> {
 
   Widget _buildSongWidget() {
     final color = _getColorBy(widget.song.category);
-    final strings = AppStrings.of(AppLanguageScope.watch(context).language);
+    final language = AppLanguageScope.watch(context).language;
+    final strings = AppStrings.of(language);
+    final copy = ReadingSongStrings.of(language);
     final textTheme = Theme.of(context).textTheme;
 
     return SafeArea(
@@ -789,52 +1066,66 @@ class _SongScreenState extends State<SongScreen> {
             constraints: const BoxConstraints(maxWidth: 1100),
             child: Column(
               children: [
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 10,
-                  runSpacing: 8,
-                  children: [
-                    Chip(
-                      avatar: const Icon(Icons.menu_book, size: 18),
-                      label: Text(_getLabelBy(widget.song.category, strings)),
-                      backgroundColor: color.withValues(alpha: 0.14),
-                      side: BorderSide(color: color.withValues(alpha: 0.2)),
-                    ),
-                    if (widget.song.page.trim().isNotEmpty &&
-                        widget.song.page.trim() != '0')
+                if (!_isPresentation)
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 10,
+                    runSpacing: 8,
+                    children: [
                       Chip(
-                        avatar: const Icon(Icons.description, size: 18),
-                        label: Text('${strings.page} ${widget.song.page}'),
+                        avatar: const Icon(Icons.menu_book, size: 18),
+                        label: Text(_getLabelBy(widget.song.category, strings)),
+                        backgroundColor: color.withValues(alpha: 0.14),
+                        side: BorderSide(color: color.withValues(alpha: 0.2)),
                       ),
-                    if (_hasAudio)
-                      Chip(
-                        avatar: const Icon(Icons.music_note, size: 18),
-                        label: Text(strings.audioAvailable),
-                      ),
-                    if (_isOfferingSong)
-                      Chip(
-                        avatar: const Icon(Icons.volunteer_activism, size: 18),
-                        label: Text(strings.offerings),
-                        backgroundColor: const Color(
-                          0xff2f6b4f,
-                        ).withValues(alpha: 0.14),
-                      ),
-                  ],
-                ),
+                      if (widget.song.page.trim().isNotEmpty &&
+                          widget.song.page.trim() != '0')
+                        Chip(
+                          avatar: const Icon(Icons.description, size: 18),
+                          label: Text('${strings.page} ${widget.song.page}'),
+                        ),
+                      if (_hasAudio)
+                        Chip(
+                          avatar: const Icon(Icons.music_note, size: 18),
+                          label: Text(strings.audioAvailable),
+                        ),
+                      if (_isOfferingSong)
+                        Chip(
+                          avatar: const Icon(
+                            Icons.volunteer_activism,
+                            size: 18,
+                          ),
+                          label: Text(strings.offerings),
+                          backgroundColor: const Color(
+                            0xff2f6b4f,
+                          ).withValues(alpha: 0.14),
+                        ),
+                    ],
+                  ),
                 const SizedBox(height: 16),
                 LayoutBuilder(
                   builder: (context, constraints) {
-                    final lyricAndControls = Column(
-                      children: [
-                        _buildAudioPanel(strings),
-                        if (_hasAudio) const SizedBox(height: 14),
-                        _buildSongControls(strings),
-                        const SizedBox(height: 14),
-                        _buildLyricCard(color: color, textTheme: textTheme),
-                        const SizedBox(height: 14),
-                        _buildLyricNavigator(color, strings),
-                      ],
+                    final lyricAndControls = ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: _isPresentation
+                            ? AppTypography.presentationWidth
+                            : AppTypography.readingWidth,
+                      ),
+                      child: Column(
+                        children: [
+                          if (!_isPresentation) _buildAudioPanel(strings),
+                          if (_hasAudio && !_isPresentation)
+                            const SizedBox(height: 14),
+                          _buildSongControls(copy),
+                          const SizedBox(height: 14),
+                          _buildLyricCard(color: color, textTheme: textTheme),
+                          if (!_isPresentation) ...[
+                            const SizedBox(height: 14),
+                            _buildLyricNavigator(color, strings),
+                          ],
+                        ],
+                      ),
                     );
 
                     if (!_isOfferingSong || constraints.maxWidth < 920) {
@@ -882,7 +1173,9 @@ class _SongScreenState extends State<SongScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final strings = AppStrings.of(AppLanguageScope.watch(context).language);
+    final language = AppLanguageScope.watch(context).language;
+    final strings = AppStrings.of(language);
+    final copy = ReadingSongStrings.of(language);
 
     return Scaffold(
       appBar: AppBar(
@@ -891,8 +1184,24 @@ class _SongScreenState extends State<SongScreen> {
               ? widget.song.title
               : '${widget.song.title} | ${strings.page} ${widget.song.page}',
         ),
-        backgroundColor: _getColorBy(widget.song.category),
-        foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            tooltip:
+                copy[_isFavorite
+                    ? ReadingSongText.removeFavorite
+                    : ReadingSongText.favorite],
+            onPressed: _toggleFavorite,
+            icon: Icon(
+              _isFavorite ? Icons.favorite : Icons.favorite_border,
+              color: _isFavorite ? AppColors.berry : null,
+            ),
+          ),
+          ReadingModeButton(
+            isPresentation: _isPresentation,
+            onPressed: () => setState(() => _isPresentation = !_isPresentation),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: KeyboardListener(
         autofocus: true,
