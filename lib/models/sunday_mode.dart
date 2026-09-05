@@ -11,6 +11,39 @@ class SundayPlanItem {
   }
 }
 
+class SundaySessionState {
+  const SundaySessionState({
+    required this.startedAt,
+    required this.completedModules,
+  });
+
+  final DateTime startedAt;
+  final Set<SundayModule> completedModules;
+
+  Map<String, Object?> toMap() => {
+    'startedAt': startedAt.toIso8601String(),
+    'completedModules': completedModules.map((module) => module.name).toList(),
+  };
+
+  static SundaySessionState? fromMap(Map<String, Object?> map) {
+    final startedAt = DateTime.tryParse(map['startedAt'] as String? ?? '');
+    final completed = map['completedModules'];
+    if (startedAt == null || completed is! List) {
+      return null;
+    }
+    final modules = completed
+        .whereType<String>()
+        .map(
+          (name) => SundayModule.values
+              .where((module) => module.name == name)
+              .firstOrNull,
+        )
+        .whereType<SundayModule>()
+        .toSet();
+    return SundaySessionState(startedAt: startedAt, completedModules: modules);
+  }
+}
+
 class SundaySessionReport {
   const SundaySessionReport({
     required this.startedAt,

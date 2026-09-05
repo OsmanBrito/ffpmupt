@@ -2,18 +2,15 @@ import 'dart:async';
 
 import 'package:ffpmupt/models/country.dart';
 import 'package:ffpmupt/models/sunday_mode.dart';
+import 'package:ffpmupt/navigation/app_routes.dart';
 import 'package:ffpmupt/screens/community_notices_screen.dart';
-import 'package:ffpmupt/screens/family_promise_screen.dart';
-import 'package:ffpmupt/screens/list_of_songs_screen.dart';
-import 'package:ffpmupt/screens/motto_screen.dart';
-import 'package:ffpmupt/screens/offering_screen.dart';
-import 'package:ffpmupt/screens/videos_screen.dart';
 import 'package:ffpmupt/services/offline_audio_cache.dart';
 import 'package:ffpmupt/services/sunday_mode_repository.dart';
 import 'package:ffpmupt/settings/app_language.dart';
 import 'package:ffpmupt/settings/app_strings.dart';
 import 'package:ffpmupt/settings/p0_strings.dart';
 import 'package:ffpmupt/settings/presentation_mode.dart';
+import 'package:ffpmupt/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
 class SundayModeScreen extends StatefulWidget {
@@ -44,6 +41,7 @@ class _SundayModeScreenState extends State<SundayModeScreen> {
     final results = await Future.wait([
       _repository.loadPlan(),
       _repository.loadReports(),
+      _repository.loadActiveSession(),
     ]);
     if (!mounted) {
       return;
@@ -51,6 +49,11 @@ class _SundayModeScreenState extends State<SundayModeScreen> {
     setState(() {
       _plan = results[0] as List<SundayPlanItem>;
       _reports = results[1] as List<SundaySessionReport>;
+      final activeSession = results[2] as SundaySessionState?;
+      _startedAt = activeSession?.startedAt;
+      _completed
+        ..clear()
+        ..addAll(activeSession?.completedModules ?? const {});
       _isLoading = false;
     });
   }
@@ -81,31 +84,49 @@ class _SundayModeScreenState extends State<SundayModeScreen> {
       _startedAt = DateTime.now();
       _completed.clear();
     });
+    unawaited(_saveActiveSession());
+  }
+
+  Future<void> _saveActiveSession() async {
+    final startedAt = _startedAt;
+    if (startedAt == null) {
+      return;
+    }
+    await _repository.saveActiveSession(
+      SundaySessionState(
+        startedAt: startedAt,
+        completedModules: Set.of(_completed),
+      ),
+    );
+  }
+
+  void _setComplete(SundayModule module, bool complete) {
+    setState(() {
+      if (complete) {
+        _completed.add(module);
+      } else {
+        _completed.remove(module);
+      }
+    });
+    unawaited(_saveActiveSession());
   }
 
   Future<void> _openModule(SundayModule module) async {
     if (_startedAt == null) {
       _startService();
     }
-    final screen = switch (module) {
-      SundayModule.songs => ListOfSongsScreen(countryCode: widget.country.code),
-      SundayModule.familyPromise => FamilyPromiseScreen(
-        country: widget.country,
-      ),
-      SundayModule.motto => MottoScreen(countryCode: widget.country.code),
-      SundayModule.offerings => OfferingScreen(
-        countryCode: widget.country.code,
-      ),
-      SundayModule.videos => VideosScreen(countryCode: widget.country.code),
-      SundayModule.notices => CommunityNoticesScreen(
-        countryCode: widget.country.code,
-      ),
+    final route = switch (module) {
+      SundayModule.songs => AppRoutes.songs,
+      SundayModule.familyPromise => AppRoutes.familyPromise,
+      SundayModule.motto => AppRoutes.motto,
+      SundayModule.offerings => AppRoutes.offerings,
+      SundayModule.videos => AppRoutes.weeklyVideos,
+      SundayModule.notices => AppRoutes.notices,
     };
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (context) => screen));
+    await Navigator.of(context).pushNamed(route);
     if (mounted) {
       setState(() => _completed.add(module));
+      unawaited(_saveActiveSession());
     }
   }
 
@@ -202,6 +223,7 @@ class _SundayModeScreenState extends State<SundayModeScreen> {
     );
     notes.dispose();
     final reports = await _repository.addReport(report);
+    await _repository.clearActiveSession();
     if (mounted) {
       setState(() {
         _reports = reports;
@@ -217,6 +239,11 @@ class _SundayModeScreenState extends State<SundayModeScreen> {
     final text = P0Strings.of(language);
     final strings = AppStrings.of(language);
     final enabledItems = _plan.where((item) => item.enabled).toList();
+    final active = _startedAt != null;
+    final visibleItems = active ? enabledItems : _plan;
+    final progress = enabledItems.isEmpty
+        ? 0.0
+        : (_completed.length / enabledItems.length).clamp(0.0, 1.0);
 
     return Scaffold(
       appBar: AppBar(
@@ -231,6 +258,20 @@ class _SundayModeScreenState extends State<SundayModeScreen> {
           const SizedBox(width: 8),
         ],
       ),
+      bottomNavigationBar: active
+          ? _ActiveServiceBar(
+              completed: _completed.length,
+              total: enabledItems.length,
+              progress: progress,
+              finishLabel: text[P0Text.finish],
+              progressLabel: _progressLabel(
+                language,
+                _completed.length,
+                enabledItems.length,
+              ),
+              onFinish: () => _finishService(text),
+            )
+          : null,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -238,7 +279,7 @@ class _SundayModeScreenState extends State<SundayModeScreen> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : ListView(
-                    padding: const EdgeInsets.all(20),
+                    padding: EdgeInsets.fromLTRB(20, 20, 20, active ? 32 : 20),
                     children: [
                       _ModeHeader(
                         countryName: widget.country.name,
@@ -248,13 +289,18 @@ class _SundayModeScreenState extends State<SundayModeScreen> {
                         subtitle: text[P0Text.sundayModeSubtitle],
                         isActive: _startedAt != null,
                         onStart: _startedAt == null ? _startService : null,
-                        startLabel: text[P0Text.startSunday],
+                        startLabel: _startServiceLabel(
+                          language,
+                          enabledItems.length,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       _OfflinePreparationPanel(text: text),
                       const SizedBox(height: 22),
                       Text(
-                        text[P0Text.configureSequence],
+                        active
+                            ? _activeSequenceLabel(language)
+                            : text[P0Text.configureSequence],
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 10),
@@ -262,16 +308,18 @@ class _SundayModeScreenState extends State<SundayModeScreen> {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         buildDefaultDragHandles: false,
-                        itemCount: _plan.length,
+                        itemCount: visibleItems.length,
                         onReorder: _reorder,
                         itemBuilder: (context, index) {
-                          final item = _plan[index];
+                          final item = visibleItems[index];
+                          final planIndex = _plan.indexOf(item);
                           final complete = _completed.contains(item.module);
                           return Padding(
                             key: ValueKey(item.module),
                             padding: const EdgeInsets.only(bottom: 8),
                             child: _SundayStepTile(
-                              index: index,
+                              index: planIndex,
+                              sequence: index + 1,
                               icon: _moduleIcon(item.module),
                               label: _moduleLabel(
                                 item.module,
@@ -283,17 +331,11 @@ class _SundayModeScreenState extends State<SundayModeScreen> {
                               isActive: _startedAt != null,
                               openLabel: text[P0Text.open],
                               onIncludedChanged: _startedAt == null
-                                  ? (value) => _toggleIncluded(index, value)
+                                  ? (value) => _toggleIncluded(planIndex, value)
                                   : null,
                               onCompleteChanged:
                                   item.enabled && _startedAt != null
-                                  ? (value) => setState(() {
-                                      if (value) {
-                                        _completed.add(item.module);
-                                      } else {
-                                        _completed.remove(item.module);
-                                      }
-                                    })
+                                  ? (value) => _setComplete(item.module, value)
                                   : null,
                               onOpen: item.enabled
                                   ? () => _openModule(item.module)
@@ -302,22 +344,6 @@ class _SundayModeScreenState extends State<SundayModeScreen> {
                           );
                         },
                       ),
-                      if (_startedAt != null) ...[
-                        const SizedBox(height: 10),
-                        LinearProgressIndicator(
-                          value: enabledItems.isEmpty
-                              ? 0
-                              : _completed.length / enabledItems.length,
-                          minHeight: 8,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        const SizedBox(height: 14),
-                        FilledButton.icon(
-                          onPressed: () => _finishService(text),
-                          icon: const Icon(Icons.check_circle_outline),
-                          label: Text(text[P0Text.finish]),
-                        ),
-                      ],
                       const SizedBox(height: 28),
                       _ValidationSummary(reports: _reports, text: text),
                     ],
@@ -444,6 +470,7 @@ class _ModeHeader extends StatelessWidget {
 class _SundayStepTile extends StatelessWidget {
   const _SundayStepTile({
     required this.index,
+    required this.sequence,
     required this.icon,
     required this.label,
     required this.included,
@@ -456,6 +483,7 @@ class _SundayStepTile extends StatelessWidget {
   });
 
   final int index;
+  final int sequence;
   final IconData icon;
   final String label;
   final bool included;
@@ -488,6 +516,23 @@ class _SundayStepTile extends StatelessWidget {
             : Switch(value: included, onChanged: onIncludedChanged),
         title: Row(
           children: [
+            Container(
+              width: 26,
+              height: 26,
+              alignment: Alignment.center,
+              decoration: const BoxDecoration(
+                color: AppColors.mint,
+                shape: BoxShape.circle,
+              ),
+              child: Text(
+                '$sequence',
+                style: const TextStyle(
+                  color: AppColors.forest,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            const SizedBox(width: 9),
             Icon(icon, size: 22),
             const SizedBox(width: 10),
             Expanded(
@@ -501,11 +546,19 @@ class _SundayStepTile extends StatelessWidget {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            IconButton.filledTonal(
-              tooltip: openLabel,
-              onPressed: onOpen,
-              icon: const Icon(Icons.open_in_new, size: 18),
-            ),
+            if (MediaQuery.sizeOf(context).width >= 620)
+              FilledButton.tonalIcon(
+                onPressed: onOpen,
+                icon: const Icon(Icons.arrow_forward, size: 18),
+                iconAlignment: IconAlignment.end,
+                label: Text(openLabel),
+              )
+            else
+              IconButton.filledTonal(
+                tooltip: openLabel,
+                onPressed: onOpen,
+                icon: const Icon(Icons.arrow_forward, size: 18),
+              ),
             if (!isActive)
               ReorderableDragStartListener(
                 index: index,
@@ -520,6 +573,122 @@ class _SundayStepTile extends StatelessWidget {
     );
   }
 }
+
+class _ActiveServiceBar extends StatelessWidget {
+  const _ActiveServiceBar({
+    required this.completed,
+    required this.total,
+    required this.progress,
+    required this.progressLabel,
+    required this.finishLabel,
+    required this.onFinish,
+  });
+
+  final int completed;
+  final int total;
+  final double progress;
+  final String progressLabel;
+  final String finishLabel;
+  final VoidCallback onFinish;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Material(
+        color: AppColors.surface,
+        elevation: 8,
+        shadowColor: AppColors.forest.withValues(alpha: 0.16),
+        child: Center(
+          heightFactor: 1,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 980),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final status = Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        progressLabel,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 7),
+                      LinearProgressIndicator(
+                        value: progress,
+                        minHeight: 7,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ],
+                  );
+                  final button = FilledButton.icon(
+                    onPressed: onFinish,
+                    icon: const Icon(Icons.check_circle_outline),
+                    label: Text(finishLabel),
+                  );
+                  if (constraints.maxWidth < 560) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [status, const SizedBox(height: 10), button],
+                    );
+                  }
+                  return Row(
+                    children: [
+                      Expanded(child: status),
+                      const SizedBox(width: 20),
+                      button,
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+String _startServiceLabel(AppLanguage language, int count) =>
+    switch (language) {
+      AppLanguage.portuguese ||
+      AppLanguage.brazilian => 'Começar serviço com $count módulos',
+      AppLanguage.spanish => 'Comenzar servicio con $count módulos',
+      AppLanguage.german => 'Gottesdienst mit $count Modulen starten',
+      AppLanguage.italian => 'Inizia il servizio con $count moduli',
+      AppLanguage.french => 'Commencer le service avec $count modules',
+      AppLanguage.korean => '$count개 순서로 예배 시작',
+      AppLanguage.english => 'Start service with $count modules',
+    };
+
+String _progressLabel(AppLanguage language, int completed, int total) =>
+    switch (language) {
+      AppLanguage.portuguese ||
+      AppLanguage.brazilian => '$completed de $total concluídos',
+      AppLanguage.spanish => '$completed de $total completados',
+      AppLanguage.german => '$completed von $total abgeschlossen',
+      AppLanguage.italian => '$completed di $total completati',
+      AppLanguage.french => '$completed sur $total terminés',
+      AppLanguage.korean => '$total개 중 $completed개 완료',
+      AppLanguage.english => '$completed of $total completed',
+    };
+
+String _activeSequenceLabel(AppLanguage language) => switch (language) {
+  AppLanguage.portuguese ||
+  AppLanguage.brazilian => 'Siga o roteiro e marque cada módulo concluído.',
+  AppLanguage.spanish => 'Siga la guía y marque cada módulo completado.',
+  AppLanguage.german =>
+    'Folgen Sie dem Ablauf und markieren Sie jeden Schritt.',
+  AppLanguage.italian => 'Segui la guida e segna ogni modulo completato.',
+  AppLanguage.french =>
+    'Suivez le déroulement et marquez chaque module terminé.',
+  AppLanguage.korean => '순서에 따라 완료된 항목을 표시하세요.',
+  AppLanguage.english => 'Follow the guide and mark each completed module.',
+};
 
 class _OfflinePreparationPanel extends StatelessWidget {
   const _OfflinePreparationPanel({required this.text});

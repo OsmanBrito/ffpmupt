@@ -20,4 +20,8 @@ class LocalStore {
   static Future<void> setStringList(String key, List<String> value) {
     return _preferences.setStringList(key, value);
   }
+
+  static Future<void> remove(String key) {
+    return _preferences.remove(key);
+  }
 }

@@ -1,7 +1,9 @@
-import 'package:ffpmupt/app_branding.dart';
 import 'package:ffpmupt/models/country.dart';
+import 'package:ffpmupt/navigation/app_routes.dart';
 import 'package:ffpmupt/settings/app_language.dart';
 import 'package:ffpmupt/settings/onboarding_copy.dart';
+import 'package:ffpmupt/theme/app_theme.dart';
+import 'package:ffpmupt/widgets/app_brand.dart';
 import 'package:ffpmupt/widgets/language_menu_button.dart';
 import 'package:flutter/material.dart';
 
@@ -45,7 +47,7 @@ class _CountrySelectionScreenState extends State<CountrySelectionScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(appName),
+        title: const AppBrandLockup(compact: true),
         actions: [const LanguageMenuButton(), const SizedBox(width: 8)],
       ),
       body: SafeArea(
@@ -57,11 +59,7 @@ class _CountrySelectionScreenState extends State<CountrySelectionScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(
-                    Icons.public,
-                    size: 56,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                  const Align(child: AppBrandMark(size: 64)),
                   const SizedBox(height: 16),
                   Text(
                     copy.selectCountryTitle,
@@ -74,20 +72,20 @@ class _CountrySelectionScreenState extends State<CountrySelectionScreen> {
                   Text(
                     copy.selectCountrySubtitle,
                     textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: const Color(0xff65716c),
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleMedium?.copyWith(color: AppColors.muted),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     copy.selectCountryDescription,
                     textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xff65716c),
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: AppColors.muted),
                   ),
                   const SizedBox(height: 22),
-                  if (widget.countries.isNotEmpty)
+                  if (widget.countries.length > 6)
                     TextField(
                       controller: _searchController,
                       onChanged: (value) => setState(() => _query = value),
@@ -110,7 +108,7 @@ class _CountrySelectionScreenState extends State<CountrySelectionScreen> {
                         border: const OutlineInputBorder(),
                       ),
                     ),
-                  const SizedBox(height: 12),
+                  if (widget.countries.length > 6) const SizedBox(height: 12),
                   Expanded(
                     child: widget.countries.isEmpty
                         ? _EmptyCountryState(message: copy.noCountries)
@@ -151,20 +149,13 @@ class _CountrySelectionScreenState extends State<CountrySelectionScreen> {
                             },
                           ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   OutlinedButton.icon(
-                    onPressed: () =>
-                        Navigator.of(context).pushNamed('/request-access'),
+                    onPressed: () => Navigator.of(
+                      context,
+                    ).pushNamed(AppRoutes.requestAccess),
                     icon: const Icon(Icons.mark_email_unread_outlined),
                     label: Text(copy.requestAdministratorAccess),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    copy.adminAccess,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: const Color(0xff65716c),
-                    ),
                   ),
                 ],
               ),

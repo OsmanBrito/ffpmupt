@@ -4,6 +4,8 @@ import 'package:ffpmupt/app_branding.dart';
 import 'package:ffpmupt/firebase_options.dart';
 import 'package:ffpmupt/models/country.dart';
 import 'package:ffpmupt/models/access_request_country.dart';
+import 'package:ffpmupt/models/community_notice.dart';
+import 'package:ffpmupt/navigation/app_routes.dart';
 import 'package:ffpmupt/screens/admin/admin_screen.dart';
 import 'package:ffpmupt/screens/admin/admin_invite_screen.dart';
 import 'package:ffpmupt/screens/country_selection_screen.dart';
@@ -13,7 +15,6 @@ import 'package:ffpmupt/screens/family_promise_screen.dart';
 import 'package:ffpmupt/screens/holy_grounds_screen.dart';
 import 'package:ffpmupt/screens/list_of_songs_screen.dart';
 import 'package:ffpmupt/screens/motto_screen.dart';
-import 'package:ffpmupt/screens/offering_screen.dart';
 import 'package:ffpmupt/screens/public_offering_screen.dart';
 import 'package:ffpmupt/screens/sunday_mode_screen.dart';
 import 'package:ffpmupt/screens/videos_screen.dart';
@@ -24,8 +25,12 @@ import 'package:ffpmupt/settings/p0_strings.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ffpmupt/services/offline_audio_cache.dart';
+import 'package:ffpmupt/services/community_notice_repository.dart';
 import 'package:ffpmupt/services/song_repository.dart';
+import 'package:ffpmupt/settings/home_copy.dart';
 import 'package:ffpmupt/widgets/language_menu_button.dart';
+import 'package:ffpmupt/theme/app_theme.dart';
+import 'package:ffpmupt/widgets/app_brand.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -117,51 +122,41 @@ class _MyAppState extends State<MyApp> {
         child: MaterialApp(
           title: appName,
           debugShowCheckedModeBanner: false,
-          theme: ThemeData(
-            useMaterial3: true,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xff245c52),
-              brightness: Brightness.light,
-            ),
-            scaffoldBackgroundColor: const Color(0xfff7f5ef),
-            appBarTheme: const AppBarTheme(
-              centerTitle: true,
-              elevation: 0,
-              backgroundColor: Color(0xfff7f5ef),
-              foregroundColor: Color(0xff193c37),
-            ),
-            cardTheme: CardThemeData(
-              elevation: 0,
-              color: Colors.white,
-              margin: EdgeInsets.zero,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-                side: const BorderSide(color: Color(0xffe8e1d5)),
-              ),
-            ),
-            elevatedButtonTheme: ElevatedButtonThemeData(
-              style: ElevatedButton.styleFrom(
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: 14,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-          ),
+          theme: AppTheme.light(),
           home: _homeForCountry(),
           routes: {
-            '/request-access': (context) => AccessRequestScreen(
+            AppRoutes.requestAccess: (context) => AccessRequestScreen(
               countries: europeanAccessRequestCountries,
               initialCountryCode: _countryController.country?.code,
             ),
-            if (_countryController.country case final country?)
-              '/admin': (context) => AdminScreen(country: country),
-            '/ofertas': (context) => PublicOfferingScreen(
-              countryCode: _countryController.country?.code ?? '',
+            AppRoutes.admin: (context) => _CountryRouteScreen(
+              builder: (country) => AdminScreen(country: country),
+            ),
+            AppRoutes.offerings: (context) => _CountryRouteScreen(
+              builder: (country) =>
+                  PublicOfferingScreen(countryCode: country.code),
+            ),
+            AppRoutes.songs: (context) => _CountryRouteScreen(
+              builder: (country) =>
+                  ListOfSongsScreen(countryCode: country.code),
+            ),
+            AppRoutes.familyPromise: (context) => _CountryRouteScreen(
+              builder: (country) => FamilyPromiseScreen(country: country),
+            ),
+            AppRoutes.motto: (context) => _CountryRouteScreen(
+              builder: (country) => MottoScreen(countryCode: country.code),
+            ),
+            AppRoutes.weeklyVideos: (context) => _CountryRouteScreen(
+              builder: (country) => VideosScreen(countryCode: country.code),
+            ),
+            AppRoutes.notices: (context) => _CountryRouteScreen(
+              builder: (country) =>
+                  CommunityNoticesScreen(countryCode: country.code),
+            ),
+            AppRoutes.holyGrounds: (context) =>
+                const _CountryRouteScreen(builder: _buildHolyGrounds),
+            AppRoutes.sundayMode: (context) => _CountryRouteScreen(
+              builder: (country) => SundayModeScreen(country: country),
             ),
           },
           onGenerateRoute: (settings) {
@@ -195,31 +190,90 @@ class _MyAppState extends State<MyApp> {
   }
 }
 
+Widget _buildHolyGrounds(CountryModel _) => const HolyGroundsScreen();
+
+class _CountryRouteScreen extends StatelessWidget {
+  const _CountryRouteScreen({required this.builder});
+
+  final Widget Function(CountryModel country) builder;
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = CountryScope.watch(context);
+    if (controller.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    final country = controller.country;
+    if (country == null) {
+      return CountrySelectionScreen(
+        countries: controller.countries,
+        onSelected: (selected) => unawaited(controller.selectCountry(selected)),
+      );
+    }
+    return builder(country);
+  }
+}
+
 class Home extends StatelessWidget {
   const Home({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final strings = AppStrings.of(AppLanguageScope.watch(context).language);
-    final p0 = P0Strings.of(AppLanguageScope.watch(context).language);
+    final language = AppLanguageScope.watch(context).language;
+    final strings = AppStrings.of(language);
+    final p0 = P0Strings.of(language);
+    final homeCopy = HomeCopy.of(language);
     final country = CountryScope.watch(context).country!;
+    final wideNavigation = MediaQuery.sizeOf(context).width >= 760;
+
+    void openSundayMode() =>
+        Navigator.of(context).pushNamed(AppRoutes.sundayMode);
+
+    void changeCountry() =>
+        unawaited(CountryScope.read(context).showCountrySelection());
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('$appShortName · ${country.name}'),
+        title: const AppBrandLockup(compact: true),
         actions: [
-          const LanguageMenuButton(),
-          IconButton(
-            tooltip: strings.changeCountry,
-            onPressed: () =>
-                unawaited(CountryScope.read(context).showCountrySelection()),
-            icon: const Icon(Icons.public),
-          ),
-          IconButton(
-            tooltip: strings.adminArea,
-            onPressed: () => Navigator.of(context).pushNamed('/admin'),
-            icon: const Icon(Icons.admin_panel_settings_outlined),
+          LanguageMenuButton(showLabel: wideNavigation),
+          if (wideNavigation)
+            TextButton.icon(
+              onPressed: changeCountry,
+              icon: const Icon(Icons.location_on_outlined, size: 19),
+              label: Text(country.name),
+            ),
+          PopupMenuButton<_HomeMenuAction>(
+            tooltip: homeCopy.menu,
+            icon: const Icon(Icons.more_horiz),
+            onSelected: (action) {
+              switch (action) {
+                case _HomeMenuAction.country:
+                  changeCountry();
+                case _HomeMenuAction.admin:
+                  Navigator.of(context).pushNamed(AppRoutes.admin);
+              }
+            },
+            itemBuilder: (context) => [
+              if (!wideNavigation)
+                PopupMenuItem(
+                  value: _HomeMenuAction.country,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.public),
+                    title: Text(strings.changeCountry),
+                    subtitle: Text(country.name),
+                  ),
+                ),
+              PopupMenuItem(
+                value: _HomeMenuAction.admin,
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.admin_panel_settings_outlined),
+                  title: Text(strings.adminArea),
+                ),
+              ),
+            ],
           ),
           const SizedBox(width: 8),
         ],
@@ -227,29 +281,31 @@ class Home extends StatelessWidget {
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 920),
+            constraints: const BoxConstraints(maxWidth: 1120),
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
+              padding: EdgeInsets.fromLTRB(
+                wideNavigation ? 24 : 16,
+                14,
+                wideNavigation ? 24 : 16,
+                32,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _HomeHeader(country: country),
-                  const SizedBox(height: 18),
-                  FilledButton.icon(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            SundayModeScreen(country: country),
-                      ),
-                    ),
-                    icon: const Icon(Icons.play_circle_outline),
-                    label: Text(p0[P0Text.startSunday]),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
+                  _HomeHeader(
+                    country: country,
+                    onPrepareService: openSundayMode,
                   ),
-                  const SizedBox(height: 26),
-                  _SectionHeader(title: p0[P0Text.sundayActions]),
+                  const SizedBox(height: 20),
+                  _ThisWeekPanel(
+                    countryCode: country.code,
+                    copy: homeCopy,
+                    noticeCopy: CommunityNoticeCopy.of(language),
+                    onOpen: () =>
+                        Navigator.of(context).pushNamed(AppRoutes.notices),
+                  ),
+                  const SizedBox(height: 24),
+                  _SectionHeader(title: homeCopy.serviceModules),
                   const SizedBox(height: 12),
                   _SundayGuideGrid(
                     cards: [
@@ -258,65 +314,48 @@ class Home extends StatelessWidget {
                         icon: Icons.library_music,
                         title: strings.songs,
                         subtitle: strings.songsSubtitle,
-                        color: const Color(0xff7a5428),
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                ListOfSongsScreen(countryCode: country.code),
-                          ),
-                        ),
+                        color: AppColors.gold,
+                        onTap: () =>
+                            Navigator.of(context).pushNamed(AppRoutes.songs),
                       ),
                       _HomeActionCard(
                         step: '2',
                         icon: Icons.church_rounded,
                         title: strings.familyPromise,
                         subtitle: strings.familyPromiseSubtitle,
-                        color: const Color(0xff7d2f3a),
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                FamilyPromiseScreen(country: country),
-                          ),
-                        ),
+                        color: AppColors.berry,
+                        onTap: () => Navigator.of(
+                          context,
+                        ).pushNamed(AppRoutes.familyPromise),
                       ),
                       _HomeActionCard(
                         step: '3',
                         icon: Icons.auto_stories,
                         title: strings.motto,
                         subtitle: strings.mottoSubtitle,
-                        color: colorScheme.primary,
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                MottoScreen(countryCode: country.code),
-                          ),
-                        ),
+                        color: AppColors.primary,
+                        onTap: () =>
+                            Navigator.of(context).pushNamed(AppRoutes.motto),
                       ),
                       _HomeActionCard(
                         step: '4',
                         icon: Icons.volunteer_activism,
                         title: strings.offerings,
                         subtitle: strings.offeringsSubtitle,
-                        color: const Color(0xff2f6b4f),
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                OfferingScreen(countryCode: country.code),
-                          ),
-                        ),
+                        color: AppColors.primaryStrong,
+                        onTap: () => Navigator.of(
+                          context,
+                        ).pushNamed(AppRoutes.offerings),
                       ),
                       _HomeActionCard(
                         step: '5',
                         icon: Icons.ondemand_video,
                         title: strings.weeklyVideos,
                         subtitle: strings.weeklyVideosSubtitle,
-                        color: const Color(0xff2f577d),
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                VideosScreen(countryCode: country.code),
-                          ),
-                        ),
+                        color: AppColors.blue,
+                        onTap: () => Navigator.of(
+                          context,
+                        ).pushNamed(AppRoutes.weeklyVideos),
                       ),
                       _HomeActionCard(
                         step: '6',
@@ -327,18 +366,13 @@ class Home extends StatelessWidget {
                         subtitle: CommunityNoticeCopy.of(
                           AppLanguageScope.watch(context).language,
                         ).subtitle,
-                        color: const Color(0xff8a4d2f),
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => CommunityNoticesScreen(
-                              countryCode: country.code,
-                            ),
-                          ),
-                        ),
+                        color: AppColors.terracotta,
+                        onTap: () =>
+                            Navigator.of(context).pushNamed(AppRoutes.notices),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 26),
                   _SectionHeader(title: p0[P0Text.resources]),
                   const SizedBox(height: 12),
                   _SundayGuideGrid(
@@ -349,12 +383,10 @@ class Home extends StatelessWidget {
                         subtitle: _holyGroundsSubtitle(
                           AppLanguageScope.watch(context).language,
                         ),
-                        color: const Color(0xff536b3f),
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => const HolyGroundsScreen(),
-                          ),
-                        ),
+                        color: AppColors.olive,
+                        onTap: () => Navigator.of(
+                          context,
+                        ).pushNamed(AppRoutes.holyGrounds),
                       ),
                     ],
                   ),
@@ -367,6 +399,8 @@ class Home extends StatelessWidget {
     );
   }
 }
+
+enum _HomeMenuAction { country, admin }
 
 String _holyGroundsSubtitle(AppLanguage language) {
   return switch (language) {
@@ -389,15 +423,17 @@ class _SundayGuideGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 700 ? 2 : 1;
-        final width = columns == 2
-            ? (constraints.maxWidth - 12) / 2
-            : constraints.maxWidth;
+        final columns = constraints.maxWidth >= 940
+            ? 3
+            : constraints.maxWidth >= 620
+            ? 2
+            : 1;
+        final width = (constraints.maxWidth - ((columns - 1) * 12)) / columns;
         return Wrap(
           spacing: 12,
           runSpacing: 12,
           children: cards
-              .map((card) => SizedBox(width: width, height: 170, child: card))
+              .map((card) => SizedBox(width: width, height: 126, child: card))
               .toList(),
         );
       },
@@ -422,66 +458,125 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _HomeHeader extends StatelessWidget {
-  const _HomeHeader({required this.country});
+  const _HomeHeader({required this.country, required this.onPrepareService});
 
   final CountryModel country;
+  final VoidCallback onPrepareService;
 
   @override
   Widget build(BuildContext context) {
     final strings = AppStrings.of(AppLanguageScope.watch(context).language);
 
-    return Column(
+    final language = AppLanguageScope.watch(context).language;
+    final p0 = P0Strings.of(language);
+    final intro = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 72,
-          height: 72,
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primaryContainer,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            Icons.church_rounded,
-            size: 42,
-            color: Theme.of(context).colorScheme.onPrimaryContainer,
-          ),
-        ),
-        const SizedBox(height: 16),
         Text(
           strings.sundayService,
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-            color: const Color(0xff193c37),
-            fontWeight: FontWeight.w700,
-          ),
+          style: Theme.of(context).textTheme.headlineMedium,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 5),
         Text(
-          _countryHomeSubtitle(
-            AppLanguageScope.watch(context).language,
-            country.name,
-          ),
-          textAlign: TextAlign.center,
+          _countryHomeSubtitle(language, country.name),
           style: Theme.of(
             context,
-          ).textTheme.titleMedium?.copyWith(color: const Color(0xff5f6d68)),
+          ).textTheme.bodyLarge?.copyWith(color: AppColors.muted),
         ),
-        const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 14,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            const Icon(Icons.location_on_outlined, size: 18),
-            const SizedBox(width: 6),
+            _CountryBadge(countryName: country.name),
+            const _OfflineAudioCacheIndicator(),
+          ],
+        ),
+      ],
+    );
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.mintSoft, AppColors.surface],
+        ),
+        border: Border.all(color: AppColors.outline),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+      ),
+      padding: const EdgeInsets.all(20),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < 680) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const AppBrandMark(size: 58),
+                    const SizedBox(width: 16),
+                    Expanded(child: intro),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                FilledButton.icon(
+                  onPressed: onPrepareService,
+                  icon: const Icon(Icons.event_available_outlined),
+                  label: Text(p0[P0Text.prepare]),
+                ),
+              ],
+            );
+          }
+          return Row(
+            children: [
+              const AppBrandMark(size: 66),
+              const SizedBox(width: 20),
+              Expanded(child: intro),
+              const SizedBox(width: 20),
+              FilledButton.icon(
+                onPressed: onPrepareService,
+                icon: const Icon(Icons.event_available_outlined),
+                label: Text(p0[P0Text.prepare]),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _CountryBadge extends StatelessWidget {
+  const _CountryBadge({required this.countryName});
+
+  final String countryName;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.mint,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.location_on_outlined, size: 17),
+            const SizedBox(width: 5),
             Text(
-              country.name,
+              countryName,
               style: Theme.of(
                 context,
-              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
             ),
           ],
         ),
-        const SizedBox(height: 14),
-        const _OfflineAudioCacheIndicator(),
-      ],
+      ),
     );
   }
 }
@@ -512,8 +607,8 @@ class _OfflineAudioCacheIndicator extends StatelessWidget {
     final strings = AppStrings.of(AppLanguageScope.watch(context).language);
     final p0 = P0Strings.of(AppLanguageScope.watch(context).language);
 
-    return SizedBox(
-      height: 42,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 34),
       child: StreamBuilder<OfflineAudioCacheProgress>(
         stream: cache.progress,
         initialData: cache.currentProgress,
@@ -545,7 +640,7 @@ class _OfflineAudioCacheIndicator extends StatelessWidget {
               : ' · ${checkedAt.hour.toString().padLeft(2, '0')}:${checkedAt.minute.toString().padLeft(2, '0')}';
 
           return Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
                 isReady
@@ -568,17 +663,6 @@ class _OfflineAudioCacheIndicator extends StatelessWidget {
                   ),
                 ),
               ),
-              if (!isReady && !isPartial) ...[
-                const SizedBox(width: 12),
-                SizedBox(
-                  width: 120,
-                  child: LinearProgressIndicator(
-                    value: progress.fraction,
-                    minHeight: 4,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ],
               if (isPartial)
                 IconButton(
                   tooltip: p0[P0Text.retry],
@@ -617,49 +701,79 @@ class _HomeActionCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          padding: const EdgeInsets.all(15),
+          child: Row(
             children: [
-              Row(
+              Stack(
+                clipBehavior: Clip.none,
                 children: [
-                  if (step != null) ...[
-                    Container(
-                      width: 32,
-                      height: 32,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        step!,
-                        style: TextStyle(
+                  Container(
+                    width: 48,
+                    height: 48,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                    child: Icon(icon, color: color, size: 27),
+                  ),
+                  if (step != null)
+                    Positioned(
+                      right: -5,
+                      top: -5,
+                      child: Container(
+                        width: 22,
+                        height: 22,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
                           color: color,
-                          fontWeight: FontWeight.w800,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.surface,
+                            width: 2,
+                          ),
+                        ),
+                        child: Text(
+                          step!,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                  ],
-                  Icon(icon, color: color, size: 32),
                 ],
               ),
-              const Spacer(),
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: const Color(0xff1f2724),
-                  fontWeight: FontWeight.w700,
+              const SizedBox(width: 15),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppColors.ink,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                subtitle,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xff65716c),
-                ),
-              ),
+              const SizedBox(width: 5),
+              Icon(Icons.chevron_right, color: color),
             ],
           ),
         ),
@@ -667,3 +781,158 @@ class _HomeActionCard extends StatelessWidget {
     );
   }
 }
+
+class _ThisWeekPanel extends StatelessWidget {
+  const _ThisWeekPanel({
+    required this.countryCode,
+    required this.copy,
+    required this.noticeCopy,
+    required this.onOpen,
+  });
+
+  final String countryCode;
+  final HomeCopy copy;
+  final CommunityNoticeCopy noticeCopy;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<CommunityNotice>>(
+      stream: CommunityNoticeRepository(countryCode: countryCode).watchPublic(),
+      builder: (context, snapshot) {
+        final notices = snapshot.data ?? const <CommunityNotice>[];
+        if (notices.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        final featured = notices.take(2).toList();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(child: _SectionHeader(title: copy.thisWeek)),
+                TextButton.icon(
+                  onPressed: onOpen,
+                  icon: const Icon(Icons.arrow_forward, size: 18),
+                  iconAlignment: IconAlignment.end,
+                  label: Text(copy.seeAll),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final itemWidth = constraints.maxWidth >= 700
+                    ? (constraints.maxWidth - 12) / 2
+                    : constraints.maxWidth;
+                return Wrap(
+                  spacing: 12,
+                  runSpacing: 10,
+                  children: [
+                    for (final notice in featured)
+                      SizedBox(
+                        width: itemWidth,
+                        child: _FeaturedNoticeTile(
+                          notice: notice,
+                          category: noticeCopy.categoryLabel(notice.category),
+                          onTap: onOpen,
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _FeaturedNoticeTile extends StatelessWidget {
+  const _FeaturedNoticeTile({
+    required this.notice,
+    required this.category,
+    required this.onTap,
+  });
+
+  final CommunityNotice notice;
+  final String category;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final date = notice.parsedDate;
+    final details = [
+      category,
+      if (date != null) _shortNoticeDate(date),
+      if (notice.location.isNotEmpty) notice.location,
+    ].join(' · ');
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.mint,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Icon(
+                  noticeCategoryIcon(notice.category),
+                  color: AppColors.primaryStrong,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            notice.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                        if (notice.pinned)
+                          const Padding(
+                            padding: EdgeInsets.only(left: 6),
+                            child: Icon(Icons.push_pin_outlined, size: 17),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      details,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_right),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+String _shortNoticeDate(DateTime date) =>
+    '${date.day.toString().padLeft(2, '0')}/'
+    '${date.month.toString().padLeft(2, '0')}';

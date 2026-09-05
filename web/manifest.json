@@ -3,10 +3,10 @@
     "short_name": "FFPMU Connect",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
+    "background_color": "#F7F5EF",
+    "theme_color": "#173F39",
     "description": "FFPMU Connect for Sunday services and country content.",
-    "orientation": "portrait-primary",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

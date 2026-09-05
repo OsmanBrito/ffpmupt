@@ -35,6 +35,18 @@ void main() {
     expect(decoded?.withoutPaper, isTrue);
   });
 
+  test('active Sunday session round-trips through local data', () {
+    final session = SundaySessionState(
+      startedAt: DateTime(2026, 9, 6, 10),
+      completedModules: const {SundayModule.songs, SundayModule.familyPromise},
+    );
+
+    final decoded = SundaySessionState.fromMap(session.toMap());
+
+    expect(decoded?.startedAt, session.startedAt);
+    expect(decoded?.completedModules, session.completedModules);
+  });
+
   test('country readiness requires every check and no content issues', () {
     final checks = [
       for (final area in ReadinessArea.values)

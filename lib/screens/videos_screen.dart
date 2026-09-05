@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:ffpmupt/content/videos.dart';
+import 'package:ffpmupt/navigation/app_routes.dart';
 import 'package:ffpmupt/services/admin_auth_service.dart';
 import 'package:ffpmupt/services/weekly_videos_repository.dart';
 import 'package:ffpmupt/settings/app_language.dart';
@@ -157,7 +158,7 @@ class _VideosScreenState extends State<VideosScreen> {
           else
             IconButton(
               tooltip: strings.adminLogin,
-              onPressed: () => Navigator.of(context).pushNamed('/admin'),
+              onPressed: () => Navigator.of(context).pushNamed(AppRoutes.admin),
               icon: const Icon(Icons.lock_outline),
             ),
           const SizedBox(width: 8),

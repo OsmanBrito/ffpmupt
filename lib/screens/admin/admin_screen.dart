@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:ffpmupt/models/country.dart';
+import 'package:ffpmupt/navigation/app_routes.dart';
 import 'package:ffpmupt/screens/admin/country_admin_screen.dart';
 import 'package:ffpmupt/screens/admin/community_notices_admin_screen.dart';
 import 'package:ffpmupt/screens/admin/country_readiness_screen.dart';
@@ -253,7 +254,7 @@ class _AdminScreenState extends State<AdminScreen> {
               const SizedBox(height: 18),
               OutlinedButton.icon(
                 onPressed: () =>
-                    Navigator.of(context).pushNamed('/request-access'),
+                    Navigator.of(context).pushNamed(AppRoutes.requestAccess),
                 icon: const Icon(Icons.mark_email_unread_outlined),
                 label: Text(adminText(context, 'Pedir acesso administrativo')),
               ),
@@ -517,7 +518,7 @@ class _AdminScreenState extends State<AdminScreen> {
               const SizedBox(height: 4),
               TextButton.icon(
                 onPressed: () =>
-                    Navigator.of(context).pushNamed('/request-access'),
+                    Navigator.of(context).pushNamed(AppRoutes.requestAccess),
                 icon: const Icon(Icons.mark_email_unread_outlined),
                 label: Text(adminText(context, 'Pedir acesso administrativo')),
               ),

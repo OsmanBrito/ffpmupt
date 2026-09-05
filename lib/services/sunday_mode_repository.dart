@@ -10,6 +10,7 @@ class SundayModeRepository {
 
   String get _planKey => 'sundayMode.$countryCode.plan.v1';
   String get _reportsKey => 'sundayMode.$countryCode.reports.v1';
+  String get _activeSessionKey => 'sundayMode.$countryCode.active.v1';
 
   static const defaultPlan = [
     SundayPlanItem(module: SundayModule.songs, enabled: true),
@@ -90,5 +91,29 @@ class SundayModeRepository {
       jsonEncode(updated.map((item) => item.toMap()).toList()),
     );
     return updated;
+  }
+
+  Future<SundaySessionState?> loadActiveSession() async {
+    final stored = await LocalStore.getString(_activeSessionKey);
+    if (stored == null || stored.isEmpty) {
+      return null;
+    }
+    try {
+      final decoded = jsonDecode(stored);
+      if (decoded is! Map) {
+        return null;
+      }
+      return SundaySessionState.fromMap(Map<String, Object?>.from(decoded));
+    } on FormatException {
+      return null;
+    }
+  }
+
+  Future<void> saveActiveSession(SundaySessionState session) {
+    return LocalStore.setString(_activeSessionKey, jsonEncode(session.toMap()));
+  }
+
+  Future<void> clearActiveSession() {
+    return LocalStore.remove(_activeSessionKey);
   }
 }

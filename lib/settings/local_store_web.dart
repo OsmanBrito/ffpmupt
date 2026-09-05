@@ -7,6 +7,9 @@ external String? _getItem(String key);
 @JS('window.localStorage.setItem')
 external void _setItem(String key, String value);
 
+@JS('window.localStorage.removeItem')
+external void _removeItem(String key);
+
 class LocalStore {
   LocalStore._();
 
@@ -34,5 +37,9 @@ class LocalStore {
 
   static Future<void> setStringList(String key, List<String> value) async {
     _setItem(key, jsonEncode(value));
+  }
+
+  static Future<void> remove(String key) async {
+    _removeItem(key);
   }
 }
