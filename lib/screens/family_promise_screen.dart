@@ -82,7 +82,10 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
       )) {
         _currentLanguageCode = _initialLanguage(promises);
       }
-      _currentIndex = _currentIndex.clamp(0, _currentPromise.verses.length - 1);
+      _currentIndex = familyPromiseIndexForVerseCount(
+        selectedIndex: _currentIndex,
+        verseCount: _currentPromise.verses.length,
+      );
     });
   }
 
@@ -96,9 +99,16 @@ class _FamilyPromiseScreenState extends State<FamilyPromiseScreen> {
   }
 
   void _changeLanguage(String languageCode) {
+    final nextPromise = _promises.firstWhere(
+      (promise) => promise.languageCode == languageCode,
+      orElse: () => _currentPromise,
+    );
     setState(() {
-      _currentLanguageCode = languageCode;
-      _currentIndex = 0;
+      _currentLanguageCode = nextPromise.languageCode;
+      _currentIndex = familyPromiseIndexForVerseCount(
+        selectedIndex: _currentIndex,
+        verseCount: nextPromise.verses.length,
+      );
     });
     unawaited(_stopSpeech());
   }

@@ -65,3 +65,13 @@ class FamilyPromiseDocument {
     );
   }
 }
+
+int familyPromiseIndexForVerseCount({
+  required int selectedIndex,
+  required int verseCount,
+}) {
+  if (verseCount <= 0) {
+    return 0;
+  }
+  return selectedIndex.clamp(0, verseCount - 1);
+}

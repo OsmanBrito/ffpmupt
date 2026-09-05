@@ -96,6 +96,12 @@ void main() {
     expect(decoded?.verses, ['Um', 'Dois']);
   });
 
+  test('family promise keeps its position when the language changes', () {
+    expect(familyPromiseIndexForVerseCount(selectedIndex: 4, verseCount: 8), 4);
+    expect(familyPromiseIndexForVerseCount(selectedIndex: 7, verseCount: 5), 4);
+    expect(familyPromiseIndexForVerseCount(selectedIndex: 3, verseCount: 0), 0);
+  });
+
   test('country promise defaults remove duplicate languages', () {
     final portugal = bundledFamilyPromisesForCountry(
       countryCode: 'pt',
