@@ -553,6 +553,8 @@ class _ListOfSongsScreenState extends State<ListOfSongsScreen> {
                                         (track) => track.enabled,
                                       ))
                                         '♪ ${copy[ReadingSongText.audio]}',
+                                      if (song.hasChords)
+                                        '♯ ${copy[ReadingSongText.chords]}',
                                     ].join(' · '),
                                   ),
                                   trailing: IconButton(
@@ -858,10 +860,15 @@ class _SongScreenState extends State<SongScreen> {
     }
   }
 
-  Widget _buildLyricCard({required Color color, required TextTheme textTheme}) {
+  Widget _buildLyricCard({
+    required Color color,
+    required TextTheme textTheme,
+    required ReadingSongStrings copy,
+  }) {
     final displayedFontSize = _isPresentation && _lyricFontSize < 48
         ? 48.0
         : _lyricFontSize;
+    final chords = widget.song.chordsForVerse(_currentIndex);
     return Card(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 30),
@@ -876,6 +883,49 @@ class _SongScreenState extends State<SongScreen> {
               ),
             ),
             const SizedBox(height: 20),
+            if (chords.isNotEmpty) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 16,
+                ),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: color.withValues(alpha: 0.18)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.piano_outlined, size: 18, color: color),
+                        const SizedBox(width: 7),
+                        Text(
+                          copy[ReadingSongText.chords],
+                          style: textTheme.labelLarge?.copyWith(
+                            color: color,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    SelectableText(
+                      chords,
+                      style: textTheme.titleLarge?.copyWith(
+                        color: color,
+                        fontFamily: 'monospace',
+                        fontSize: (displayedFontSize * 0.72).clamp(18, 40),
+                        height: 1.45,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
             Text(
               widget.song.lyrics[_currentIndex],
               textAlign: _isPresentation ? TextAlign.center : TextAlign.start,
@@ -1090,6 +1140,11 @@ class _SongScreenState extends State<SongScreen> {
                           avatar: const Icon(Icons.music_note, size: 18),
                           label: Text(strings.audioAvailable),
                         ),
+                      if (widget.song.hasChords)
+                        Chip(
+                          avatar: const Icon(Icons.piano_outlined, size: 18),
+                          label: Text(copy[ReadingSongText.chords]),
+                        ),
                       if (_isOfferingSong)
                         Chip(
                           avatar: const Icon(
@@ -1119,7 +1174,11 @@ class _SongScreenState extends State<SongScreen> {
                             const SizedBox(height: 14),
                           _buildSongControls(copy),
                           const SizedBox(height: 14),
-                          _buildLyricCard(color: color, textTheme: textTheme),
+                          _buildLyricCard(
+                            color: color,
+                            textTheme: textTheme,
+                            copy: copy,
+                          ),
                           if (!_isPresentation) ...[
                             const SizedBox(height: 14),
                             _buildLyricNavigator(color, strings),

@@ -27,6 +27,15 @@ void main() {
     expect(result.songs.first.title, 'Unidade');
     expect(result.songs.first.lyrics, hasLength(6));
     expect(result.songs.first.chorusMode, ChorusMode.second);
+    expect(result.songs.first.chords, [
+      'D   A   Bm   G',
+      'G   D   A',
+      'G   D   A',
+      'G   D   A',
+      'Bm   G   D   A',
+      'G   D   A',
+    ]);
+    expect(result.songs.last.chords, isEmpty);
     expect(result.songs.first.audioTracks, isEmpty);
   });
 

@@ -40,11 +40,15 @@ Use uma linha por música. Não altere os nomes da primeira linha.
 | `idioma` | não | Código como `pt`, `en`, `ko`, `es`, `de`, `it` ou `fr` |
 | `refrao` | não | Escreva o refrão apenas uma vez |
 | `estrofe_1` até `estrofe_10` | uma delas | Uma estrofe por coluna |
+| `cifra_1` até `cifra_10` | não | Cifra correspondente a cada estrofe |
+| `cifra_refrao` | não | Cifra correspondente ao refrão |
 | `ordem` | não | Ordem numérica no catálogo |
 | `ativa` | não | `sim` ou `nao`; vazio significa ativa |
 
 Quando existe refrão, o app intercala automaticamente o refrão entre as
 estrofes. Deixe vazias as colunas de estrofes que não forem usadas.
+As colunas de cifra são opcionais; uma música sem cifras continua aparecendo
+normalmente.
 
 ### 3. Importar
 

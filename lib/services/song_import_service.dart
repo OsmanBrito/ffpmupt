@@ -94,13 +94,23 @@ class SongImportService {
         }
 
         final chorus = _valueFor(row, headers, 'refrao');
+        final chorusChords = _valueFor(row, headers, 'cifra_refrao').isNotEmpty
+            ? _valueFor(row, headers, 'cifra_refrao')
+            : _valueFor(row, headers, 'acordes_refrao');
         final verses = <String>[];
+        final verseChords = <String>[];
         for (var index = 1; index <= 20; index++) {
           final verse = _valueFor(row, headers, 'estrofe_$index').isNotEmpty
               ? _valueFor(row, headers, 'estrofe_$index')
               : _valueFor(row, headers, 'verso_$index');
           if (verse.isNotEmpty) {
             verses.add(verse);
+            final chords = _valueFor(row, headers, 'cifra_$index');
+            verseChords.add(
+              chords.isNotEmpty
+                  ? chords
+                  : _valueFor(row, headers, 'acordes_$index'),
+            );
           }
         }
         if (verses.isEmpty) {
@@ -111,6 +121,16 @@ class SongImportService {
                 .map((part) => part.trim())
                 .where((part) => part.isNotEmpty),
           );
+          final chordSheet = _valueFor(row, headers, 'cifras').isNotEmpty
+              ? _valueFor(row, headers, 'cifras')
+              : _valueFor(row, headers, 'acordes');
+          final chordParts = chordSheet
+              .split(RegExp(r'\s*\|\|\|\s*'))
+              .map((part) => part.trim())
+              .toList();
+          for (var index = 0; index < verses.length; index++) {
+            verseChords.add(index < chordParts.length ? chordParts[index] : '');
+          }
         }
         if (verses.isEmpty && chorus.isEmpty) {
           errors.add('Linha ${rowIndex + 1} ($title): letra vazia.');
@@ -118,15 +138,22 @@ class SongImportService {
         }
 
         final lyrics = <String>[];
+        final chords = <String>[];
         if (verses.isEmpty) {
           lyrics.add(chorus);
+          chords.add(chorusChords);
         } else {
-          for (final verse in verses) {
-            lyrics.add(verse);
+          for (var index = 0; index < verses.length; index++) {
+            lyrics.add(verses[index]);
+            chords.add(index < verseChords.length ? verseChords[index] : '');
             if (chorus.isNotEmpty) {
               lyrics.add(chorus);
+              chords.add(chorusChords);
             }
           }
+        }
+        while (chords.isNotEmpty && chords.last.isEmpty) {
+          chords.removeLast();
         }
         final categoryValue = _valueFor(row, headers, 'categoria');
         final category = SongCategory.fromValue(categoryValue.toLowerCase());
@@ -150,6 +177,7 @@ class SongImportService {
                 ? defaultLanguage
                 : _valueFor(row, headers, 'idioma').toLowerCase(),
             lyrics: lyrics,
+            chords: chords,
             chorusMode: chorus.isEmpty ? ChorusMode.none : ChorusMode.second,
             enabled: _parseEnabled(_valueFor(row, headers, 'ativa')),
             sortOrder: sortOrder ?? startingSortOrder + songs.length,

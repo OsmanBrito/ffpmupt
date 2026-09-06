@@ -209,6 +209,7 @@ class SongDocument {
     required this.category,
     required this.languageCode,
     required this.lyrics,
+    this.chords = const [],
     required this.chorusMode,
     required this.enabled,
     required this.sortOrder,
@@ -222,6 +223,7 @@ class SongDocument {
   final SongCategory category;
   final String languageCode;
   final List<String> lyrics;
+  final List<String> chords;
   final ChorusMode chorusMode;
   final bool enabled;
   final int sortOrder;
@@ -235,6 +237,7 @@ class SongDocument {
     SongCategory? category,
     String? languageCode,
     List<String>? lyrics,
+    List<String>? chords,
     ChorusMode? chorusMode,
     bool? enabled,
     int? sortOrder,
@@ -248,6 +251,7 @@ class SongDocument {
       category: category ?? this.category,
       languageCode: languageCode ?? this.languageCode,
       lyrics: lyrics ?? this.lyrics,
+      chords: chords ?? this.chords,
       chorusMode: chorusMode ?? this.chorusMode,
       enabled: enabled ?? this.enabled,
       sortOrder: sortOrder ?? this.sortOrder,
@@ -263,6 +267,7 @@ class SongDocument {
       'category': category.value,
       'languageCode': languageCode,
       'lyrics': lyrics,
+      'chords': chords,
       'chorusMode': chorusMode.value,
       'enabled': enabled,
       'sortOrder': sortOrder,
@@ -280,6 +285,7 @@ class SongDocument {
     final categoryValue = map['category'];
     final languageCode = map['languageCode'];
     final lyricsValue = map['lyrics'];
+    final chordsValue = map['chords'];
     final chorusModeValue = map['chorusMode'];
     final enabled = map['enabled'];
     final sortOrder = map['sortOrder'];
@@ -291,6 +297,7 @@ class SongDocument {
         categoryValue is! String ||
         languageCode is! String ||
         lyricsValue is! List ||
+        (chordsValue != null && chordsValue is! List) ||
         chorusModeValue is! String ||
         enabled is! bool ||
         sortOrder is! int ||
@@ -302,12 +309,16 @@ class SongDocument {
     final category = SongCategory.fromValue(categoryValue);
     final chorusMode = ChorusMode.fromValue(chorusModeValue);
     final lyrics = lyricsValue.whereType<String>().toList();
+    final chords = (chordsValue as List? ?? const <Object>[])
+        .whereType<String>()
+        .toList();
     final audioTracks = <SongAudioTrack>[];
     final videoLinks = <SongVideoLink>[];
 
     if (category == null ||
         chorusMode == null ||
-        lyrics.length != lyricsValue.length) {
+        lyrics.length != lyricsValue.length ||
+        (chordsValue is List && chords.length != chordsValue.length)) {
       return null;
     }
 
@@ -340,11 +351,21 @@ class SongDocument {
       category: category,
       languageCode: languageCode,
       lyrics: lyrics,
+      chords: chords,
       chorusMode: chorusMode,
       enabled: enabled,
       sortOrder: sortOrder,
       audioTracks: audioTracks,
       videoLinks: videoLinks,
     );
+  }
+
+  bool get hasChords => chords.any((chord) => chord.trim().isNotEmpty);
+
+  String chordsForVerse(int index) {
+    if (index < 0 || index >= chords.length) {
+      return '';
+    }
+    return chords[index].trim();
   }
 }

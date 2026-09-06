@@ -24,6 +24,7 @@ void main() {
       category: SongCategory.holy,
       languageCode: 'pt',
       lyrics: ['Primeira estrofe', 'Segunda estrofe'],
+      chords: ['D   A   Bm   G', 'G   D   A'],
       chorusMode: ChorusMode.none,
       enabled: true,
       sortOrder: 1,
@@ -58,6 +59,9 @@ void main() {
     expect(decoded?.title, song.title);
     expect(decoded?.category, SongCategory.holy);
     expect(decoded?.lyrics, hasLength(2));
+    expect(decoded?.chords, song.chords);
+    expect(decoded?.hasChords, isTrue);
+    expect(decoded?.chordsForVerse(0), 'D   A   Bm   G');
     expect(decoded?.audioTracks.single.verseStartSeconds, [0, 75]);
     expect(decoded?.audioTracks.single.verseChangeSeconds, [75]);
     expect(decoded?.videoLinks.single.provider, SongVideoProvider.youtube);
@@ -70,6 +74,30 @@ void main() {
     );
 
     expect(decoded, isNull);
+  });
+
+  test('song model keeps documents without chords backwards compatible', () {
+    const song = SongDocument(
+      id: 'legacy',
+      title: 'Legacy song',
+      page: '10',
+      category: SongCategory.holy,
+      languageCode: 'pt',
+      lyrics: ['Uma estrofe'],
+      chorusMode: ChorusMode.none,
+      enabled: true,
+      sortOrder: 10,
+      audioTracks: [],
+      videoLinks: [],
+    );
+    final legacyMap = song.toMap()..remove('chords');
+
+    final decoded = SongDocument.fromMap(id: song.id, map: legacyMap);
+
+    expect(decoded, isNotNull);
+    expect(decoded?.chords, isEmpty);
+    expect(decoded?.hasChords, isFalse);
+    expect(decoded?.chordsForVerse(0), isEmpty);
   });
 
   test('bundled catalog converts every legacy song without data loss', () {

@@ -357,7 +357,12 @@ class _SongsAdminScreenState extends State<SongsAdminScreen> {
                                       ),
                                     ),
                                     subtitle: Text(
-                                      '${_categoryLabel(context, song.category)} · ${song.languageCode.toUpperCase()}',
+                                      [
+                                        _categoryLabel(context, song.category),
+                                        song.languageCode.toUpperCase(),
+                                        if (song.hasChords)
+                                          adminText(context, 'Cifra'),
+                                      ].join(' · '),
                                     ),
                                     trailing: Row(
                                       mainAxisSize: MainAxisSize.min,
@@ -668,6 +673,7 @@ class _SongEditorScreenState extends State<SongEditorScreen> {
   late final TextEditingController _languageController;
   late final TextEditingController _sortOrderController;
   late final List<TextEditingController> _verseControllers;
+  late final List<TextEditingController> _chordControllers;
   late final List<_AudioDraft> _audioDrafts;
   late SongCategory _category;
   late ChorusMode _chorusMode;
@@ -690,6 +696,10 @@ class _SongEditorScreenState extends State<SongEditorScreen> {
     _verseControllers = (song?.lyrics ?? const <String>[''])
         .map((verse) => TextEditingController(text: verse))
         .toList();
+    _chordControllers = List.generate(
+      _verseControllers.length,
+      (index) => TextEditingController(text: song?.chordsForVerse(index) ?? ''),
+    );
     _audioDrafts = (song?.audioTracks ?? const <SongAudioTrack>[])
         .map(_AudioDraft.fromTrack)
         .toList();
@@ -707,6 +717,9 @@ class _SongEditorScreenState extends State<SongEditorScreen> {
     for (final controller in _verseControllers) {
       controller.dispose();
     }
+    for (final controller in _chordControllers) {
+      controller.dispose();
+    }
     for (final draft in _audioDrafts) {
       draft.dispose();
     }
@@ -714,7 +727,10 @@ class _SongEditorScreenState extends State<SongEditorScreen> {
   }
 
   void _addVerse() {
-    setState(() => _verseControllers.add(TextEditingController()));
+    setState(() {
+      _verseControllers.add(TextEditingController());
+      _chordControllers.add(TextEditingController());
+    });
   }
 
   void _removeVerse(int index) {
@@ -722,7 +738,9 @@ class _SongEditorScreenState extends State<SongEditorScreen> {
       return;
     }
     final controller = _verseControllers.removeAt(index);
+    final chordController = _chordControllers.removeAt(index);
     controller.dispose();
+    chordController.dispose();
     setState(() {});
   }
 
@@ -763,16 +781,27 @@ class _SongEditorScreenState extends State<SongEditorScreen> {
       for (var index = 0; index < _audioDrafts.length; index++) {
         audioTracks.add(_audioDrafts[index].toTrack(index));
       }
+      final lyrics = <String>[];
+      final chords = <String>[];
+      for (var index = 0; index < _verseControllers.length; index++) {
+        final lyric = _verseControllers[index].text.trim();
+        if (lyric.isEmpty) {
+          continue;
+        }
+        lyrics.add(lyric);
+        chords.add(_chordControllers[index].text.trim());
+      }
+      while (chords.isNotEmpty && chords.last.isEmpty) {
+        chords.removeLast();
+      }
       final song = SongDocument(
         id: widget.song?.id ?? '',
         title: _titleController.text.trim(),
         page: _pageController.text.trim(),
         category: _category,
         languageCode: _languageController.text.trim().toLowerCase(),
-        lyrics: _verseControllers
-            .map((controller) => controller.text.trim())
-            .where((verse) => verse.isNotEmpty)
-            .toList(),
+        lyrics: lyrics,
+        chords: chords,
         chorusMode: _chorusMode,
         enabled: _enabled,
         sortOrder: int.tryParse(_sortOrderController.text.trim()) ?? 0,
@@ -937,23 +966,41 @@ class _SongEditorScreenState extends State<SongEditorScreen> {
                   for (var index = 0; index < _verseControllers.length; index++)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
-                      child: TextFormField(
-                        controller: _verseControllers[index],
-                        validator: index == 0 ? _required : null,
-                        minLines: 3,
-                        maxLines: 8,
-                        decoration: InputDecoration(
-                          labelText:
-                              '${adminText(context, 'Verso')} ${index + 1}',
-                          border: const OutlineInputBorder(),
-                          suffixIcon: IconButton(
-                            tooltip: adminText(context, 'Remover verso'),
-                            onPressed: _verseControllers.length == 1
-                                ? null
-                                : () => _removeVerse(index),
-                            icon: const Icon(Icons.delete_outline),
+                      child: Column(
+                        children: [
+                          TextFormField(
+                            controller: _verseControllers[index],
+                            validator: index == 0 ? _required : null,
+                            minLines: 3,
+                            maxLines: 8,
+                            decoration: InputDecoration(
+                              labelText:
+                                  '${adminText(context, 'Verso')} ${index + 1}',
+                              border: const OutlineInputBorder(),
+                              suffixIcon: IconButton(
+                                tooltip: adminText(context, 'Remover verso'),
+                                onPressed: _verseControllers.length == 1
+                                    ? null
+                                    : () => _removeVerse(index),
+                                icon: const Icon(Icons.delete_outline),
+                              ),
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: _chordControllers[index],
+                            minLines: 1,
+                            maxLines: 5,
+                            style: const TextStyle(fontFamily: 'monospace'),
+                            decoration: InputDecoration(
+                              labelText:
+                                  '${adminText(context, 'Cifra (opcional)')} ${index + 1}',
+                              hintText: 'D   A   Bm   G',
+                              prefixIcon: const Icon(Icons.piano_outlined),
+                              border: const OutlineInputBorder(),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   const SizedBox(height: 4),

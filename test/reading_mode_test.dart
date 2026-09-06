@@ -44,6 +44,30 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('song shows chords only on verses that provide them', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app(chords: const ['D   A   Bm   G']));
+
+    expect(find.text('Cifra'), findsNWidgets(2));
+    expect(find.text('D   A   Bm   G'), findsOneWidget);
+
+    await tester.tap(find.text('Seguinte'));
+    await tester.pump();
+
+    expect(find.text('D   A   Bm   G'), findsNothing);
+    expect(find.text('Segunda estrofe.'), findsOneWidget);
+  });
+
+  testWidgets('song without chords keeps the regular lyric layout', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app());
+
+    expect(find.text('Cifra'), findsNothing);
+    expect(find.byIcon(Icons.piano_outlined), findsNothing);
+  });
+
   testWidgets('song filters move into a mobile sheet', (tester) async {
     tester.view.physicalSize = const Size(390, 760);
     tester.view.devicePixelRatio = 1;
@@ -69,7 +93,7 @@ void main() {
 
 const _lyric = 'Uma linha de letra para leitura individual.';
 
-Widget _app() {
+Widget _app({List<String> chords = const []}) {
   return AppLanguageScope(
     controller: AppLanguageController(loadStoredLanguage: false),
     child: MaterialApp(
@@ -83,6 +107,7 @@ Widget _app() {
           category: SongCategory.holy,
           languageCode: 'pt',
           lyrics: const [_lyric, 'Segunda estrofe.'],
+          chords: chords,
           chorusMode: ChorusMode.none,
           enabled: true,
           sortOrder: 0,

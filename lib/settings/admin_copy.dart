@@ -91,6 +91,8 @@ const _english = <String, String>{
   'Versos': 'Verses',
   'Adicionar verso': 'Add verse',
   'Remover verso': 'Remove verse',
+  'Cifra (opcional)': 'Chords (optional)',
+  'Cifra': 'Chords',
   'Refrão': 'Chorus',
   'Nenhum': 'None',
   'Versos ímpares': 'Odd verses',
